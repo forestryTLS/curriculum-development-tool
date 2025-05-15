@@ -1,0 +1,84 @@
+/*This is the css for the accordions*/ 
+#accordion{
+    width:100%;
+    
+}
+
+.card-header {
+    background-color: #002145;
+    height: 75px;
+}
+
+.card-header:hover{
+    background-color: #0055B7;    
+}
+
+.card-header:hover .accordion-title{
+    color: white;
+}
+
+.accordion-title {
+    color: white;
+    text-decoration: none;
+    font-size: 16pt;
+    font-family: 'Open Sans', sans-serif
+}
+
+.card-body{
+    font-size: 11pt;
+    font-family: 'Open Sans', sans-serif;
+}
+
+.accordion-sublist{ /* fixes weird spacing from the bootstrap defaults*/
+    margin-top: -30px;
+    padding-bottom: 15px;
+}
+
+
+input {
+    display: none;
+}
+
+label {
+    display: block;    
+    padding: 8px 22px;
+    margin: 0 0 1px 0;
+    cursor: pointer;
+    background: #002145;
+    border-radius: 3px;
+    color: #FFF;
+}
+
+.card-header:hover label{
+    background: #0055B7;
+}
+
+
+input + label + .content {
+    display: none;
+}
+
+input:checked + label + .content {
+    display: block;
+}
+
+label::after {
+	font-family: "Font Awesome 5 Free";
+	content: '\f078';
+	font-weight: bold;
+}
+input:checked + label::after {
+	content: '\f077';
+}
+label::after {
+	font-family: "Font Awesome 5 Free";
+	content: '\f078';
+	font-weight: bold;
+	font-size: 22px;
+	position: absolute;
+	right: 10px;
+	top: 6px;
+}
+label {
+	position: relative;
+}

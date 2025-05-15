@@ -1,0 +1,97 @@
+/*This is the css for the accordions*/ 
+#accordion{
+    width:100%; /* fill the div */
+}
+
+.accordion-button.program {
+    background-color: #002145;
+    color: white;
+}
+
+.accordion-button.clo {
+    background-color: #40B4E5;
+    color: white;
+}
+
+/* change fill value for program accordion icon color */
+.accordion-button.white-arrow::after {
+    background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23fff'><path fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/></svg>");  
+}
+
+/* .card-header {
+    background-color: #002145; /*UBC branding*/
+    height: 75px;
+}
+
+.card-header:hover{
+    background-color: #0055B7; /*UBC Branding*/
+}
+
+.card-header:hover .accordion-title{
+    color: white;
+} */
+
+.accordion-title {
+    color: white;
+    text-decoration: none;
+    font-size: 16pt;
+    font-family: 'Open Sans', sans-serif
+}
+
+.card-body{
+    font-size: 11pt;
+    font-family: 'Open Sans', sans-serif;
+}
+
+.accordion-sublist{ /* fixes weird spacing from the bootstrap defaults*/
+    margin-top: -30px;
+    padding-bottom: 15px;
+}
+
+.accordion-input {
+    display: none;
+}
+
+.accordion-label {
+    display: block;    
+    padding: 8px 22px;
+    margin: 0 0 1px 0;
+    cursor: pointer;
+    background: #002145;
+    border-radius: 3px;
+    color: #FFF;
+}
+
+.card-header:hover label{
+    background: #0055B7;
+}
+
+.accordion-input + label + .content {
+    display: none;
+}
+
+.accordion-input:checked + label + .content {
+    display: block;
+}
+/*This is for the arrow*/
+.accordion-label::after {
+	font-family: "Font Awesome 5 Free";
+	content: '\f078';
+	font-weight: bold;
+}
+.accordion-input:checked + .accordion-label::after {
+	content: '\f077';
+}
+/*This is for the arrow*/
+.accordion-label::after {
+	font-family: "Font Awesome 5 Free";
+	content: '\f078';
+	font-weight: bold;
+	font-size: 22px;
+	position: absolute;
+	right: 10px;
+	top: 6px;
+}
+.accordion-label {
+	position: relative;
+}
