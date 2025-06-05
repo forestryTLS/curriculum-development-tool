@@ -17,10 +17,17 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 --
--- Name: laravel; Type: SCHEMA; Schema: -; Owner: -
+-- Name: public; Type: SCHEMA; Schema: -; Owner: -
 --
 
-CREATE SCHEMA laravel;
+-- *not* creating schema, since initdb creates it
+
+
+--
+-- Name: SCHEMA public; Type: COMMENT; Schema: -; Owner: -
+--
+
+COMMENT ON SCHEMA public IS '';
 
 
 SET default_tablespace = '';
@@ -1920,811 +1927,811 @@ ALTER TABLE ONLY public.vancouver_syllabus_resources ALTER COLUMN id SET DEFAULT
 
 
 --
--- Name: assessment_methods idx_32930_primary; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: assessment_methods idx_42482_primary; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.assessment_methods
-    ADD CONSTRAINT idx_32930_primary PRIMARY KEY (a_method_id);
+    ADD CONSTRAINT idx_42482_primary PRIMARY KEY (a_method_id);
 
 
 --
--- Name: campuses idx_32936_primary; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: campuses idx_42488_primary; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.campuses
-    ADD CONSTRAINT idx_32936_primary PRIMARY KEY (campus_id);
+    ADD CONSTRAINT idx_42488_primary PRIMARY KEY (campus_id);
 
 
 --
--- Name: course_optional_priorities idx_32940_primary; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: course_optional_priorities idx_42492_primary; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.course_optional_priorities
-    ADD CONSTRAINT idx_32940_primary PRIMARY KEY (op_id, course_id);
+    ADD CONSTRAINT idx_42492_primary PRIMARY KEY (op_id, course_id);
 
 
 --
--- Name: course_programs idx_32944_primary; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: course_programs idx_42496_primary; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.course_programs
-    ADD CONSTRAINT idx_32944_primary PRIMARY KEY (id);
+    ADD CONSTRAINT idx_42496_primary PRIMARY KEY (id);
 
 
 --
--- Name: course_schedules idx_32950_primary; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: course_schedules idx_42502_primary; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.course_schedules
-    ADD CONSTRAINT idx_32950_primary PRIMARY KEY (id);
+    ADD CONSTRAINT idx_42502_primary PRIMARY KEY (id);
 
 
 --
--- Name: course_users idx_32957_primary; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: course_users idx_42509_primary; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.course_users
-    ADD CONSTRAINT idx_32957_primary PRIMARY KEY (id);
+    ADD CONSTRAINT idx_42509_primary PRIMARY KEY (id);
 
 
 --
--- Name: course_users_old idx_32962_primary; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: course_users_old idx_42514_primary; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.course_users_old
-    ADD CONSTRAINT idx_32962_primary PRIMARY KEY (course_id, user_id);
+    ADD CONSTRAINT idx_42514_primary PRIMARY KEY (course_id, user_id);
 
 
 --
--- Name: courses idx_32966_primary; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: courses idx_42518_primary; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.courses
-    ADD CONSTRAINT idx_32966_primary PRIMARY KEY (course_id);
+    ADD CONSTRAINT idx_42518_primary PRIMARY KEY (course_id);
 
 
 --
--- Name: custom_assessment_methods idx_32976_primary; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: custom_assessment_methods idx_42528_primary; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.custom_assessment_methods
-    ADD CONSTRAINT idx_32976_primary PRIMARY KEY (custom_method_id);
+    ADD CONSTRAINT idx_42528_primary PRIMARY KEY (custom_method_id);
 
 
 --
--- Name: custom_learning_activities idx_32981_primary; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: custom_learning_activities idx_42533_primary; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.custom_learning_activities
-    ADD CONSTRAINT idx_32981_primary PRIMARY KEY (custom_activity_id);
+    ADD CONSTRAINT idx_42533_primary PRIMARY KEY (custom_activity_id);
 
 
 --
--- Name: custom_program_learning_outcomes idx_32986_primary; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: custom_program_learning_outcomes idx_42538_primary; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.custom_program_learning_outcomes
-    ADD CONSTRAINT idx_32986_primary PRIMARY KEY (id);
+    ADD CONSTRAINT idx_42538_primary PRIMARY KEY (id);
 
 
 --
--- Name: departments idx_32991_primary; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: departments idx_42543_primary; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.departments
-    ADD CONSTRAINT idx_32991_primary PRIMARY KEY (department_id);
+    ADD CONSTRAINT idx_42543_primary PRIMARY KEY (department_id);
 
 
 --
--- Name: faculties idx_32996_primary; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: faculties idx_42548_primary; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.faculties
-    ADD CONSTRAINT idx_32996_primary PRIMARY KEY (faculty_id);
+    ADD CONSTRAINT idx_42548_primary PRIMARY KEY (faculty_id);
 
 
 --
--- Name: failed_jobs idx_33001_primary; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: failed_jobs idx_42553_primary; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.failed_jobs
-    ADD CONSTRAINT idx_33001_primary PRIMARY KEY (id);
+    ADD CONSTRAINT idx_42553_primary PRIMARY KEY (id);
 
 
 --
--- Name: invites idx_33009_primary; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: invites idx_42561_primary; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.invites
-    ADD CONSTRAINT idx_33009_primary PRIMARY KEY (id);
+    ADD CONSTRAINT idx_42561_primary PRIMARY KEY (id);
 
 
 --
--- Name: learning_activities idx_33014_primary; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: learning_activities idx_42566_primary; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.learning_activities
-    ADD CONSTRAINT idx_33014_primary PRIMARY KEY (l_activity_id);
+    ADD CONSTRAINT idx_42566_primary PRIMARY KEY (l_activity_id);
 
 
 --
--- Name: learning_outcomes idx_33020_primary; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: learning_outcomes idx_42572_primary; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.learning_outcomes
-    ADD CONSTRAINT idx_33020_primary PRIMARY KEY (l_outcome_id);
+    ADD CONSTRAINT idx_42572_primary PRIMARY KEY (l_outcome_id);
 
 
 --
--- Name: mapping_scale_categories idx_33028_primary; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: mapping_scale_categories idx_42580_primary; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mapping_scale_categories
-    ADD CONSTRAINT idx_33028_primary PRIMARY KEY (mapping_scale_categories_id);
+    ADD CONSTRAINT idx_42580_primary PRIMARY KEY (mapping_scale_categories_id);
 
 
 --
--- Name: mapping_scale_programs idx_33034_primary; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: mapping_scale_programs idx_42586_primary; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mapping_scale_programs
-    ADD CONSTRAINT idx_33034_primary PRIMARY KEY (map_scale_id, program_id);
+    ADD CONSTRAINT idx_42586_primary PRIMARY KEY (map_scale_id, program_id);
 
 
 --
--- Name: mapping_scales idx_33038_primary; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: mapping_scales idx_42590_primary; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mapping_scales
-    ADD CONSTRAINT idx_33038_primary PRIMARY KEY (map_scale_id);
+    ADD CONSTRAINT idx_42590_primary PRIMARY KEY (map_scale_id);
 
 
 --
--- Name: migrations idx_33045_primary; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: migrations idx_42597_primary; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.migrations
-    ADD CONSTRAINT idx_33045_primary PRIMARY KEY (id);
+    ADD CONSTRAINT idx_42597_primary PRIMARY KEY (id);
 
 
 --
--- Name: okanagan_syllabi idx_33050_primary; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: okanagan_syllabi idx_42602_primary; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.okanagan_syllabi
-    ADD CONSTRAINT idx_33050_primary PRIMARY KEY (id);
+    ADD CONSTRAINT idx_42602_primary PRIMARY KEY (id);
 
 
 --
--- Name: okanagan_syllabus_resources idx_33057_primary; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: okanagan_syllabus_resources idx_42609_primary; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.okanagan_syllabus_resources
-    ADD CONSTRAINT idx_33057_primary PRIMARY KEY (id);
+    ADD CONSTRAINT idx_42609_primary PRIMARY KEY (id);
 
 
 --
--- Name: optional_priorities idx_33062_primary; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: optional_priorities idx_42614_primary; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.optional_priorities
-    ADD CONSTRAINT idx_33062_primary PRIMARY KEY (op_id);
+    ADD CONSTRAINT idx_42614_primary PRIMARY KEY (op_id);
 
 
 --
--- Name: optional_priorities_old idx_33069_primary; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: optional_priorities_old idx_42621_primary; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.optional_priorities_old
-    ADD CONSTRAINT idx_33069_primary PRIMARY KEY (id);
+    ADD CONSTRAINT idx_42621_primary PRIMARY KEY (id);
 
 
 --
--- Name: optional_priorities_subdescriptions idx_33074_primary; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: optional_priorities_subdescriptions idx_42626_primary; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.optional_priorities_subdescriptions
-    ADD CONSTRAINT idx_33074_primary PRIMARY KEY (op_subdesc);
+    ADD CONSTRAINT idx_42626_primary PRIMARY KEY (op_subdesc);
 
 
 --
--- Name: optional_priority_categories idx_33081_primary; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: optional_priority_categories idx_42633_primary; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.optional_priority_categories
-    ADD CONSTRAINT idx_33081_primary PRIMARY KEY (cat_id);
+    ADD CONSTRAINT idx_42633_primary PRIMARY KEY (cat_id);
 
 
 --
--- Name: optional_priority_subcategories idx_33086_primary; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: optional_priority_subcategories idx_42638_primary; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.optional_priority_subcategories
-    ADD CONSTRAINT idx_33086_primary PRIMARY KEY (subcat_id);
+    ADD CONSTRAINT idx_42638_primary PRIMARY KEY (subcat_id);
 
 
 --
--- Name: outcome_activities idx_33092_primary; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: outcome_activities idx_42644_primary; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.outcome_activities
-    ADD CONSTRAINT idx_33092_primary PRIMARY KEY (l_outcome_id, l_activity_id);
+    ADD CONSTRAINT idx_42644_primary PRIMARY KEY (l_outcome_id, l_activity_id);
 
 
 --
--- Name: outcome_assessments idx_33095_primary; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: outcome_assessments idx_42647_primary; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.outcome_assessments
-    ADD CONSTRAINT idx_33095_primary PRIMARY KEY (l_outcome_id, a_method_id);
+    ADD CONSTRAINT idx_42647_primary PRIMARY KEY (l_outcome_id, a_method_id);
 
 
 --
--- Name: outcome_maps idx_33098_primary; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: outcome_maps idx_42650_primary; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.outcome_maps
-    ADD CONSTRAINT idx_33098_primary PRIMARY KEY (l_outcome_id, pl_outcome_id);
+    ADD CONSTRAINT idx_42650_primary PRIMARY KEY (l_outcome_id, pl_outcome_id);
 
 
 --
--- Name: p_l_o_categories idx_33103_primary; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: p_l_o_categories idx_42655_primary; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.p_l_o_categories
-    ADD CONSTRAINT idx_33103_primary PRIMARY KEY (plo_category_id);
+    ADD CONSTRAINT idx_42655_primary PRIMARY KEY (plo_category_id);
 
 
 --
--- Name: program_learning_outcomes idx_33111_primary; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: program_learning_outcomes idx_42663_primary; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.program_learning_outcomes
-    ADD CONSTRAINT idx_33111_primary PRIMARY KEY (pl_outcome_id);
+    ADD CONSTRAINT idx_42663_primary PRIMARY KEY (pl_outcome_id);
 
 
 --
--- Name: program_users idx_33118_primary; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: program_users idx_42670_primary; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.program_users
-    ADD CONSTRAINT idx_33118_primary PRIMARY KEY (id);
+    ADD CONSTRAINT idx_42670_primary PRIMARY KEY (id);
 
 
 --
--- Name: program_users_old idx_33123_primary; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: program_users_old idx_42675_primary; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.program_users_old
-    ADD CONSTRAINT idx_33123_primary PRIMARY KEY (user_id, program_id);
+    ADD CONSTRAINT idx_42675_primary PRIMARY KEY (user_id, program_id);
 
 
 --
--- Name: programs idx_33127_primary; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: programs idx_42679_primary; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.programs
-    ADD CONSTRAINT idx_33127_primary PRIMARY KEY (program_id);
+    ADD CONSTRAINT idx_42679_primary PRIMARY KEY (program_id);
 
 
 --
--- Name: role_user idx_33134_primary; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: role_user idx_42686_primary; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.role_user
-    ADD CONSTRAINT idx_33134_primary PRIMARY KEY (role_id, user_id);
+    ADD CONSTRAINT idx_42686_primary PRIMARY KEY (role_id, user_id);
 
 
 --
--- Name: roles idx_33138_primary; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: roles idx_42690_primary; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.roles
-    ADD CONSTRAINT idx_33138_primary PRIMARY KEY (id);
+    ADD CONSTRAINT idx_42690_primary PRIMARY KEY (id);
 
 
 --
--- Name: standard_categories idx_33143_primary; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: standard_categories idx_42695_primary; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.standard_categories
-    ADD CONSTRAINT idx_33143_primary PRIMARY KEY (standard_category_id);
+    ADD CONSTRAINT idx_42695_primary PRIMARY KEY (standard_category_id);
 
 
 --
--- Name: standard_scales idx_33148_primary; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: standard_scales idx_42700_primary; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.standard_scales
-    ADD CONSTRAINT idx_33148_primary PRIMARY KEY (standard_scale_id);
+    ADD CONSTRAINT idx_42700_primary PRIMARY KEY (standard_scale_id);
 
 
 --
--- Name: standards idx_33155_primary; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: standards idx_42707_primary; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.standards
-    ADD CONSTRAINT idx_33155_primary PRIMARY KEY (standard_id);
+    ADD CONSTRAINT idx_42707_primary PRIMARY KEY (standard_id);
 
 
 --
--- Name: standards_outcome_maps idx_33162_primary; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: standards_outcome_maps idx_42714_primary; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.standards_outcome_maps
-    ADD CONSTRAINT idx_33162_primary PRIMARY KEY (standard_id);
+    ADD CONSTRAINT idx_42714_primary PRIMARY KEY (standard_id);
 
 
 --
--- Name: standards_scale_categories idx_33167_primary; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: standards_scale_categories idx_42719_primary; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.standards_scale_categories
-    ADD CONSTRAINT idx_33167_primary PRIMARY KEY (scale_category_id);
+    ADD CONSTRAINT idx_42719_primary PRIMARY KEY (scale_category_id);
 
 
 --
--- Name: syllabi idx_33174_primary; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: syllabi idx_42726_primary; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.syllabi
-    ADD CONSTRAINT idx_33174_primary PRIMARY KEY (id);
+    ADD CONSTRAINT idx_42726_primary PRIMARY KEY (id);
 
 
 --
--- Name: syllabi_programs idx_33183_primary; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: syllabi_programs idx_42735_primary; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.syllabi_programs
-    ADD CONSTRAINT idx_33183_primary PRIMARY KEY (id);
+    ADD CONSTRAINT idx_42735_primary PRIMARY KEY (id);
 
 
 --
--- Name: syllabi_resources_okanagan idx_33188_primary; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: syllabi_resources_okanagan idx_42740_primary; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.syllabi_resources_okanagan
-    ADD CONSTRAINT idx_33188_primary PRIMARY KEY (id);
+    ADD CONSTRAINT idx_42740_primary PRIMARY KEY (id);
 
 
 --
--- Name: syllabi_resources_vancouver idx_33193_primary; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: syllabi_resources_vancouver idx_42745_primary; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.syllabi_resources_vancouver
-    ADD CONSTRAINT idx_33193_primary PRIMARY KEY (id);
+    ADD CONSTRAINT idx_42745_primary PRIMARY KEY (id);
 
 
 --
--- Name: syllabi_users idx_33198_primary; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: syllabi_users idx_42750_primary; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.syllabi_users
-    ADD CONSTRAINT idx_33198_primary PRIMARY KEY (id);
+    ADD CONSTRAINT idx_42750_primary PRIMARY KEY (id);
 
 
 --
--- Name: syllabus_instructors idx_33204_primary; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: syllabus_instructors idx_42756_primary; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.syllabus_instructors
-    ADD CONSTRAINT idx_33204_primary PRIMARY KEY (id);
+    ADD CONSTRAINT idx_42756_primary PRIMARY KEY (id);
 
 
 --
--- Name: users idx_33209_primary; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: users idx_42761_primary; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.users
-    ADD CONSTRAINT idx_33209_primary PRIMARY KEY (id);
+    ADD CONSTRAINT idx_42761_primary PRIMARY KEY (id);
 
 
 --
--- Name: vancouver_syllabi idx_33217_primary; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: vancouver_syllabi idx_42769_primary; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.vancouver_syllabi
-    ADD CONSTRAINT idx_33217_primary PRIMARY KEY (id);
+    ADD CONSTRAINT idx_42769_primary PRIMARY KEY (id);
 
 
 --
--- Name: vancouver_syllabus_resources idx_33224_primary; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: vancouver_syllabus_resources idx_42776_primary; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.vancouver_syllabus_resources
-    ADD CONSTRAINT idx_33224_primary PRIMARY KEY (id);
+    ADD CONSTRAINT idx_42776_primary PRIMARY KEY (id);
 
 
 --
--- Name: idx_32930_assessment_methods_course_id_foreign; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_42482_assessment_methods_course_id_foreign; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_32930_assessment_methods_course_id_foreign ON public.assessment_methods USING btree (course_id);
+CREATE INDEX idx_42482_assessment_methods_course_id_foreign ON public.assessment_methods USING btree (course_id);
 
 
 --
--- Name: idx_32940_course_optional_priorities_course_id_foreign; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_42492_course_optional_priorities_course_id_foreign; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_32940_course_optional_priorities_course_id_foreign ON public.course_optional_priorities USING btree (course_id);
+CREATE INDEX idx_42492_course_optional_priorities_course_id_foreign ON public.course_optional_priorities USING btree (course_id);
 
 
 --
--- Name: idx_32944_course_programs_course_id_foreign; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_42496_course_programs_course_id_foreign; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_32944_course_programs_course_id_foreign ON public.course_programs USING btree (course_id);
+CREATE INDEX idx_42496_course_programs_course_id_foreign ON public.course_programs USING btree (course_id);
 
 
 --
--- Name: idx_32944_course_programs_program_id_foreign; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_42496_course_programs_program_id_foreign; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_32944_course_programs_program_id_foreign ON public.course_programs USING btree (program_id);
+CREATE INDEX idx_42496_course_programs_program_id_foreign ON public.course_programs USING btree (program_id);
 
 
 --
--- Name: idx_32950_course_schedules_syllabus_id_foreign; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_42502_course_schedules_syllabus_id_foreign; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_32950_course_schedules_syllabus_id_foreign ON public.course_schedules USING btree (syllabus_id);
+CREATE INDEX idx_42502_course_schedules_syllabus_id_foreign ON public.course_schedules USING btree (syllabus_id);
 
 
 --
--- Name: idx_32957_course_userss_course_id_user_id_unique; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_42509_course_userss_course_id_user_id_unique; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX idx_32957_course_userss_course_id_user_id_unique ON public.course_users USING btree (course_id, user_id);
+CREATE UNIQUE INDEX idx_42509_course_userss_course_id_user_id_unique ON public.course_users USING btree (course_id, user_id);
 
 
 --
--- Name: idx_32957_course_userss_user_id_foreign; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_42509_course_userss_user_id_foreign; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_32957_course_userss_user_id_foreign ON public.course_users USING btree (user_id);
+CREATE INDEX idx_42509_course_userss_user_id_foreign ON public.course_users USING btree (user_id);
 
 
 --
--- Name: idx_32962_course_users_user_id_foreign; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_42514_course_users_user_id_foreign; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_32962_course_users_user_id_foreign ON public.course_users_old USING btree (user_id);
+CREATE INDEX idx_42514_course_users_user_id_foreign ON public.course_users_old USING btree (user_id);
 
 
 --
--- Name: idx_32966_courses_program_id_foreign; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_42518_courses_program_id_foreign; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_32966_courses_program_id_foreign ON public.courses USING btree (program_id);
+CREATE INDEX idx_42518_courses_program_id_foreign ON public.courses USING btree (program_id);
 
 
 --
--- Name: idx_32966_courses_scale_category_id_foreign; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_42518_courses_scale_category_id_foreign; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_32966_courses_scale_category_id_foreign ON public.courses USING btree (scale_category_id);
+CREATE INDEX idx_42518_courses_scale_category_id_foreign ON public.courses USING btree (scale_category_id);
 
 
 --
--- Name: idx_32966_courses_standard_category_id_foreign; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_42518_courses_standard_category_id_foreign; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_32966_courses_standard_category_id_foreign ON public.courses USING btree (standard_category_id);
+CREATE INDEX idx_42518_courses_standard_category_id_foreign ON public.courses USING btree (standard_category_id);
 
 
 --
--- Name: idx_32991_departments_faculty_id_foreign; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_42543_departments_faculty_id_foreign; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_32991_departments_faculty_id_foreign ON public.departments USING btree (faculty_id);
+CREATE INDEX idx_42543_departments_faculty_id_foreign ON public.departments USING btree (faculty_id);
 
 
 --
--- Name: idx_32996_faculties_campus_id_foreign; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_42548_faculties_campus_id_foreign; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_32996_faculties_campus_id_foreign ON public.faculties USING btree (campus_id);
+CREATE INDEX idx_42548_faculties_campus_id_foreign ON public.faculties USING btree (campus_id);
 
 
 --
--- Name: idx_33001_failed_jobs_uuid_unique; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_42553_failed_jobs_uuid_unique; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX idx_33001_failed_jobs_uuid_unique ON public.failed_jobs USING btree (uuid);
+CREATE UNIQUE INDEX idx_42553_failed_jobs_uuid_unique ON public.failed_jobs USING btree (uuid);
 
 
 --
--- Name: idx_33009_invites_email_unique; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_42561_invites_email_unique; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX idx_33009_invites_email_unique ON public.invites USING btree (email);
+CREATE UNIQUE INDEX idx_42561_invites_email_unique ON public.invites USING btree (email);
 
 
 --
--- Name: idx_33009_invites_invitation_token_unique; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_42561_invites_invitation_token_unique; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX idx_33009_invites_invitation_token_unique ON public.invites USING btree (invitation_token);
+CREATE UNIQUE INDEX idx_42561_invites_invitation_token_unique ON public.invites USING btree (invitation_token);
 
 
 --
--- Name: idx_33009_invites_user_id_foreign; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_42561_invites_user_id_foreign; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_33009_invites_user_id_foreign ON public.invites USING btree (user_id);
+CREATE INDEX idx_42561_invites_user_id_foreign ON public.invites USING btree (user_id);
 
 
 --
--- Name: idx_33014_learning_activities_course_id_foreign; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_42566_learning_activities_course_id_foreign; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_33014_learning_activities_course_id_foreign ON public.learning_activities USING btree (course_id);
+CREATE INDEX idx_42566_learning_activities_course_id_foreign ON public.learning_activities USING btree (course_id);
 
 
 --
--- Name: idx_33020_learning_outcomes_course_id_foreign; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_42572_learning_outcomes_course_id_foreign; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_33020_learning_outcomes_course_id_foreign ON public.learning_outcomes USING btree (course_id);
+CREATE INDEX idx_42572_learning_outcomes_course_id_foreign ON public.learning_outcomes USING btree (course_id);
 
 
 --
--- Name: idx_33034_mapping_scale_programs_program_id_foreign; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_42586_mapping_scale_programs_program_id_foreign; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_33034_mapping_scale_programs_program_id_foreign ON public.mapping_scale_programs USING btree (program_id);
+CREATE INDEX idx_42586_mapping_scale_programs_program_id_foreign ON public.mapping_scale_programs USING btree (program_id);
 
 
 --
--- Name: idx_33038_mapping_scales_mapping_scale_categories_id_foreign; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_42590_mapping_scales_mapping_scale_categories_id_foreign; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_33038_mapping_scales_mapping_scale_categories_id_foreign ON public.mapping_scales USING btree (mapping_scale_categories_id);
+CREATE INDEX idx_42590_mapping_scales_mapping_scale_categories_id_foreign ON public.mapping_scales USING btree (mapping_scale_categories_id);
 
 
 --
--- Name: idx_33050_okanagan_syllabi_syllabus_id_foreign; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_42602_okanagan_syllabi_syllabus_id_foreign; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_33050_okanagan_syllabi_syllabus_id_foreign ON public.okanagan_syllabi USING btree (syllabus_id);
+CREATE INDEX idx_42602_okanagan_syllabi_syllabus_id_foreign ON public.okanagan_syllabi USING btree (syllabus_id);
 
 
 --
--- Name: idx_33057_vancovuer_syllabus_resources_id_name_unique; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_42609_vancovuer_syllabus_resources_id_name_unique; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX idx_33057_vancovuer_syllabus_resources_id_name_unique ON public.okanagan_syllabus_resources USING btree (id_name);
+CREATE UNIQUE INDEX idx_42609_vancovuer_syllabus_resources_id_name_unique ON public.okanagan_syllabus_resources USING btree (id_name);
 
 
 --
--- Name: idx_33062_optional_priorities_op_subdesc_foreign; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_42614_optional_priorities_op_subdesc_foreign; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_33062_optional_priorities_op_subdesc_foreign ON public.optional_priorities USING btree (op_subdesc);
+CREATE INDEX idx_42614_optional_priorities_op_subdesc_foreign ON public.optional_priorities USING btree (op_subdesc);
 
 
 --
--- Name: idx_33062_optional_priorities_subcat_id_foreign; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_42614_optional_priorities_subcat_id_foreign; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_33062_optional_priorities_subcat_id_foreign ON public.optional_priorities USING btree (subcat_id);
+CREATE INDEX idx_42614_optional_priorities_subcat_id_foreign ON public.optional_priorities USING btree (subcat_id);
 
 
 --
--- Name: idx_33069_optional_priorities_course_id_foreign; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_42621_optional_priorities_course_id_foreign; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_33069_optional_priorities_course_id_foreign ON public.optional_priorities_old USING btree (course_id);
+CREATE INDEX idx_42621_optional_priorities_course_id_foreign ON public.optional_priorities_old USING btree (course_id);
 
 
 --
--- Name: idx_33086_optional_priority_subcategories_cat_id_foreign; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_42638_optional_priority_subcategories_cat_id_foreign; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_33086_optional_priority_subcategories_cat_id_foreign ON public.optional_priority_subcategories USING btree (cat_id);
+CREATE INDEX idx_42638_optional_priority_subcategories_cat_id_foreign ON public.optional_priority_subcategories USING btree (cat_id);
 
 
 --
--- Name: idx_33092_outcome_activities_l_activity_id_foreign; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_42644_outcome_activities_l_activity_id_foreign; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_33092_outcome_activities_l_activity_id_foreign ON public.outcome_activities USING btree (l_activity_id);
+CREATE INDEX idx_42644_outcome_activities_l_activity_id_foreign ON public.outcome_activities USING btree (l_activity_id);
 
 
 --
--- Name: idx_33095_outcome_assessments_a_method_id_foreign; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_42647_outcome_assessments_a_method_id_foreign; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_33095_outcome_assessments_a_method_id_foreign ON public.outcome_assessments USING btree (a_method_id);
+CREATE INDEX idx_42647_outcome_assessments_a_method_id_foreign ON public.outcome_assessments USING btree (a_method_id);
 
 
 --
--- Name: idx_33098_outcome_maps_map_scale_id_foreign; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_42650_outcome_maps_map_scale_id_foreign; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_33098_outcome_maps_map_scale_id_foreign ON public.outcome_maps USING btree (map_scale_id);
+CREATE INDEX idx_42650_outcome_maps_map_scale_id_foreign ON public.outcome_maps USING btree (map_scale_id);
 
 
 --
--- Name: idx_33098_outcome_maps_pl_outcome_id_foreign; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_42650_outcome_maps_pl_outcome_id_foreign; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_33098_outcome_maps_pl_outcome_id_foreign ON public.outcome_maps USING btree (pl_outcome_id);
+CREATE INDEX idx_42650_outcome_maps_pl_outcome_id_foreign ON public.outcome_maps USING btree (pl_outcome_id);
 
 
 --
--- Name: idx_33103_p_l_o_categories_program_id_foreign; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_42655_p_l_o_categories_program_id_foreign; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_33103_p_l_o_categories_program_id_foreign ON public.p_l_o_categories USING btree (program_id);
+CREATE INDEX idx_42655_p_l_o_categories_program_id_foreign ON public.p_l_o_categories USING btree (program_id);
 
 
 --
--- Name: idx_33107_password_resets_email_index; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_42659_password_resets_email_index; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_33107_password_resets_email_index ON public.password_resets USING btree (email);
+CREATE INDEX idx_42659_password_resets_email_index ON public.password_resets USING btree (email);
 
 
 --
--- Name: idx_33111_program_learning_outcomes_plo_category_id_foreign; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_42663_program_learning_outcomes_plo_category_id_foreign; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_33111_program_learning_outcomes_plo_category_id_foreign ON public.program_learning_outcomes USING btree (plo_category_id);
+CREATE INDEX idx_42663_program_learning_outcomes_plo_category_id_foreign ON public.program_learning_outcomes USING btree (plo_category_id);
 
 
 --
--- Name: idx_33111_program_learning_outcomes_program_id_foreign; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_42663_program_learning_outcomes_program_id_foreign; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_33111_program_learning_outcomes_program_id_foreign ON public.program_learning_outcomes USING btree (program_id);
+CREATE INDEX idx_42663_program_learning_outcomes_program_id_foreign ON public.program_learning_outcomes USING btree (program_id);
 
 
 --
--- Name: idx_33118_program_userss_program_id_foreign; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_42670_program_userss_program_id_foreign; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_33118_program_userss_program_id_foreign ON public.program_users USING btree (program_id);
+CREATE INDEX idx_42670_program_userss_program_id_foreign ON public.program_users USING btree (program_id);
 
 
 --
--- Name: idx_33118_program_userss_user_id_program_id_unique; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_42670_program_userss_user_id_program_id_unique; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX idx_33118_program_userss_user_id_program_id_unique ON public.program_users USING btree (user_id, program_id);
+CREATE UNIQUE INDEX idx_42670_program_userss_user_id_program_id_unique ON public.program_users USING btree (user_id, program_id);
 
 
 --
--- Name: idx_33123_program_users_program_id_foreign; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_42675_program_users_program_id_foreign; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_33123_program_users_program_id_foreign ON public.program_users_old USING btree (program_id);
+CREATE INDEX idx_42675_program_users_program_id_foreign ON public.program_users_old USING btree (program_id);
 
 
 --
--- Name: idx_33134_role_user_user_id_foreign; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_42686_role_user_user_id_foreign; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_33134_role_user_user_id_foreign ON public.role_user USING btree (user_id);
+CREATE INDEX idx_42686_role_user_user_id_foreign ON public.role_user USING btree (user_id);
 
 
 --
--- Name: idx_33148_standard_scales_scale_category_id_foreign; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_42700_standard_scales_scale_category_id_foreign; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_33148_standard_scales_scale_category_id_foreign ON public.standard_scales USING btree (scale_category_id);
+CREATE INDEX idx_42700_standard_scales_scale_category_id_foreign ON public.standard_scales USING btree (scale_category_id);
 
 
 --
--- Name: idx_33155_standards_standard_category_id_foreign; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_42707_standards_standard_category_id_foreign; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_33155_standards_standard_category_id_foreign ON public.standards USING btree (standard_category_id);
+CREATE INDEX idx_42707_standards_standard_category_id_foreign ON public.standards USING btree (standard_category_id);
 
 
 --
--- Name: idx_33162_standards_outcome_maps_course_id_foreign; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_42714_standards_outcome_maps_course_id_foreign; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_33162_standards_outcome_maps_course_id_foreign ON public.standards_outcome_maps USING btree (course_id);
+CREATE INDEX idx_42714_standards_outcome_maps_course_id_foreign ON public.standards_outcome_maps USING btree (course_id);
 
 
 --
--- Name: idx_33162_standards_outcome_maps_standard_scale_id_foreign; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_42714_standards_outcome_maps_standard_scale_id_foreign; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_33162_standards_outcome_maps_standard_scale_id_foreign ON public.standards_outcome_maps USING btree (standard_scale_id);
+CREATE INDEX idx_42714_standards_outcome_maps_standard_scale_id_foreign ON public.standards_outcome_maps USING btree (standard_scale_id);
 
 
 --
--- Name: idx_33174_syllabi_course_id_foreign; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_42726_syllabi_course_id_foreign; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_33174_syllabi_course_id_foreign ON public.syllabi USING btree (course_id);
+CREATE INDEX idx_42726_syllabi_course_id_foreign ON public.syllabi USING btree (course_id);
 
 
 --
--- Name: idx_33183_syllabi_programs_program_id_foreign; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_42735_syllabi_programs_program_id_foreign; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_33183_syllabi_programs_program_id_foreign ON public.syllabi_programs USING btree (program_id);
+CREATE INDEX idx_42735_syllabi_programs_program_id_foreign ON public.syllabi_programs USING btree (program_id);
 
 
 --
--- Name: idx_33183_syllabi_programs_syllabus_id_foreign; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_42735_syllabi_programs_syllabus_id_foreign; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_33183_syllabi_programs_syllabus_id_foreign ON public.syllabi_programs USING btree (syllabus_id);
+CREATE INDEX idx_42735_syllabi_programs_syllabus_id_foreign ON public.syllabi_programs USING btree (syllabus_id);
 
 
 --
--- Name: idx_33188_syllabi_resources_okanagan_o_syllabus_resource_id_for; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_42740_syllabi_resources_okanagan_o_syllabus_resource_id_for; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_33188_syllabi_resources_okanagan_o_syllabus_resource_id_for ON public.syllabi_resources_okanagan USING btree (o_syllabus_resource_id);
+CREATE INDEX idx_42740_syllabi_resources_okanagan_o_syllabus_resource_id_for ON public.syllabi_resources_okanagan USING btree (o_syllabus_resource_id);
 
 
 --
--- Name: idx_33188_syllabi_resources_okanagan_syllabus_id_foreign; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_42740_syllabi_resources_okanagan_syllabus_id_foreign; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_33188_syllabi_resources_okanagan_syllabus_id_foreign ON public.syllabi_resources_okanagan USING btree (syllabus_id);
+CREATE INDEX idx_42740_syllabi_resources_okanagan_syllabus_id_foreign ON public.syllabi_resources_okanagan USING btree (syllabus_id);
 
 
 --
--- Name: idx_33193_syllabi_resources_vancouver_syllabus_id_foreign; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_42745_syllabi_resources_vancouver_syllabus_id_foreign; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_33193_syllabi_resources_vancouver_syllabus_id_foreign ON public.syllabi_resources_vancouver USING btree (syllabus_id);
+CREATE INDEX idx_42745_syllabi_resources_vancouver_syllabus_id_foreign ON public.syllabi_resources_vancouver USING btree (syllabus_id);
 
 
 --
--- Name: idx_33193_syllabi_resources_vancouver_v_syllabus_resource_id_fo; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_42745_syllabi_resources_vancouver_v_syllabus_resource_id_fo; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_33193_syllabi_resources_vancouver_v_syllabus_resource_id_fo ON public.syllabi_resources_vancouver USING btree (v_syllabus_resource_id);
+CREATE INDEX idx_42745_syllabi_resources_vancouver_v_syllabus_resource_id_fo ON public.syllabi_resources_vancouver USING btree (v_syllabus_resource_id);
 
 
 --
--- Name: idx_33198_syllabi_users_syllabus_id_foreign; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_42750_syllabi_users_syllabus_id_foreign; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_33198_syllabi_users_syllabus_id_foreign ON public.syllabi_users USING btree (syllabus_id);
+CREATE INDEX idx_42750_syllabi_users_syllabus_id_foreign ON public.syllabi_users USING btree (syllabus_id);
 
 
 --
--- Name: idx_33198_syllabi_users_user_id_foreign; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_42750_syllabi_users_user_id_foreign; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_33198_syllabi_users_user_id_foreign ON public.syllabi_users USING btree (user_id);
+CREATE INDEX idx_42750_syllabi_users_user_id_foreign ON public.syllabi_users USING btree (user_id);
 
 
 --
--- Name: idx_33204_syllabus_instructors_syllabus_id_foreign; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_42756_syllabus_instructors_syllabus_id_foreign; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_33204_syllabus_instructors_syllabus_id_foreign ON public.syllabus_instructors USING btree (syllabus_id);
+CREATE INDEX idx_42756_syllabus_instructors_syllabus_id_foreign ON public.syllabus_instructors USING btree (syllabus_id);
 
 
 --
--- Name: idx_33209_users_email_unique; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_42761_users_email_unique; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX idx_33209_users_email_unique ON public.users USING btree (email);
+CREATE UNIQUE INDEX idx_42761_users_email_unique ON public.users USING btree (email);
 
 
 --
--- Name: idx_33217_vancouver_syllabi_syllabus_id_foreign; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_42769_vancouver_syllabi_syllabus_id_foreign; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_33217_vancouver_syllabi_syllabus_id_foreign ON public.vancouver_syllabi USING btree (syllabus_id);
+CREATE INDEX idx_42769_vancouver_syllabi_syllabus_id_foreign ON public.vancouver_syllabi USING btree (syllabus_id);
 
 
 --
--- Name: idx_33224_vancovuer_syllabus_resources_id_name_unique; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_42776_vancovuer_syllabus_resources_id_name_unique; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX idx_33224_vancovuer_syllabus_resources_id_name_unique ON public.vancouver_syllabus_resources USING btree (id_name);
+CREATE UNIQUE INDEX idx_42776_vancovuer_syllabus_resources_id_name_unique ON public.vancouver_syllabus_resources USING btree (id_name);
 
 
 --
