@@ -107,8 +107,10 @@ class ProgramTest extends TestCase
             'program_id' => $program->program_id,
         ]);
 
+
+        #Updated test as map_scale_id updated in seeder file
         $this->assertDatabaseHas('mapping_scale_programs', [
-            'map_scale_id' => '105',
+            'map_scale_id' => '8',
         ]);
 
     }

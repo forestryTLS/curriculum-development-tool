@@ -497,23 +497,30 @@ class CourseTest extends TestCase
         $course = Course::where('course_title', 'Intro to Unit Testing')->orderBy('course_id', 'DESC')->first();
 
         //setting this mapping to all "Introduced" for this course, except 1
+        // Updated standardr scale id in test as standard scale IDs updated in seeder file with pgsql
         $response = $this->actingAs($user)->post(route('standardsOutcomeMap.store'), [
             'course_id' => $course->course_id,
             'map' => [
                 $course->course_id => [
-                    1 => '101',
-                    2 => '101',
-                    3 => '101',
-                    4 => '101',
-                    5 => '101',
-                    6 => '101',
+                    1 => '1',
+                    2 => '1',
+                    3 => '1',
+                    4 => '1',
+                    5 => '1',
+                    6 => '4',
                 ],
             ],
         ]);
 
         $this->assertDatabaseHas('standards_outcome_maps', [
             'course_id' => $course->course_id,
-            'standard_scale_id' => '101',
+            'standard_scale_id' => '1',
+            'standard_id' => 5,
+        ]);
+
+        $this->assertDatabaseHas('standards_outcome_maps', [
+            'course_id' => $course->course_id,
+            'standard_scale_id' => '4',
             'standard_id' => 6,
         ]);
 
