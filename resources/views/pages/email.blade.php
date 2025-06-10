@@ -24,7 +24,7 @@
                         echo '<option value="" selected disabled hidden>Select a role</option>';
                         for($idx=0; $idx < count($user_roles); $idx++){
                             // this will output the roles in the roles table, and the value returned is the role id (needed to query user table)
-                            echo '<option value="'.$role_id[$idx] . '">' . ucfirst($user_roles[$idx]) . '</option>';  // ucfirst capitalizes first letter.
+                            echo '<option value="'.$role_id[$idx] . '">' . ucwords($user_roles[$idx]) . '</option>';  // ucfirst capitalizes first letter.
                         }
                         echo '</select>';  // close dropdown
                     ?>

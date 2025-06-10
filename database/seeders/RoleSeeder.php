@@ -15,6 +15,8 @@ class RoleSeeder extends Seeder
         //
         //Role::delete();
         Role::create(['role' => 'administrator']);
+        Role::create(['role' => 'program director']);
+        Role::create(['role' => 'department head']);
         Role::create(['role' => 'user']);
 
     }
