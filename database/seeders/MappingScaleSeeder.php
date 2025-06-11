@@ -4,6 +4,8 @@ namespace Database\Seeders;
 
 use App\Models\MappingScale;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
+
 
 class MappingScaleSeeder extends Seeder
 {
@@ -53,6 +55,9 @@ class MappingScaleSeeder extends Seeder
         $ms3->description = 'Students demonstrate the learning outcomes with a high level of independence, expertise and sophistication expected upon graduation. Learning activities focus on and integrate the use of content or skills in multiple.';
         $ms3->colour = '#0065bd';
         $ms3->save();
+
+        //Reset the sequence of map_scale_id fpr pgsql
+        DB::statement("SELECT setval(pg_get_serial_sequence('mapping_scales','map_scale_id'), MAX(map_scale_id)) FROM mapping_scales;");
 
         // New map_scale_id set: 4 - 7
 

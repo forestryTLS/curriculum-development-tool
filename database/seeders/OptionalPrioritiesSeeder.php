@@ -16,7 +16,9 @@ class OptionalPrioritiesSeeder extends Seeder
      */
     public function run(): void
     {
-        DB::statement('SET FOREIGN_KEY_CHECKS=0');
+        // DB::statement('SET FOREIGN_KEY_CHECKS=0');
+        // ADD the below statement to work with pgsql
+        DB::statement('ALTER TABLE optional_priorities DISABLE TRIGGER ALL;');
         DB::table('optional_priorities')->truncate();
         DB::table('optional_priority_subcategories')->truncate();
         DB::table('optional_priority_categories')->truncate();
@@ -691,6 +693,8 @@ class OptionalPrioritiesSeeder extends Seeder
         $opp->year = 2022;
         $opp->save();
 
-        DB::statement('SET FOREIGN_KEY_CHECKS=1');
+        // DB::statement('SET FOREIGN_KEY_CHECKS=1');
+        // ADD the below statement to work with pgsql
+        DB::statement('ALTER TABLE optional_priorities ENABLE TRIGGER ALL;');
     }
 }

@@ -16,7 +16,7 @@ class ForceHTTPS
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (! $request->secure() && ! App::environment('local')) {
+        if (! $request->secure() && ! App::environment(['local', 'testing'])) {
             return redirect()->secure($request->getRequestUri());
         }
 
