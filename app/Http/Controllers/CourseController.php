@@ -176,13 +176,15 @@ class CourseController extends Controller
                 $request->session()->flash('error', 'There was an error adding the course');
             }
 
-            return redirect()->route('programWizard.step3', $request->input('program_id'));
+            return redirect()->route('programWizard.step3', $request->input('program_id'))->with('errorMessages', $errorMessages);
 
         // course creation triggered by add new course on dashboard
         } else {
             // course assigned to course creator
             $course->assigned = 1;
             $course->save();
+
+            $errorMessages = addAllAminsToCourse($course);
 
             $user = User::where('id', $request->input('user_id'))->first();
             $courseUser = new CourseUser;
@@ -196,7 +198,7 @@ class CourseController extends Controller
                 $request->session()->flash('error', 'There was an error adding the course');
             }
 
-            return redirect()->route('courseWizard.step1', $course->course_id);
+            return redirect()->route('courseWizard.step1', $course->course_id)->with('errorMessages', $errorMessages);
         }
 
     }
