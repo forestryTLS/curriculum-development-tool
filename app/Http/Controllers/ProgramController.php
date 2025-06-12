@@ -39,6 +39,8 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Throwable;
+use Illuminate\Database\Eloquent\Collection;
+
 
 class ProgramController extends Controller
 {
@@ -101,6 +103,9 @@ class ProgramController extends Controller
             $request->session()->flash('error', 'There was an error Adding the program');
         }
 
+        $errorMessages = $this->addAllAminsToProgram($program);
+
+
         $programUser = new ProgramUser;
         $programUser->user_id = $request->input('user_id');
 
@@ -109,7 +114,36 @@ class ProgramController extends Controller
         $programUser->permission = 1;
         $programUser->save();
 
-        return redirect()->route('programWizard.step1', $program->program_id);
+        return redirect()->route('programWizard.step1', $program->program_id)->with('errorMessages', $errorMessages);
+
+    }
+
+    /**
+     * Helper function to add all admins to given program.
+     */
+    function addAllAminsToProgram($program) {
+        
+        $errorMessages = Collection::make();
+
+        $adminUsers = User::whereHas('roles', function ($query){
+            $query->where('role', 'administrator');
+            })->get();
+
+        foreach ($adminUsers as $adminUser) {
+                // find the newCollab by their email
+            $userAdmin = User::where('email', $adminUser->email)->first();
+            $programUser = ProgramUser::updateOrCreate(
+                    ['program_id' => $program->program_id, 'user_id' => $userAdmin->id],
+            );
+            $programUser = ProgramUser::where([['program_id', '=', $programUser->program_id], ['user_id', '=', $programUser->user_id]])->first();
+            $programUser->permission = 1;
+            if($programUser->save()){
+            } else{
+                $errorMessages->add('There was an error adding '.'<b>'.$userAdmin->email.'</b>'.' to program '.$program->program);
+            }
+        }
+
+        return $errorMessages;
 
     }
 
@@ -2858,6 +2892,8 @@ class ProgramController extends Controller
             }
         }
 
+        $errorMessages = $this->addAllAminsToProgram($program);
+
         $user = User::find(Auth::id());
         $programUser = new ProgramUser;
         $programUser->user_id = $user->id;
@@ -2871,7 +2907,7 @@ class ProgramController extends Controller
             $request->session()->flash('error', 'There was an error duplicating the program');
         }
 
-        return redirect()->route('home');
+        return redirect()->route('home')->with('errorMessages', $errorMessages);
     }
 
     // Helper method to display mapping scales

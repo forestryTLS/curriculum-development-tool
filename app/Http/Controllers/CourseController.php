@@ -43,6 +43,8 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 use PDF;
 use Throwable;
+use Illuminate\Database\Eloquent\Collection;
+
 
 class CourseController extends Controller
 {
@@ -147,6 +149,8 @@ class CourseController extends Controller
                 }
             }
 
+            $errorMessages = $this->addAllAminsToCourse($course);
+
             $courseUser = new CourseUser;
             $courseUser->course_id = $course->course_id;
             $courseUser->user_id = $user->id;
@@ -184,7 +188,7 @@ class CourseController extends Controller
             $course->assigned = 1;
             $course->save();
 
-            $errorMessages = addAllAminsToCourse($course);
+            $errorMessages = $this->addAllAminsToCourse($course);
 
             $user = User::where('id', $request->input('user_id'))->first();
             $courseUser = new CourseUser;
@@ -200,6 +204,36 @@ class CourseController extends Controller
 
             return redirect()->route('courseWizard.step1', $course->course_id)->with('errorMessages', $errorMessages);
         }
+
+    }
+
+    /**
+     * Helper function to add all admins to the given course.
+     */
+
+    private function addAllAminsToCourse($course) {
+        
+        $errorMessages = Collection::make();
+
+        $adminUsers = User::whereHas('roles', function ($query){
+            $query->where('role', 'administrator');
+            })->get();
+
+        foreach ($adminUsers as $adminUser) {
+                // find the newCollab by their email
+            $userAdmin = User::where('email', $adminUser->email)->first();
+            $courseUser = CourseUser::updateOrCreate(
+                    ['course_id' => $course->course_id, 'user_id' => $userAdmin->id],
+            );
+            $courseUser = CourseUser::where([['course_id', '=', $courseUser->course_id], ['user_id', '=', $courseUser->user_id]])->first();
+            $courseUser->permission = 1;
+            if($courseUser->save()){
+            } else{
+                $errorMessages->add('There was an error adding '.'<b>'.$userAdmin->email.'</b>'.' to course '.$course->course_code.' '.$course->course_num);
+            }
+        }
+
+        return $errorMessages;
 
     }
 
@@ -953,6 +987,8 @@ class CourseController extends Controller
             $newOptionalPriority->save();
         }
 
+        $errorMessages = $this->addAllAminsToCourse($course);
+
         $user = User::find(Auth::id());
         $courseUser = new CourseUser;
         $courseUser->course_id = $course->course_id;
@@ -965,7 +1001,7 @@ class CourseController extends Controller
             $request->session()->flash('error', 'There was an error duplicating the course');
         }
 
-        return redirect()->route('home');
+        return redirect()->route('home')->with('errorMessages', $errorMessages);
     }
 
     /*
