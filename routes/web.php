@@ -31,6 +31,8 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\URL;
+use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Auth\AccountInformationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -249,16 +251,16 @@ Auth::routes();
 // register backpack auth routes manually
 Route::middleware('web')->prefix(config('backpack.base.route_prefix'))->group(function () {
     Route::auth();
-    Route::get('logout', [Auth\LoginController::class, 'logout']);
+    Route::get('logout', [LoginController::class, 'logout']);
 });
 
 // account information page and update method
 // *** Routes not working local, but work on testing/staging.. ***
-// Route::get('/accountInformation',[AccountInformationController::class, 'index'])->name('accountInformation');
-// Route::post('/accountInformation-update',[AccountInformationController::class, 'update'])->name('accountInformation.update');
-// *** These Routes work locally but not on staging ***
-Route::get('/accountInformation', [Auth\AccountInformationController::class, 'index'])->name('accountInformation');
-Route::post('/accountInformation-update', [Auth\AccountInformationController::class, 'update'])->name('accountInformation.update');
+Route::get('/accountInformation',[AccountInformationController::class, 'index'])->name('accountInformation');
+Route::post('/accountInformation-update',[AccountInformationController::class, 'update'])->name('accountInformation.update');
+// // *** These Routes work locally but not on staging ***
+// Route::get('/accountInformation', [Auth\AccountInformationController::class, 'index'])->name('accountInformation');
+// Route::post('/accountInformation-update', [Auth\AccountInformationController::class, 'update'])->name('accountInformation.update');
 
 Route::get('/clear-cache', function () {
     $exitCode = Artisan::call('config:cache');
