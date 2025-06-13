@@ -66,6 +66,8 @@ Route::get('/about', [AboutController::class, 'index'])->name('about');
 Route::get('/faq', [FAQController::class, 'index'])->name('FAQ');
 Route::get('/terms', [TermsController::class, 'index'])->name('terms');
 
+Route::post('/assignRole', [AdminAssignRoleController::class, 'store'])->name('admin.assignRole');
+
 // route to view a syllabus
 Route::get('/syllabusGenerator/{syllabusId?}', [SyllabusController::class, 'index'])->name('syllabus');
 // route to save a syllabus
