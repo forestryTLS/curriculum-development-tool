@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AboutController;
 use App\Http\Controllers\AdminEmailController;
+use App\Http\Controllers\AdminAssignRoleController;
 use App\Http\Controllers\AssessmentMethodController;
 use App\Http\Controllers\CourseController;
 use App\Http\Controllers\CourseProgramController;
@@ -245,6 +246,9 @@ Route::get('/construction', function () {
 // Admin Email Page
 Route::get('/email', [AdminEmailController::class, 'index'])->name('email');
 Route::post('/email', [AdminEmailController::class, 'send'])->name('email.send');
+
+// Admin Assign Role Page
+Route::get('/assignRole', [AdminAssignRoleController::class, 'index'])->name('assignRole');
 
 Auth::routes();
 
