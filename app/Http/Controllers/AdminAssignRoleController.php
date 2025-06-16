@@ -94,6 +94,23 @@ class AdminAssignRoleController extends Controller{
         } elseif ($request->input('role')=='program-director') {
             $role = Role::where('role', 'program director')->first();
             $user->roles()->syncWithoutDetaching([$role->id]);
+
+            $programName = $request->input('program');
+            $program = Program::where('program', $programName)->first();
+
+            if(!$program){
+                return back()->with('error', 'Program not found');
+            } else {
+                $user = User::where('email', $request->input('email'))->first();
+                $programUser = ProgramUser::updateOrCreate(
+                    ['program_id' => $program->program_id, 'user_id' => $user->id],
+                );
+                $programUser = ProgramUser::where([['program_id', '=', $programUser->program_id], ['user_id', '=', $programUser->user_id]])->first();
+                $programUser->permission = 1;
+                $programUser->role_id = $role->id;
+                $programUser->save();
+                $errorMessages = $this->assignOwnershipOfAllCoursesInProgram($request);
+            }
         }
 
         return redirect()->back()->with('success', 'User successfully assigned role');
@@ -135,5 +152,29 @@ class AdminAssignRoleController extends Controller{
 
         return $errorMessages;
 
+    }
+
+    private function assignOwnershipOfAllCoursesInProgram($request){
+
+        $program = Program::where('program', $request->input('program'))->first();
+
+        $coursesInProgram = $program->courses()->get();
+
+        $errorMessages = Collection::make();
+
+        foreach($coursesInProgram as $course){
+            $user = User::where('email', $request->input('email'))->first();
+            $courseUser = CourseUser::updateOrCreate(
+                    ['course_id' => $course->course_id, 'user_id' => $user->id],
+            );
+            $courseUser = CourseUser::where([['course_id', '=', $courseUser->course_id], ['user_id', '=', $courseUser->user_id]])->first();
+            $courseUser->permission = 1;
+            if($courseUser->save()){
+            } else{
+                $errorMessages->add('There was an error adding '.'<b>'.$user->email.'</b>'.' to course '.$course->course_code.' '.$course->course_num);
+            }
+        }
+
+        return $errorMessages;
     }
 }

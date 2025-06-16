@@ -13,7 +13,7 @@ class ProgramUser extends Model
 
     protected $primary = 'id';
 
-    protected $guarded = ['permission'];
+    protected $guarded = ['permission', 'role_id'];
 
     protected $fillable = ['user_id', 'program_id'];
 

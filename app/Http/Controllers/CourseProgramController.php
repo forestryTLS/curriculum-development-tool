@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Course;
 use App\Models\CourseProgram;
+use App\Models\CourseUser;
 use App\Models\Program;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
@@ -64,6 +65,7 @@ class CourseProgramController extends Controller
             $user = User::find(Auth::id());
             $program->last_modified_user = $user->name;
             $program->save();
+            $this->addDirectorsToProgramCourses($program);
 
             $request->session()->flash('success', 'Successfully added '.strval(count($courseIds)).' course(s) to this program.');
         } else {
@@ -71,6 +73,23 @@ class CourseProgramController extends Controller
         }
 
         return redirect()->route('programWizard.step3', $request->input('program_id'));
+    }
+
+    private function addDirectorsToProgramCourses($program)
+    {
+        $programDirectors = $program->directors()->get();
+        $coursesInProgram = $program->courses()->get();
+
+        foreach($programDirectors as $director){
+            foreach($coursesInProgram as $course){
+                $courseUser = CourseUser::updateOrCreate(
+                        ['course_id' => $course->course_id, 'user_id' => $director->id],
+                );
+                $courseUser = CourseUser::where([['course_id', '=', $courseUser->course_id], ['user_id', '=', $courseUser->user_id]])->first();
+                $courseUser->permission = 1;
+                $courseUser->save();
+            }
+        }
     }
 
     public function editCourseRequired(Request $request): RedirectResponse
@@ -97,6 +116,8 @@ class CourseProgramController extends Controller
             $user = User::find(Auth::id());
             $program->last_modified_user = $user->name;
             $program->save();
+
+            $this->addDirectorsToProgramCourses($program);
 
             $request->session()->flash('success', 'Successfully updated: '.strval($course->course_title));
         } else {
