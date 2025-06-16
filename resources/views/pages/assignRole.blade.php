@@ -24,14 +24,14 @@
                                     <input id="" type="email" name="email" class="form-control" placeholder="john.doe@ubc.ca" aria-label="email" required>
                                     <div class="invalid-tooltip">
                                         Please provide a valid email ending with ubc.ca.
-                                    </div> 
+                                    </div>
                                 </div>
                                 <div class="col-4">
                                     <select class="form-select" id="role" name="role">
                                         <option value="admin" selected>Admin</option>
-                                        <option value="deprtment-head">Department Head</option>
-                                        <option value="program-direactor">Program Director</option>
-                                    </select>                   
+                                        <option value="department-head">Department Head</option>
+                                        <option value="program-director">Program Director</option>
+                                    </select>
                                 </div>
                             </div>
                             <div id="campus-div" class="row m-2 position-relative" hidden>
@@ -41,7 +41,7 @@
                                         @foreach ($campuses as $campus)
                                             <option value="{{$campus->campus}}">{{$campus->campus}}</option>
                                         @endforeach
-                                        <option value="Other">Other</option>
+{{--                                        <option value="Other">Other</option>--}}
                                     </select>
                                     <input id='campus-text' class="form-control campus_text" name="campus" type="text" placeholder="Enter the campus name" disabled hidden></input>
                                     @error('campus')
@@ -118,11 +118,9 @@
     $(document).ready(function () {
 
         $('#role').change(function() {
-            if($('#role').find(':selected').val() == 'deprtment-head') {
-                console.log("reached");
+            if($('#role').find(':selected').val() == 'department-head') {
                 roleDpHeadOption();
-            } else if($('#role').find(':selected').val() == 'program-direactor') {
-                console.log("reached");
+            } else if($('#role').find(':selected').val() == 'program-director') {
                 roleProgramDirOption();
             }
         });
@@ -132,14 +130,14 @@
             if ($('#campus').find(':selected').text() == 'Vancouver') {
                 // Hide text / show select
                 campusDefaultOption();
-                
+
                 //Displays Vancouver Faculties
                 // delete drop down items
                 $('#faculty').empty();
                 // populate drop down
                 $('#faculty').append($('<option disabled selected hidden>Open list of faculties/schools</option>'));
                 vFaculties.forEach (faculty => $('#faculty').append($('<option name="'+faculty.faculty_id+'" />').val(faculty.faculty).text(faculty.faculty)));
-                $('#faculty').append($('<option name="-1" />').val('Other').text('Other'));
+                // $('#faculty').append($('<option name="-1" />').val('Other').text('Other'));
 
                 // enable the faculty select field
                 if ($('#faculty').is(':disabled')) {
@@ -162,7 +160,7 @@
                 // populate drop down
                 $('#faculty').append($('<option disabled selected hidden>Open list of faculties/schools</option>'));
                 oFaculties.forEach (faculty => $('#faculty').append($('<option name="'+faculty.faculty_id+'" />').val(faculty.faculty).text(faculty.faculty)));
-                $('#faculty').append($('<option name="-1" />').val('Other').text('Other'));
+                // $('#faculty').append($('<option name="-1" />').val('Other').text('Other'));
 
                 // enable the faculty select field
                 if ($('#faculty').is(':disabled')) {
@@ -199,7 +197,7 @@
                 filteredDepartments.forEach(department => $('#department').append($('<option />').val(department.department).text(department.department)));
 
 
-                $('#department').append($('<option />').val('Other').text('Other'));
+                // $('#department').append($('<option />').val('Other').text('Other'));
 
                 // enable the faculty select field
                 if ($('#department').is(':disabled')) {
@@ -213,7 +211,7 @@
 
         });
 
-        $('#department').change( function() { 
+        $('#department').change( function() {
             if ($('#department').find(':selected').val() !== 'Other') {
                 departmentDefaultOption();
             } else {

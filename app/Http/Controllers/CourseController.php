@@ -149,7 +149,8 @@ class CourseController extends Controller
                 }
             }
 
-            $errorMessages = $this->addAllAminsToCourse($course);
+            $user = User::find(Auth::id());
+            $errorMessages = $this->addAllAdminsToCourse($course, $user);
 
             $courseUser = new CourseUser;
             $courseUser->course_id = $course->course_id;
@@ -188,7 +189,8 @@ class CourseController extends Controller
             $course->assigned = 1;
             $course->save();
 
-            $errorMessages = $this->addAllAminsToCourse($course);
+            $user = User::find(Auth::id());
+            $errorMessages = $this->addAllAdminsToCourse($course, $user);
 
             $user = User::where('id', $request->input('user_id'))->first();
             $courseUser = new CourseUser;
@@ -211,7 +213,7 @@ class CourseController extends Controller
      * Helper function to add all admins to the given course.
      */
 
-    private function addAllAminsToCourse($course) {
+    private function addAllAdminsToCourse($course, $user) {
         
         $errorMessages = Collection::make();
 
@@ -220,6 +222,9 @@ class CourseController extends Controller
             })->get();
 
         foreach ($adminUsers as $adminUser) {
+            if($adminUser->id == $user->id){
+                continue;
+            }
                 // find the newCollab by their email
             $userAdmin = User::where('email', $adminUser->email)->first();
             $courseUser = CourseUser::updateOrCreate(
@@ -987,7 +992,8 @@ class CourseController extends Controller
             $newOptionalPriority->save();
         }
 
-        $errorMessages = $this->addAllAminsToCourse($course);
+        $user = User::find(Auth::id());
+        $errorMessages = $this->addAllAdminsToCourse($course,$user);
 
         $user = User::find(Auth::id());
         $courseUser = new CourseUser;

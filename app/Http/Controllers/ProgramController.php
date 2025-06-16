@@ -103,7 +103,7 @@ class ProgramController extends Controller
             $request->session()->flash('error', 'There was an error Adding the program');
         }
 
-        $errorMessages = $this->addAllAminsToProgram($program);
+        $errorMessages = $this->addAllAdminsToProgram($program, $user);
 
 
         $programUser = new ProgramUser;
@@ -119,9 +119,9 @@ class ProgramController extends Controller
     }
 
     /**
-     * Helper function to add all admins to given program.
+     * Helper function to add all admins to given program and user.
      */
-    function addAllAminsToProgram($program) {
+    function addAllAdminsToProgram($program, $user) {
         
         $errorMessages = Collection::make();
 
@@ -131,6 +131,10 @@ class ProgramController extends Controller
 
         foreach ($adminUsers as $adminUser) {
                 // find the newCollab by their email
+            if($adminUser->id == $user->id){
+                continue;
+            }
+
             $userAdmin = User::where('email', $adminUser->email)->first();
             $programUser = ProgramUser::updateOrCreate(
                     ['program_id' => $program->program_id, 'user_id' => $userAdmin->id],
@@ -2892,7 +2896,9 @@ class ProgramController extends Controller
             }
         }
 
-        $errorMessages = $this->addAllAminsToProgram($program);
+        $user = User::find(Auth::id());
+
+        $errorMessages = $this->addAllAdminsToProgram($program, $user);
 
         $user = User::find(Auth::id());
         $programUser = new ProgramUser;
