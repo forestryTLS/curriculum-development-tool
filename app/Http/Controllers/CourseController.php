@@ -175,6 +175,8 @@ class CourseController extends Controller
                     $program->last_modified_user = $user->name;
                     $program->save();
 
+                    $this->addAllProgramDirectors($program, $course);
+
                     $request->session()->flash('success', 'New course added');
                 }
             } else {
@@ -207,6 +209,24 @@ class CourseController extends Controller
             return redirect()->route('courseWizard.step1', $course->course_id)->with('errorMessages', $errorMessages);
         }
 
+    }
+
+    /**
+     * Helper function to add all program directors to the given course.
+     */
+
+    private function addAllProgramDirectors($program, $course){
+
+        $programDirectors = $program->directors()->get();
+
+        foreach($programDirectors as $director){
+            $courseUser = CourseUser::updateOrCreate(
+                        ['course_id' => $course->course_id, 'user_id' => $director->id],
+                );
+            $courseUser = CourseUser::where([['course_id', '=', $courseUser->course_id], ['user_id', '=', $courseUser->user_id]])->first();
+            $courseUser->permission = 1;
+            $courseUser->save();
+        }
     }
 
     /**

@@ -75,6 +75,10 @@ class CourseProgramController extends Controller
         return redirect()->route('programWizard.step3', $request->input('program_id'));
     }
 
+    /**
+     * Helper function to add all program directors to the courses of the program.
+     */
+
     private function addDirectorsToProgramCourses($program)
     {
         $programDirectors = $program->directors()->get();

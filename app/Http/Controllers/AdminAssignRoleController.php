@@ -45,6 +45,10 @@ class AdminAssignRoleController extends Controller{
         return view('pages.assignRole')->with('campuses', $campuses)->with('faculties', $faculties)->with('departments', $departments)->with('programs', $programs);
     }
 
+    /**
+     * Store a newly created resource in storage.
+     */
+    
     public function store(Request $request): RedirectResponse
     {
         //
@@ -117,6 +121,10 @@ class AdminAssignRoleController extends Controller{
 
     }
 
+     /**
+     * Helper function to add the requested new administrator to all courses and programs.
+     */
+
     private function assignOwenershipOfAllCoursesNPrograms($userEmail) 
     {
         $courses = Course::all();
@@ -153,6 +161,10 @@ class AdminAssignRoleController extends Controller{
         return $errorMessages;
 
     }
+
+    /**
+     * Helper function to add the requested new program director to all the courses of the program.
+     */
 
     private function assignOwnershipOfAllCoursesInProgram($request){
 
