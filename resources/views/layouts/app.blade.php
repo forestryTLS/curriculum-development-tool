@@ -81,14 +81,14 @@
                                 <a class="nav-link text-white" href="{{ route('home')}}">My Dashboard</a>
                             </li>
 
-                            
+
 
                             <li class="nav-item">
                                 <form name="SyllabusSubmit" action="{{route('syllabus')}}" method="GET">
                                 <input type="hidden" name="syllabus_id" value="">
                                 <a class="nav-link text-white" href="#" onclick="document.SyllabusSubmit.submit();">Syllabus Generator</a>
                                 </form>
-                                
+
                             </li>
 
                                 <li class="nav-item dropdown">
@@ -97,17 +97,17 @@
                                     </a>
 
                                     <div class="dropdown-menu dropdown-menu-right" aria-labelledby="navbarDropdown">
-                                        
+
 
                                         @can('admin-privilege')
                                             <a class="dropdown-item" href="{{ url('/admin') }}">
                                                 System Administrator
                                             </a>
                                         @endcan
-                                        
+
                                         @can('admin-privilege')
                                             <a class="dropdown-item" href="{{ route('assignRole') }}">
-                                                Assign Role
+                                                Manage Roles
                                             </a>
                                         @endcan
 
@@ -148,12 +148,12 @@
                 @yield('content')
 
             </main>
-            
+
         </div>
     </div>
         <div style="width:100%;">
             <iframe src="{{ asset('footer.html') }}" width="100%" scrolling="no" style="border:none; margin-bottom:-30px; min-height:426px; max-height: 821px;"/>
         </div>
-    
+
 </body>
 </html>

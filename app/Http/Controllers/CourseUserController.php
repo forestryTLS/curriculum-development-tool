@@ -53,7 +53,8 @@ class CourseUserController extends Controller
         // get the current user
         $currentUser = User::find(Auth::id());
         // get the current user permission
-        $currentUserPermission = $currentUser->courses->where('course_id', $courseId)->first()->pivot->permission;
+        #$currentUserPermission = $currentUser->courses->where('course_id', $courseId)->first()->pivot->permission;
+        $currentUserPermission = $currentUser->effectivePermissionForCourse($courseId);
         // get the course
         $course = Course::find($courseId);
         // keep track of errors
@@ -74,7 +75,7 @@ class CourseUserController extends Controller
                 } else {
                     // remove old collaborator from course, make sure it's not the owner
                     if ($savedCourseUser->permission != 1) {
-                        $this->destroy($savedCourseUser);
+                        $this->destroy($savedCourseUser, $course);
                     }
                 }
             }
@@ -246,12 +247,12 @@ class CourseUserController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function destroy(CourseUser $courseUser)
+    public function destroy(CourseUser $courseUser, Course $course)
     {
         // get the current user
         $currentUser = User::find(Auth::id());
         // get the current user permission
-        $currentUserPermission = CourseUser::where([['course_id', $courseUser->course_id], ['user_id', $currentUser->id]])->first()->permission;
+        $currentUserPermission = $currentUser->effectivePermissionForCourse($course->course_id);
         // if the current user is the owner, delete the given course collaborator
         if ($currentUserPermission == 1) {
             $courseUser->delete();

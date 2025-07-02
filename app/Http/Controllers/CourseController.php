@@ -6,7 +6,13 @@ use App\Mail\NotifyInstructorForMappingMail;
 use App\Mail\NotifyNewCourseInstructorMail;
 use App\Mail\NotifyNewUserAndInstructorMail;
 use App\Models\AssessmentMethod;
+use App\Models\Campus;
 use App\Models\Course;
+use App\Models\CourseUserRole;
+use App\Models\Department;
+use App\Models\Faculty;
+use App\Models\FacultyCourseCodes;
+use App\Models\Role;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Color;
 use PhpOffice\PhpSpreadsheet\Style\Conditional;
@@ -152,6 +158,22 @@ class CourseController extends Controller
             $user = User::find(Auth::id());
             $errorMessages = $this->addAllAdminsToCourse($course, $user);
 
+            //Add department heads and program directors of Faculty of Forestry owners of all courses in the faculty
+            if(FacultyCourseCodes::where('course_code', $course->course_code)->exists()){
+
+                $vancouverCampusId = Campus::where('campus', 'Vancouver')->first()->campus_id;
+                $forestryFacultyId = Faculty::where(['campus_id' => $vancouverCampusId,
+                    'faculty' => 'Faculty of Forestry'])->first()->faculty_id;
+
+                if (FacultyCourseCodes::where(['course_code' => $course->course_code,
+                    'faculty_id' => $forestryFacultyId])->exists()) {
+
+                    $this->addAllDepartmentHeadsToCourse($course, $request->input('program_id'));
+                    $this->addForestryProgramDirectorsToCourse($course);
+                }
+
+            }
+
             $courseUser = new CourseUser;
             $courseUser->course_id = $course->course_id;
             $courseUser->user_id = $user->id;
@@ -194,6 +216,20 @@ class CourseController extends Controller
             $user = User::find(Auth::id());
             $errorMessages = $this->addAllAdminsToCourse($course, $user);
 
+            //Add department heads and program directors of Faculty of Forestry owners of all courses in the faculty
+            if(FacultyCourseCodes::where('course_code', $course->course_code)->exists()){
+
+                $vancouverCampusId = Campus::where('campus', 'Vancouver')->first()->campus_id;
+                $forestryFacultyId = Faculty::where(['campus_id' => $vancouverCampusId,
+                    'faculty' => 'Faculty of Forestry'])->first()->faculty_id;
+
+                if (FacultyCourseCodes::where(['course_code' => $course->course_code,
+                    'faculty_id' => $forestryFacultyId])->exists()) {
+                    $this->addAllDepartmentHeadsToCourse($course, null);
+                    $this->addForestryProgramDirectorsToCourse($course);
+                }
+            }
+
             $user = User::where('id', $request->input('user_id'))->first();
             $courseUser = new CourseUser;
             $courseUser->course_id = $course->course_id;
@@ -218,14 +254,19 @@ class CourseController extends Controller
     private function addAllProgramDirectors($program, $course){
 
         $programDirectors = $program->directors()->get();
+        $programDirectorRoleId = Role::where('role', 'program director')->first()->id;
 
         foreach($programDirectors as $director){
-            $courseUser = CourseUser::updateOrCreate(
-                        ['course_id' => $course->course_id, 'user_id' => $director->id],
+            if (!CourseUserRole::where('course_id', $course->course_id)->where('role_id', $programDirectorRoleId)
+                ->where('user_id', $director->id)->where('program_id', $program->program_id)->exists()) {
+
+                $courseUserRole = CourseUserRole::firstOrCreate(
+                    ['course_id' => $course->course_id, 'user_id' => $director->id,
+                        'role_id' => $programDirectorRoleId,
+                        'program_id' => $program->program_id],
                 );
-            $courseUser = CourseUser::where([['course_id', '=', $courseUser->course_id], ['user_id', '=', $courseUser->user_id]])->first();
-            $courseUser->permission = 1;
-            $courseUser->save();
+                $courseUserRole->save();
+            }
         }
     }
 
@@ -234,7 +275,7 @@ class CourseController extends Controller
      */
 
     private function addAllAdminsToCourse($course, $user) {
-        
+
         $errorMessages = Collection::make();
 
         $adminUsers = User::whereHas('roles', function ($query){
@@ -242,19 +283,91 @@ class CourseController extends Controller
             })->get();
 
         foreach ($adminUsers as $adminUser) {
-            if($adminUser->id == $user->id){
-                continue;
-            }
-                // find the newCollab by their email
             $userAdmin = User::where('email', $adminUser->email)->first();
-            $courseUser = CourseUser::updateOrCreate(
-                    ['course_id' => $course->course_id, 'user_id' => $userAdmin->id],
-            );
-            $courseUser = CourseUser::where([['course_id', '=', $courseUser->course_id], ['user_id', '=', $courseUser->user_id]])->first();
-            $courseUser->permission = 1;
-            if($courseUser->save()){
-            } else{
-                $errorMessages->add('There was an error adding '.'<b>'.$userAdmin->email.'</b>'.' to course '.$course->course_code.' '.$course->course_num);
+            $adminRoleId = Role::where('role', 'administrator')->first()->id;
+            if (!CourseUserRole::where('course_id', $course->course_id)->where('role_id', $adminRoleId)
+                ->where('user_id', $userAdmin->id)->exists()) {
+                $courseUserRole = CourseUserRole::firstOrCreate(
+                    ['course_id' => $course->course_id, 'user_id' => $userAdmin->id,
+                        'role_id' => $adminRoleId]
+                );
+                if($courseUserRole->save()){
+                } else{
+                    $errorMessages->add('There was an error adding '.'<b>'.$userAdmin->email.'</b>'.' to course '.$course->course_code.' '.$course->course_num);
+                }
+
+            }
+        }
+
+        return $errorMessages;
+
+    }
+
+    /**
+     * Helper function to add all department heads to the given course.
+     */
+    private function addAllDepartmentHeadsToCourse($course, $program_id)
+    {
+        $errorMessages = Collection::make();
+        $facultyId = FacultyCourseCodes::where('course_code', $course->course_code)->first()->faculty_id;
+        $faculty = Faculty::where('faculty_id', $facultyId)->first();
+        $departmentsInFaculty = Department::where('faculty_id', $facultyId)->get();
+        $departmentHeadRoleId = Role::where('role', 'department head')->first()->id;
+
+        foreach ($departmentsInFaculty as $department) {
+            $departmentHeads = $department->heads()->get();
+            foreach ($departmentHeads as $head) {
+                if(!CourseUserRole::where(['course_id' => $course->course_id, 'user_id' => $head->id,
+                    'role_id' => $departmentHeadRoleId])->exists()) {
+
+                    $courseUserRole = CourseUserRole::create(['course_id' => $course->course_id, 'user_id' => $head->id,
+                        'role_id' => $departmentHeadRoleId]);
+                    $program = Program::where('program_id', $program_id)->first();
+
+                    if($program){
+                        $courseUserRole->program_id = $program->program_id;
+                    }
+
+                    if ($courseUserRole->save()) {
+
+                    } else {
+                        $errorMessages->add('There was an error adding ' . '<b>' . $head->email . '</b>' . ' to course ' . $course->course_code . ' ' . $course->course_num);
+                    }
+                }
+            }
+
+        }
+
+        return $errorMessages;
+
+    }
+
+    /**
+     * Helper function to add all program directors for Faculty of Forestry programs to the given forestry course.
+     */
+    private function addForestryProgramDirectorsToCourse($course){
+        $errorMessages = Collection::make();
+
+        $programs = Program::where(['campus' => 'Vancouver',
+            'faculty' => 'Faculty of Forestry'])->get();
+        $programDirectorRoleId = Role::where('role', 'program director')->first()->id;
+
+        foreach ($programs as $program) {
+            $programDirectors = $program->directors()->get();
+
+            foreach ($programDirectors as $director) {
+                if(!CourseUserRole::where(['course_id' => $course->course_id, 'user_id' => $director->id,
+                    'role_id' => $programDirectorRoleId->id,
+                    'program_id' => $program->program_id])->exists()) {
+
+                    $courseUserRole = CourseUserRole::create(['course_id' => $course->course_id, 'user_id' => $director->id,
+                        'role_id' => $programDirectorRoleId->id, $program->program_id]);
+                    if ($courseUserRole->save()) {
+
+                    } else {
+                        $errorMessages->add('There was an error adding ' . '<b>' . $director->email . '</b>' . ' to course ' . $course->course_code . ' ' . $course->course_num);
+                    }
+                }
             }
         }
 
@@ -418,7 +531,8 @@ class CourseController extends Controller
         // find the current user
         $currentUser = User::find(Auth::id());
         //get the current users permission level for the course delete
-        $currentUserPermission = $currentUser->courses->where('course_id', $course_id)->first()->pivot->permission;
+//        $currentUserPermission = $currentUser->courses->where('course_id', $course_id)->first()->pivot->permission;
+        $currentUserPermission = $currentUser->effectivePermissionForCourse($course->course_id);
         // if the current user own the course, then try to delete it
         if ($currentUserPermission == 1) {
             if ($course->delete()) {
@@ -714,7 +828,7 @@ class CourseController extends Controller
 
             $courseProgram = CourseProgram::where('course_id', $course_id)->first();
             if($courseProgram!=NULL){
-                
+
                 $courseProgram = CourseProgram::where('course_id', $course_id)->first();
                 $programLearningOutcomes = ProgramLearningOutcome::where('program_id', $courseProgram->program_id)->get();
                 if(count($programLearningOutcomes)>0){
@@ -765,8 +879,8 @@ class CourseController extends Controller
                     Log::Debug("Course Data (AM) Sheet");
                     $learningActivitySheet=$this->makeLearningActivityMapSheetData($spreadsheet, $course_id, $styles, $columns);
                     Log::Debug("Course Data (LA) Sheet");
-    
-    
+
+
                     array_walk($columns, function ($letter, $index) use ($courseSheet,$programSheet, $mappingScaleSheet, $bcScaleSheet, $bcMappedSheet,$assessmentMethodSheet, $learningActivitySheet)
                     {
                         $courseSheet->getColumnDimension($letter)->setAutoSize(true);
@@ -787,8 +901,8 @@ class CourseController extends Controller
                 $bcMappedSheet=$this->makeBcStandardMapSheetData($spreadsheet, $course_id, $styles);
                 $assessmentMethodSheet=$this->makeAssessmentMapSheetData($spreadsheet, $course_id, $styles, $columns);
                 $learningActivitySheet=$this->makeLearningActivityMapSheetData($spreadsheet, $course_id, $styles, $columns);
-    
-    
+
+
                 array_walk($columns, function ($letter, $index) use ($courseSheet, $bcScaleSheet, $bcMappedSheet,$assessmentMethodSheet, $learningActivitySheet)
                 {
                     $courseSheet->getColumnDimension($letter)->setAutoSize(true);
@@ -797,7 +911,7 @@ class CourseController extends Controller
                     $assessmentMethodSheet->getColumnDimension($letter)->setAutoSize(true);
                     $learningActivitySheet->getColumnDimension($letter)->setAutoSize(true);
                 });
-    
+
 
             }
 
@@ -1015,6 +1129,21 @@ class CourseController extends Controller
         $user = User::find(Auth::id());
         $errorMessages = $this->addAllAdminsToCourse($course,$user);
 
+        //Add department heads and program directors of Faculty of Forestry owners of all courses in the faculty
+        if(FacultyCourseCodes::where('course_code', $course->course_code)->exists()){
+
+            $vancouverCampusId = Campus::where('campus', 'Vancouver')->first()->campus_id;
+            $forestryFacultyId = Faculty::where(['campus_id' => $vancouverCampusId,
+                'faculty' => 'Faculty of Forestry'])->first()->faculty_id;
+
+
+            if (FacultyCourseCodes::where(['course_code' => $course->course_code,
+                'faculty_id' => $forestryFacultyId])->exists()) {
+                $this->addAllDepartmentHeadsToCourse($course, null);
+                $this->addForestryProgramDirectorsToCourse($course);
+            }
+        }
+
         $user = User::find(Auth::id());
         $courseUser = new CourseUser;
         $courseUser->course_id = $course->course_id;
@@ -1084,9 +1213,9 @@ class CourseController extends Controller
 private function makeProgramOutcomeSheetData(Spreadsheet $spreadsheet, int $courseId, $styles): Worksheet
 {
     try {
-        
-        $course = Course::find($courseId); 
-        
+
+        $course = Course::find($courseId);
+
         $courseProgram = CourseProgram::where('course_id', $courseId)->get();
         $PLOs=[];
         foreach($courseProgram as $courseP){
@@ -1094,15 +1223,15 @@ private function makeProgramOutcomeSheetData(Spreadsheet $spreadsheet, int $cour
             $program= Program::find($programId);
             $plosTemp = ProgramLearningOutcome::where('program_id', $programId)->get();
             foreach($plosTemp as $plo){
-                
+
                 $PLOCategory=PLOCategory::where('plo_category_id', $plo->plo_category_id)->value('plo_category');
                 if($PLOCategory==NULL){
                     $PLOCategory="Uncategorized";
                 }
                 array_push($PLOs,                 [
-                    $program->program,  
-                    $plo->plo_shortphrase,     
-                    $PLOCategory 
+                    $program->program,
+                    $plo->plo_shortphrase,
+                    $PLOCategory
                 ]);
             }
         }
@@ -1112,7 +1241,7 @@ private function makeProgramOutcomeSheetData(Spreadsheet $spreadsheet, int $cour
 
         $programId = $courseProgram[0]->program_id;
         $program= Program::find($programId);
-        
+
         $plos = ProgramLearningOutcome::where('program_id', $programId)->get();
 
         $sheet = $spreadsheet->createSheet();
@@ -1121,7 +1250,7 @@ private function makeProgramOutcomeSheetData(Spreadsheet $spreadsheet, int $cour
         $sheet->fromArray(['Program', 'PLO', 'PLO Category'], null, 'A1');
         $sheet->getStyle('A1:C1')->applyFromArray($styles['primaryHeading']);
 
-        $row = 2; 
+        $row = 2;
 
         //Sorting PLOs to group by PLO Category
         usort($PLOs, function($a, $b) {
@@ -1133,15 +1262,15 @@ private function makeProgramOutcomeSheetData(Spreadsheet $spreadsheet, int $cour
 
             $sheet->fromArray(
                 [
-                    $plo[0],  
-                    $plo[1],     
-                    $plo[2] 
+                    $plo[0],
+                    $plo[1],
+                    $plo[2]
                 ],
                 null,
                 "A{$row}"
             );
 
-            $row++; 
+            $row++;
         }
 
         return $sheet;
@@ -1174,12 +1303,12 @@ private function makeMappingScalesSheetData(Spreadsheet $spreadsheet, int $cours
                 $program= Program::find($programId);
 
                 $mappingScaleLevels = $program->mappingScaleLevels;
-    
+
             }else{
                 foreach($courseProgram as $cProgram){
                 $programId = $cProgram->program_id;
                 $program= Program::find($programId);
-                
+
                 $mappingScaleLevelsTemp = $program->mappingScaleLevels;
                 foreach($mappingScaleLevelsTemp as $msLevel){
                     array_push($mappingScaleLevels, $msLevel);
@@ -1187,7 +1316,7 @@ private function makeMappingScalesSheetData(Spreadsheet $spreadsheet, int $cours
                 }
             }
 
-            
+
 
             $sheet = $spreadsheet->createSheet();
             $sheet->setTitle('Mapping Scale');
@@ -1208,12 +1337,12 @@ private function makeMappingScalesSheetData(Spreadsheet $spreadsheet, int $cours
                 // add conditional formatting rule to the outcome maps sheet
                 $sheet->getStyle($wizard->getCellRange())->setConditionalStyles($conditionalStyles);
             }
-            
+
             if (count($mappingScaleLevels) > 0) {
                 // Update header row to exclude the 'Colour' column
                 $sheet->fromArray(['Mapping Scale', 'Abbreviation', 'Description'], null, 'A1');
                 $sheet->getStyle('A1:C1')->applyFromArray($styles['primaryHeading']);
-    
+
                 foreach ($mappingScaleLevels as $index => $level) {
                     // Create array of scale values without the colour column
                     $scaleArr = [$level->title, $level->abbreviation, $level->description];
@@ -1222,10 +1351,10 @@ private function makeMappingScalesSheetData(Spreadsheet $spreadsheet, int $cours
                 }
             }
 
-            
-    
+
+
             return $sheet;
-    
+
 
         } catch (Throwable $exception) {
             $message = 'There was an error downloading the spreadsheet overview for: '.$course->course_title;
@@ -1385,14 +1514,14 @@ private function makeAssessmentMapSheetData(Spreadsheet $spreadsheet, int $cours
                     }
                 }
             }
-        
+
         $courseLearningOutcomes = LearningOutcome::where('course_id', $courseId)->get();
         $courseLearningOutcomeShortPhrases = $courseLearningOutcomes->pluck('clo_shortphrase')->toArray();
 
         // Create a new sheet for Student Assessment Methods
         $sheet = $spreadsheet->createSheet();
         $sheet->setTitle('Assessment Methods');
-        
+
         // Add primary headings (Courses, Student Assessment Method) to the sheet
         $sheet->fromArray(['Course Learning Outcomes', 'Student Assessment Methods'], null, 'A1');
         $sheet->getStyle('A1:B1')->applyFromArray($styles['primaryHeading']);
@@ -1402,7 +1531,7 @@ private function makeAssessmentMapSheetData(Spreadsheet $spreadsheet, int $cours
             $sheet->mergeCells('B1:'.$columns[count($assessmentMethodArray)].'1');
         }
 
-        
+
         // Add CLOs to first column
         $sheet->fromArray(array_chunk($courseLearningOutcomeShortPhrases, 1), null, 'A3');
         $sheet->getStyle('A3:A'.strval(3 + count($courseLearningOutcomeShortPhrases) - 1))->applyFromArray($styles['secondaryHeading']);
@@ -1426,23 +1555,23 @@ private function makeAssessmentMapSheetData(Spreadsheet $spreadsheet, int $cours
             foreach ($courseLearningOutcomes as $CLO) {
                 $CLOtoAssessmentMapping = OutcomeAssessment::where('l_outcome_id', $CLO->l_outcome_id)->get();
                 $CLOtoAssessmentsIDs = $CLOtoAssessmentMapping->pluck('a_method_id')->toArray();
-            
+
             if(count($assessmentMethodArray)==1){
                 if (in_array($assessmentMethod[0]->a_method_id, $CLOtoAssessmentsIDs)){ //check if Assessment Method is mapped to CLO
-                
+
                 array_push($assessmentWeightages, '1');
                 }else{
                     array_push($assessmentWeightages, '');
                 }
             }else{
                 if (in_array($assessmentMethod->a_method_id, $CLOtoAssessmentsIDs)){ //check if Assessment Method is mapped to CLO
-                    
+
                     array_push($assessmentWeightages, '1'); // Empty if no weightage
                     }else{
                         array_push($assessmentWeightages, '');
                     }
             }
-                
+
             }
 
             // Add weightage data to the respective column
@@ -1452,7 +1581,7 @@ private function makeAssessmentMapSheetData(Spreadsheet $spreadsheet, int $cours
         }
 
         return $sheet;
- 
+
     } catch (Throwable $exception) {
         // Log any errors
         $message = 'There was an error downloading the spreadsheet overview for: '.$course->course;
@@ -1482,14 +1611,14 @@ private function makeLearningActivityMapSheetData(Spreadsheet $spreadsheet, int 
                     }
                 }
             }
-        
+
         $courseLearningOutcomes = LearningOutcome::where('course_id', $courseId)->get();
         $courseLearningOutcomeShortPhrases = $courseLearningOutcomes->pluck('clo_shortphrase')->toArray();
 
         // Create a new sheet for Student Assessment Methods
         $sheet = $spreadsheet->createSheet();
         $sheet->setTitle('Learning Activities');
-        
+
         // Add primary headings (Courses, Student Assessment Method) to the sheet
         $sheet->fromArray(['Course Learning Outcomes', 'Teaching and Learning Activities'], null, 'A1');
         $sheet->getStyle('A1:B1')->applyFromArray($styles['primaryHeading']);
@@ -1499,7 +1628,7 @@ private function makeLearningActivityMapSheetData(Spreadsheet $spreadsheet, int 
             $sheet->mergeCells('B1:'.$columns[count($learningActivityArray)].'1');
         }
 
-        
+
         // Add CLOs to first column
         $sheet->fromArray(array_chunk($courseLearningOutcomeShortPhrases, 1), null, 'A3');
         $sheet->getStyle('A3:A'.strval(3 + count($courseLearningOutcomeShortPhrases) - 1))->applyFromArray($styles['secondaryHeading']);
@@ -1510,7 +1639,7 @@ private function makeLearningActivityMapSheetData(Spreadsheet $spreadsheet, int 
         foreach ($learningActivities as $learningActivity) {
 
             // Add assessment method to the sheet under the appropriate column
-            
+
             $sheet->setCellValue($columns[$categoryColInSheet].'2', $learningActivity->l_activity);
             $sheet->getStyle($columns[$categoryColInSheet].'2')->applyFromArray($styles['secondaryHeading']);
             $sheet->mergeCells($columns[$categoryColInSheet].'2:'.$columns[$categoryColInSheet].'2');
@@ -1520,14 +1649,14 @@ private function makeLearningActivityMapSheetData(Spreadsheet $spreadsheet, int 
             foreach ($courseLearningOutcomes as $CLO) {
                 $CLOtoLAMapping = OutcomeActivity::where('l_outcome_id', $CLO->l_outcome_id)->get();
                 $CLOtoLAIDs = $CLOtoLAMapping->pluck('l_activity_id')->toArray();
-                
+
                 if (in_array($learningActivity->l_activity_id, $CLOtoLAIDs)){ //check if learning activity is mapped to CLO
 
-                array_push($activityMappings, '1'); 
+                array_push($activityMappings, '1');
                 }else{
                     array_push($activityMappings, ' ');
                 }
-                
+
             }
 
             // Add weightage data to the respective column
@@ -1537,7 +1666,7 @@ private function makeLearningActivityMapSheetData(Spreadsheet $spreadsheet, int 
         }
 
         return $sheet;
- 
+
     } catch (Throwable $exception) {
         // Log any errors
         $message = 'There was an error downloading the spreadsheet overview for: '.$course->course;
@@ -1562,7 +1691,7 @@ private function makeOutcomeMapSheetData(Spreadsheet $spreadsheet, int $courseId
         //Find all PLOs for each program
         $programLearningOutcomes=[];
         foreach($courseProgramPIDs as $pid){
-        
+
             $PLOs=ProgramLearningOutcome::where('program_id', $pid)->get();
             foreach($PLOs as $PLO){
                 array_push($programLearningOutcomes, [$pid, $PLO]); //Storing PLOs in array, with the first entry noting the program ID
@@ -1588,21 +1717,21 @@ private function makeOutcomeMapSheetData(Spreadsheet $spreadsheet, int $courseId
         Log::Debug("Successfully made CLO array");
         Log::Debug($courseLearningOutcomes);
         */
-        
+
         $courseLearningOutcomes = LearningOutcome::where('course_id', $courseId)->get();
         $courseLearningOutcomeShortPhrases = $courseLearningOutcomes->pluck('clo_shortphrase')->toArray();
 
         // Create a new sheet for Student Assessment Methods
         $sheet = $spreadsheet->createSheet();
         $sheet->setTitle('Learning Outcome Mapping');
-        
+
         // Add primary headings (Courses, Student Assessment Method) to the sheet
         $sheet->fromArray(['Course Learning Outcomes', 'Program Learning Outcomes'], null, 'A1');
         $sheet->getStyle('A1:B1')->applyFromArray($styles['primaryHeading']);
         $sheet->mergeCells('B1:'.$columns[count($programLearningOutcomes)].'1');
-        
 
-        
+
+
         // Add CLOs to first column
         //Changing to A4 to accomodate adding PLO categories
         //Chaning to A5 to accomodate Program
@@ -1630,14 +1759,14 @@ private function makeOutcomeMapSheetData(Spreadsheet $spreadsheet, int $courseId
             // Adding CLO to PLO mapping to the sheet under the appropriate column
 
             //Adding Programs
-                        
+
             $program = Program::where('program_id', $PLO[1]->program_id)->first();
             $sheet->setCellValue($columns[$categoryColInSheet].'2', $program->program);
             $sheet->getStyle($columns[$categoryColInSheet].'2')->applyFromArray($styles['secondaryHeading']);
             //$sheet->mergeCells($columns[$categoryColInSheet].'2:'.$columns[$categoryColInSheet].'2');
- 
+
             //Adding PLO Categories
-                        
+
             $ploCategory = PLOCategory::where('plo_category_id', $PLO[1]->plo_category_id)->first();
             if($ploCategory!=NULL){
                 $sheet->setCellValue($columns[$categoryColInSheet].'3', $ploCategory->plo_category);
@@ -1649,14 +1778,14 @@ private function makeOutcomeMapSheetData(Spreadsheet $spreadsheet, int $courseId
                 $sheet->getStyle($columns[$categoryColInSheet].'3')->applyFromArray($styles['secondaryHeading']);
                // $sheet->mergeCells($columns[$categoryColInSheet].'3:'.$columns[$categoryColInSheet].'3');
             }
-            
-            
+
+
             //Changing all column headers to start from 3 to accomodate PLO categories
             $sheet->setCellValue($columns[$categoryColInSheet].'4', $PLO[1]->pl_outcome);
             $sheet->getStyle($columns[$categoryColInSheet].'4')->getFont()->setBold(true);
             //$sheet->mergeCells($columns[$categoryColInSheet].'4:'.$columns[$categoryColInSheet].'4');
 
-            
+
             // Outcome Mapping for each CLO
             $outcomeMappings = [];
             foreach ($courseLearningOutcomes as $CLO) {
@@ -1669,9 +1798,9 @@ private function makeOutcomeMapSheetData(Spreadsheet $spreadsheet, int $courseId
                 }else{
                     array_push($outcomeMappings, ' ');
                 }
-                
+
             }
-            
+
 
             // Add weightage data to the respective column
             //Changing all cell values to start from 4 to accomodate PLO categories
@@ -1693,7 +1822,7 @@ private function makeOutcomeMapSheetData(Spreadsheet $spreadsheet, int $courseId
             $lastValue="";
             $lastCoord="";
             $duplicateFoundPreviously=false;
-            
+
             $cellValues=[];
             $cellCoords=[];
             foreach ($cellIterator as $cell) {
@@ -1704,7 +1833,7 @@ private function makeOutcomeMapSheetData(Spreadsheet $spreadsheet, int $courseId
             $count=0;
             foreach($cellValues as $value){
                 if($count<1){ //do nothing until we reach categories
-                    
+
                 }else{
 
                     if ($cellValues[$count]==$lastValue){
@@ -1721,20 +1850,20 @@ private function makeOutcomeMapSheetData(Spreadsheet $spreadsheet, int $courseId
                             //Merge from First Duplicate to Current
                             $sheet->mergeCells($firstDuplicateColumnCoord.':'.$cellCoords[$count]);
                             $sheet->getStyle($firstDuplicateColumnCoord)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
-                            
+
                             //Reset where we found first dupe
                             $firstDuplicateColumnValue="";
                             $firstDuplicateColumnCoord="";
                             $duplicateFoundPreviously=false;
                             break;
                         }
-                        
+
                     }else{
                         if($duplicateFoundPreviously){
                             //Merge from First Duplicate to Current
                             $sheet->mergeCells($firstDuplicateColumnCoord.':'.$lastCoord);
                             $sheet->getStyle($firstDuplicateColumnCoord)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
-                            
+
                             //Reset where we found first dupe
                             $firstDuplicateColumnValue="";
                             $firstDuplicateColumnCoord="";
@@ -1750,10 +1879,10 @@ private function makeOutcomeMapSheetData(Spreadsheet $spreadsheet, int $courseId
 
                 $count++;
             }
-        }   
+        }
 
 
-        
+
         foreach($courseProgramPIDs as $cPID){
         $program = Program::find($cPID);
         // get this programs mapping scales
@@ -1778,7 +1907,7 @@ private function makeOutcomeMapSheetData(Spreadsheet $spreadsheet, int $courseId
 
 
         return $sheet;
- 
+
     } catch (Throwable $exception) {
         // Log any errors
         $message = 'There was an error downloading the spreadsheet overview for: '.$course->course;
@@ -1791,6 +1920,6 @@ private function makeOutcomeMapSheetData(Spreadsheet $spreadsheet, int $courseId
         return $exception;
     }
 }
-            
+
 
 }

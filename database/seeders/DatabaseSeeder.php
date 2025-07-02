@@ -25,6 +25,7 @@ class DatabaseSeeder extends Seeder
             OkanaganSyllabusResourceSeeder::class,
             VancouverSyllabusResourceSeeder::class,
             CampusFacultyDepartmentSeeder::class,
+            FacultyCourseCodeSeeder::class,
         ]);
     }
 }

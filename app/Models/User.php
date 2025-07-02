@@ -52,9 +52,79 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->belongsToMany(\App\Models\Course::class, 'course_users', 'user_id', 'course_id')->withPivot('permission');
     }
 
+    public function coursesWithElevatedRoleAccess()
+    {
+        return $this->belongsToMany(\App\Models\Course::class, 'course_user_role', 'user_id', 'course_id')
+            ->withPivot('role_id', 'program_id');
+    }
+
+    public function allCourses()
+    {
+        $permissionCourses = $this->courses()->get();
+        $roleCourses = $this->coursesWithElevatedRoleAccess()->get();
+
+        return $roleCourses->merge($permissionCourses)->unique('course_id')->values();
+    }
+
+    public function effectivePermissionForCourse($courseId)
+    {
+        $elevatedRoleIds = Role::whereIn('role', ['administrator', 'program director', 'department head'])
+            ->pluck('id')->toArray();
+
+        $hasElevatedRole = $this->coursesWithElevatedRoleAccess()
+            ->where('course_user_role.course_id', $courseId)
+            ->wherePivotIn('role_id', $elevatedRoleIds)
+            ->exists();
+
+        if ($hasElevatedRole) {
+            return 1; // Elevated roles are treated as owners
+        }
+
+        $pivot = $this->courses()
+            ->where('courses.course_id', $courseId)
+            ->first()?->pivot;
+
+        return $pivot->permission ?? 0;
+    }
+
     public function programs()
     {
-        return $this->belongsToMany(\App\Models\Program::class, 'program_users', 'user_id', 'program_id')->withPivot('permission','role_id');
+        return $this->belongsToMany(\App\Models\Program::class, 'program_users', 'user_id', 'program_id')->withPivot('permission');
+    }
+
+    public function programsWithElevatedRoleAccess()
+    {
+        return $this->belongsToMany(\App\Models\Program::class, 'program_user_role', 'user_id', 'program_id')
+            ->withPivot('role_id');
+    }
+
+    public function allPrograms()
+    {
+        $permissionPrograms = $this->programs()->get();
+        $rolePrograms = $this->programsWithElevatedRoleAccess()->get();
+
+        return $rolePrograms->merge($permissionPrograms)->unique('program_id')->values();
+    }
+
+    public function effectivePermissionForProgram($programId)
+    {
+        $elevatedRoleIds = Role::whereIn('role', ['administrator', 'program director', 'department head'])
+            ->pluck('id')->toArray();
+
+        $hasElevatedRole = $this->programsWithElevatedRoleAccess()
+            ->where('program_user_role.program_id', $programId)
+            ->wherePivotIn('role_id', $elevatedRoleIds)
+            ->exists();
+
+        if ($hasElevatedRole) {
+            return 1; // Elevated roles are treated as owners
+        }
+
+        $pivot = $this->programs()
+            ->where('programs.program_id', $programId)
+            ->first()?->pivot;
+
+        return $pivot->permission ?? 0;
     }
 
     public function syllabi()
@@ -64,15 +134,15 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function headedDepartments()
     {
-        return $this->belongsToMany(\App\Models\Department::class, 'department_head');
+        return $this->belongsToMany(\App\Models\Department::class, 'department_head', 'user_id','department_id');
     }
 
-    public function directedProducts()
+    public function directedPrograms()
     {
         $directorRoleId = Role::where('role', 'program director')->first()->id;
 
-        return $this->programs()
-                    ->withPivot('permission','role_id')
+        return $this->programsWithElevatedRoleAccess()
+                    ->withPivot('role_id')
                     ->wherePivot('role_id', $directorRoleId);
     }
 

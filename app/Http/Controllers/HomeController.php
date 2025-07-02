@@ -51,20 +51,34 @@ class HomeController extends Controller
         // get the current authenticated user
         $user = User::find(Auth::id());
         // get my programs
-        $myPrograms = $user->programs->map(function ($program) {
+//        $myPrograms = $user->programs->map(function ($program) {
+//            $program['timeSince'] = $this->timeSince(time() - strtotime($program->updated_at));
+//            $program['userPermission'] = $program->pivot->permission;
+//
+//            return $program;
+//        })->sortByDesc('updated_at')->values(); // Values is used to reset the index for sort statement
+
+        $myPrograms = $user->allPrograms()->map(function ($program) use ($user){
             $program['timeSince'] = $this->timeSince(time() - strtotime($program->updated_at));
-            $program['userPermission'] = $program->pivot->permission;
+            $program['userPermission'] = $user->effectivePermissionForProgram($program->program_id);
 
             return $program;
         })->sortByDesc('updated_at')->values(); // Values is used to reset the index for sort statement
 
         // get my courses
-        $myCourses = $user->courses->map(function ($course) {
+        $myCourses = $user->allCourses()->map(function ($course) use ($user) {
             $course['timeSince'] = $this->timeSince(time() - strtotime($course->updated_at));
-            $course['userPermission'] = $course->pivot->permission;
+            $course['userPermission'] = $user->effectivePermissionForCourse($course->course_id);
 
             return $course;
         })->sortByDesc('updated_at')->values(); // Values is used to reset the index for sort statement
+//        // get my courses
+//        $myCourses = $user->courses->map(function ($course) {
+//            $course['timeSince'] = $this->timeSince(time() - strtotime($course->updated_at));
+//            $course['userPermission'] = $course->pivot->permission;
+//
+//            return $course;
+//        })->sortByDesc('updated_at')->values(); // Values is used to reset the index for sort statement
         // get my syllabi
         $mySyllabi = $user->syllabi->map(function ($syllabus) {
             $syllabus['timeSince'] = $this->timeSince(time() - strtotime($syllabus->updated_at));
@@ -82,13 +96,14 @@ class HomeController extends Controller
         // returns a collection of programs associated with users (Collaborators Icon)
         $programUsers = [];
         foreach ($myPrograms as $program) {
-            $programsUsers = $program->users()->get();
+            $programsUsers = $program->collaborators();
             $programUsers[$program->program_id] = $programsUsers;
         }
         // returns a collection of courses associated with users
         $courseUsers = [];
         foreach ($myCourses as $course) {
-            $coursesUsers = $course->users()->get();
+            #$coursesUsers = $course->users()->get();
+            $coursesUsers = $course->collaborators();
             $courseUsers[$course->course_id] = $coursesUsers;
         }
         // get the associated users for every one of this users syllabi

@@ -27,15 +27,20 @@ class HasAccessMiddleware
         if ($course_id != null) {
             // get all users for the course
             $courseUsers = Course::find($course_id)->users;
+
+            //get all admins, directors and heads for course
+            $courseElevatedAccessUsers = Course::find($course_id)->usersWithElevatedRoles;
             // check if the current user belongs to this course
-            if (! in_array($user->id, $courseUsers->pluck('id')->toArray())) {
+            if (! in_array($user->id, $courseUsers->pluck('id')->toArray()) and
+                ! in_array($user->id, $courseElevatedAccessUsers->pluck('id')->toArray())) {
                 // user does not belong to this course
                 $request->session()->flash('error', 'You do not have access to this course');
 
                 return redirect()->route('home');
             } else {
                 // get users permission level for this syllabus
-                $userPermission = $courseUsers->where('id', Auth::id())->first()->pivot->permission;
+//                $userPermission = $courseUsers->where('id', Auth::id())->first()->pivot->permission;
+                $userPermission = User::where('id', Auth::id())->first()->effectivePermissionForCourse($course_id);
                 switch ($userPermission) {
                     case 1:
                         // Owner
@@ -55,15 +60,19 @@ class HasAccessMiddleware
         } elseif ($program_id != null) {
             // get all users for the program
             $programUsers = Program::find($program_id)->users;
+            //get all admins, directors and heads for course
+            $programElevatedAccessUsers = Program::find($program_id)->usersWithElevatedRoles;
             // check if the current user belongs to this program
-            if (! in_array($user->id, $programUsers->pluck('id')->toArray())) {
+            if (! in_array($user->id, $programUsers->pluck('id')->toArray()) and
+                ! in_array($user->id, $programElevatedAccessUsers->pluck('id')->toArray())) {
                 // user does not belong to this program
                 $request->session()->flash('error', 'You do not have access to this program');
 
                 return redirect()->route('home');
             } else {
                 // get users permission level for this syllabus
-                $userPermission = $programUsers->where('id', Auth::id())->first()->pivot->permission;
+//                $userPermission = $programUsers->where('id', Auth::id())->first()->pivot->permission;
+                $userPermission = User::where('id', Auth::id())->first()->effectivePermissionForProgram($program_id);
                 switch ($userPermission) {
                     case 1:
                         // Owner

@@ -54,7 +54,8 @@ class ProgramUserController extends Controller
         // get the current user
         $currentUser = User::find(Auth::id());
         // get the current user permission
-        $currentUserPermission = $currentUser->programs->where('program_id', $programId)->first()->pivot->permission;
+//        $currentUserPermission = $currentUser->programs->where('program_id', $programId)->first()->pivot->permission;
+        $currentUserPermission = $currentUser->effectivePermissionForProgram($programId);
         // get the program
         $program = Program::find($programId);
         // keep track of errors
@@ -75,7 +76,7 @@ class ProgramUserController extends Controller
                 } else {
                     // remove old collaborator from program, make sure it's not the owner
                     if ($savedProgramUser->permission != 1) {
-                        $this->destroy($savedProgramUser);
+                        $this->destroy($savedProgramUser, $program);
                     }
                 }
             }
@@ -246,12 +247,13 @@ class ProgramUserController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function destroy(ProgramUser $programUser)
+    public function destroy(ProgramUser $programUser, Program $program)
     {
         // get the current user
         $currentUser = User::find(Auth::id());
         // get the current user permission
-        $currentUserPermission = ProgramUser::where([['program_id', $programUser->program_id], ['user_id', $currentUser->id]])->first()->permission;
+//        $currentUserPermission = ProgramUser::where([['program_id', $programUser->program_id], ['user_id', $currentUser->id]])->first()->permission;
+        $currentUserPermission = $currentUser->effectivePermissionForProgram($program->program_id);
         // if the current user is the owner, delete the given program collaborator
         if ($currentUserPermission == 1) {
             $programUser->delete();

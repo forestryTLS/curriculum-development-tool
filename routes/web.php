@@ -66,7 +66,21 @@ Route::get('/about', [AboutController::class, 'index'])->name('about');
 Route::get('/faq', [FAQController::class, 'index'])->name('FAQ');
 Route::get('/terms', [TermsController::class, 'index'])->name('terms');
 
-Route::post('/assignRole', [AdminAssignRoleController::class, 'store'])->name('admin.assignRole');
+
+Route::prefix('admin')->name('admin.')->group(function () {
+    Route::get('/assignRole', [AdminAssignRoleController::class, 'index'])->name('assignRole.index');
+    Route::post('/assignRole/assignNewRole', [AdminAssignRoleController::class, 'store'])->name('assignRole');
+    Route::get('/assignRole/getUser', [AdminAssignRoleController::class, 'getUserRoles'])->name('getUserRoles');
+    Route::delete("/assignRole/admin/{user}/{role}/deleteRole", [AdminAssignRoleController::class, 'deleteAdminRole'])->name('assignRole.deleteAdminRole');
+    Route::delete("/assignRole/department/{user}/{role}/{department}/deleteRole", [AdminAssignRoleController::class, 'deleteDepartmentHeadRole'])
+        ->name('assignRole.deleteDepartmentHeadRole');
+    Route::delete("/assignRole/program/{user}/{role}/{program}/deleteRole", [AdminAssignRoleController::class, 'deleteProgramDirectorRole'])
+        ->name('assignRole.deleteProgramDirectorRole');
+
+
+
+});
+
 
 // route to view a syllabus
 Route::get('/syllabusGenerator/{syllabusId?}', [SyllabusController::class, 'index'])->name('syllabus');
@@ -122,7 +136,7 @@ Route::post('/courses/{course}/loReorder', [CourseController::class, 'loReorder'
 Route::post('/courses/{course}/tlaReorder', [CourseController::class, 'tlaReorder'])->name('courses.tlaReorder');
 Route::get('/courses/{course}/pdf', [CourseController::class, 'pdf'])->name('courses.pdf');
 
-// Route for spreadsheet download in course 
+// Route for spreadsheet download in course
 Route::get('/courses/{course}/dataSpreadsheet', [CourseController::class, 'dataSpreadsheet'])->name('courses.dataSpreadsheet');
 
 Route::delete('/courses/{course}/pdf', [CourseController::class, 'deletePDF'])->name('courses.delete.pdf');

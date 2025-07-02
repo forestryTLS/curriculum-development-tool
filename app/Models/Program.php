@@ -48,14 +48,27 @@ class Program extends Model
 
     public function users()
     {
-        return $this->belongsToMany(User::class, 'program_users', 'program_id', 'user_id')->withPivot('permission','role_id');
+        return $this->belongsToMany(User::class, 'program_users', 'program_id', 'user_id')->withPivot('permission');
+    }
+
+    public function usersWithElevatedRoles()
+    {
+        return $this->belongsToMany(User::class, 'program_user_role', 'program_id', 'user_id')->withPivot('role_id');
+    }
+
+    public function collaborators()
+    {
+        return $this->users
+            ->merge($this->usersWithElevatedRoles)
+            ->unique('id')
+            ->values();
     }
 
     public function directors()
     {
         $directorRoleId = Role::where('role', 'program director')->first()->id;
 
-        return $this->belongsToMany(User::class, 'program_users', 'program_id', 'user_id')->withPivot('permission', 'role_id')->wherePivot('role_id', $directorRoleId);
+        return $this->belongsToMany(User::class, 'program_user_role', 'program_id', 'user_id')->withPivot( 'role_id')->wherePivot('role_id', $directorRoleId);
     }
 
     // Eloquent automatically determines the FK column for the ProgramLearningOutcome model by taking the parent model (program) and suffix it with _id (program_id)
