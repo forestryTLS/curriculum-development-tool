@@ -170,30 +170,30 @@ class ProgramController extends Controller
             if($faculty != null){
                 $department = Department::where(['department'=> $program->department,
                     'faculty_id' => $faculty->faculty_id])->first();
-            }
-        }
 
-        if($department){
-            $departmentHeadRoleId = Role::where('role', 'department head')->first()->id;
+                if($department){
+                    $departmentHeadRoleId = Role::where('role', 'department head')->first()->id;
 
-            $departmentHeads = $department->heads()->get();
-            foreach ($departmentHeads as $departmentHead) {
-                if(!ProgramUserRole::where('program_id', $program->program_id)->where('user_id', $departmentHead->id)
-                    ->where('role_id', $departmentHeadRoleId)->exists()) {
+                    $departmentHeads = $department->heads()->get();
+                    foreach ($departmentHeads as $departmentHead) {
+                        if(!ProgramUserRole::where('program_id', $program->program_id)->where('user_id', $departmentHead->id)
+                            ->where('role_id', $departmentHeadRoleId)->exists()) {
 
-                    $programUserRole = ProgramUserRole::firstOrCreate(
-                        ['program_id' => $program->program_id, 'user_id' => $departmentHead->id,
-                            'role_id' => $departmentHeadRoleId]
-                    );
-                    if($programUserRole->save()){
-                    } else{
-                        $errorMessages->add('There was an error adding '.'<b>'.$departmentHead->email.'</b>'.' to program '.$program->program);
+                            $programUserRole = ProgramUserRole::firstOrCreate(
+                                ['program_id' => $program->program_id, 'user_id' => $departmentHead->id,
+                                    'role_id' => $departmentHeadRoleId]
+                            );
+                            if($programUserRole->save()){
+                            } else{
+                                $errorMessages->add('There was an error adding '.'<b>'.$departmentHead->email.'</b>'.' to program '.$program->program);
+                            }
+                        }
                     }
+
+                    return $errorMessages;
+
                 }
             }
-
-            return $errorMessages;
-
         }
 
     }
@@ -274,7 +274,8 @@ class ProgramController extends Controller
         // find the current user
         $currentUser = User::find(Auth::id());
         //get the current users permission level for the program delete
-        $currentUserPermission = $currentUser->programs->where('program_id', $program_id)->first()->pivot->permission;
+        // $currentUserPermission = $currentUser->programs->where('program_id', $program_id)->first()->pivot->permission;
+        $currentUserPermission = $currentUser->effectivePermissionForProgram($program->program_id);
         // if the current user own the program, then try to delete it
         if ($currentUserPermission == 1) {
             if ($program->delete()) {

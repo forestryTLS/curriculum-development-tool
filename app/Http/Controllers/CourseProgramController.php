@@ -120,28 +120,28 @@ class CourseProgramController extends Controller
             if($faculty != null){
                 $department = Department::where(['department'=> $program->department,
                     'faculty_id' => $faculty->faculty_id])->first();
-            }
-        }
 
-        if($department){
-            $departmentHeadRoleId = Role::where('role', 'department head')->first()->id;
-            $departmentHeads = $department->heads()->get();
-            $coursesInProgram = $program->courses()->get();
+                if($department){
+                    $departmentHeadRoleId = Role::where('role', 'department head')->first()->id;
+                    $departmentHeads = $department->heads()->get();
+                    $coursesInProgram = $program->courses()->get();
 
-            foreach ($departmentHeads as $departmentHead) {
-                foreach($coursesInProgram as $course){
-                    if (!CourseUserRole::where('course_id', $course->course_id)->where('role_id', $departmentHeadRoleId)
-                        ->where('user_id', $departmentHead->id)->exists()) {
-                        $courseUserRole = CourseUserRole::firstOrCreate(
-                            ['course_id' => $course->course_id, 'user_id' => $departmentHead->id,
-                                'role_id' => $departmentHeadRoleId,
-                                'program_id' => $program->program_id],
-                        );
-                        if($courseUserRole->save()){
-                        }else{
-                            $errorMessages->add('There was an error adding ' . '<b>' . $departmentHeadRoleId->email . '</b>' . ' to course ' . $course->course_code . ' ' . $course->course_num);
+                    foreach ($departmentHeads as $departmentHead) {
+                        foreach($coursesInProgram as $course){
+                            if (!CourseUserRole::where('course_id', $course->course_id)->where('role_id', $departmentHeadRoleId)
+                                ->where('user_id', $departmentHead->id)->exists()) {
+                                $courseUserRole = CourseUserRole::firstOrCreate(
+                                    ['course_id' => $course->course_id, 'user_id' => $departmentHead->id,
+                                        'role_id' => $departmentHeadRoleId,
+                                        'program_id' => $program->program_id],
+                                );
+                                if($courseUserRole->save()){
+                                }else{
+                                    $errorMessages->add('There was an error adding ' . '<b>' . $departmentHeadRoleId->email . '</b>' . ' to course ' . $course->course_code . ' ' . $course->course_num);
+                                }
+
+                            }
                         }
-
                     }
                 }
             }

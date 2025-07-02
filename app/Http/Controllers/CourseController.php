@@ -967,6 +967,33 @@ class CourseController extends Controller
             $program = Program::find($request->input('program_id'));
             $program->touch();
 
+            $course = Course::where('course_id', $course_id)->first();
+            $campusVId = Campus::where('campus', 'Vancouver')->first()->campus_id;
+            $facultyForestryId = Faculty::where(['faculty'=> 'Faculty of Forestry',
+                                                'campus_id' => $campusVId])->first()->faculty_id;
+            $programDirectorRoleId = Role::where('role', 'program director')->first()->id;
+            $departmentHeadRoleId = Role::where('role', 'department head')->first()->id;
+
+
+            if(!FacultyCourseCodes::where(['course_code' => $course->course_code, 'faculty_id' => $facultyForestryId])->exists()){
+                CourseUserRole::where(['course_id' => $course->course_id, 'role_id' => $programDirectorRoleId, 'program_id' => $program->program_id])->delete();
+
+                CourseUserRole::where(['course_id' => $course->course_id, 'role_id' => $departmentHeadRoleId, 'program_id' => $program->program_id])->delete();
+
+            } 
+            
+            // else {
+            //     $forestryPrograms = Program::where('campus', 'Vancouver')->where('faculty', 'Faculty of Forestry')->get();
+            //     $programDirectorCollaboratorsForCourse = CourseUserRole::where(['course_id' => $course->course_id, 
+            //     'role_id' => $programDirectorRoleId, 'program_id' => $program->program_id])->get();
+            //     $DepartmentHeadCollaboratorsForCourse = CourseUserRole::where(['course_id' => $course->course_id, 
+            //     'role_id' => $programDirectorRoleId, 'program_id' => $program->program_id])->get();
+
+
+
+            // }
+
+
             // get users name for last_modified_user
             $user = User::find(Auth::id());
             $program->last_modified_user = $user->name;
