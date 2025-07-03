@@ -6,6 +6,7 @@ use App\Models\AssessmentMethod;
 use App\Models\Campus;
 use App\Models\Course;
 use App\Models\CourseProgram;
+use App\Models\CourseUserRole;
 use App\Models\Department;
 use App\Models\Faculty;
 use App\Models\LearningActivity;
@@ -175,6 +176,8 @@ class ProgramController extends Controller
                     $departmentHeadRoleId = Role::where('role', 'department head')->first()->id;
 
                     $departmentHeads = $department->heads()->get();
+                    $coursesInProgram = $program->courses()->get();
+
                     foreach ($departmentHeads as $departmentHead) {
                         if(!ProgramUserRole::where('program_id', $program->program_id)->where('user_id', $departmentHead->id)
                             ->where('role_id', $departmentHeadRoleId)->exists()) {
@@ -186,6 +189,22 @@ class ProgramController extends Controller
                             if($programUserRole->save()){
                             } else{
                                 $errorMessages->add('There was an error adding '.'<b>'.$departmentHead->email.'</b>'.' to program '.$program->program);
+                            }
+                        }
+
+                        foreach($coursesInProgram as $course){
+                            if (!CourseUserRole::where('course_id', $course->course_id)->where('role_id', $departmentHeadRoleId)
+                                ->where('user_id', $departmentHead->id)->exists()) {
+                                $courseUserRole = CourseUserRole::firstOrCreate(
+                                    ['course_id' => $course->course_id, 'user_id' => $departmentHead->id,
+                                        'role_id' => $departmentHeadRoleId,
+                                        'program_id' => $program->program_id],
+                                );
+                                if($courseUserRole->save()){
+                                }else{
+                                    $errorMessages->add('There was an error adding ' . '<b>' . $departmentHeadRoleId->email . '</b>' . ' to course ' . $course->course_code . ' ' . $course->course_num);
+                                }
+
                             }
                         }
                     }
@@ -235,6 +254,9 @@ class ProgramController extends Controller
         ]);
 
         $program = Program::where('program_id', $program_id)->first();
+        $oldProgramCampus = $program->campus;
+        $oldProgramFaculty = $program->faculty;
+        $oldProgramDepartment = $program->department;
         $program->program = $request->input('program');
         if ($request->input('level') != 'Bachelors' && $request->input('level') != 'Masters' && $request->input('level') != 'Doctoral' && $request->input('level') != 'Other') {
             $program->level = 'Other';
@@ -253,6 +275,16 @@ class ProgramController extends Controller
             // update courses 'updated_at' field
             $program = Program::find($program_id);
             $program->touch();
+
+            if($program->campus != $oldProgramCampus || $program->faculty != $oldProgramFaculty
+                || $program->department != $oldProgramDepartment){
+                $departmentHeadRoleId = Role::where('role', 'department head')->first()->id;
+                CourseUserRole::where(['role_id' => $departmentHeadRoleId, 'program_id' => $program->program_id])->delete();
+                ProgramUserRole::where(['program_id' => $program->program_id, 'role_id' => $departmentHeadRoleId])->delete();
+            }
+
+            $this->addAllDepartmentHeadsToProgram($program);
+
 
             $request->session()->flash('success', 'Program updated');
         } else {

@@ -168,7 +168,7 @@ class CourseController extends Controller
                 if (FacultyCourseCodes::where(['course_code' => $course->course_code,
                     'faculty_id' => $forestryFacultyId])->exists()) {
 
-                    $this->addAllDepartmentHeadsToCourse($course, $request->input('program_id'));
+                    $this->addForestryDepartmentHeadsToCourse($course);
                     $this->addForestryProgramDirectorsToCourse($course);
                 }
 
@@ -225,7 +225,7 @@ class CourseController extends Controller
 
                 if (FacultyCourseCodes::where(['course_code' => $course->course_code,
                     'faculty_id' => $forestryFacultyId])->exists()) {
-                    $this->addAllDepartmentHeadsToCourse($course, null);
+                    $this->addForestryDepartmentHeadsToCourse($course);
                     $this->addForestryProgramDirectorsToCourse($course);
                 }
             }
@@ -306,7 +306,7 @@ class CourseController extends Controller
     /**
      * Helper function to add all department heads to the given course.
      */
-    private function addAllDepartmentHeadsToCourse($course, $program_id)
+    private function  addForestryDepartmentHeadsToCourse($course)
     {
         $errorMessages = Collection::make();
         $facultyId = FacultyCourseCodes::where('course_code', $course->course_code)->first()->faculty_id;
@@ -322,12 +322,6 @@ class CourseController extends Controller
 
                     $courseUserRole = CourseUserRole::create(['course_id' => $course->course_id, 'user_id' => $head->id,
                         'role_id' => $departmentHeadRoleId]);
-                    $program = Program::where('program_id', $program_id)->first();
-
-                    if($program){
-                        $courseUserRole->program_id = $program->program_id;
-                    }
-
                     if ($courseUserRole->save()) {
 
                     } else {
@@ -357,11 +351,10 @@ class CourseController extends Controller
 
             foreach ($programDirectors as $director) {
                 if(!CourseUserRole::where(['course_id' => $course->course_id, 'user_id' => $director->id,
-                    'role_id' => $programDirectorRoleId->id,
-                    'program_id' => $program->program_id])->exists()) {
+                    'role_id' => $programDirectorRoleId, 'program_id' => $program->program_id])->exists()) {
 
                     $courseUserRole = CourseUserRole::create(['course_id' => $course->course_id, 'user_id' => $director->id,
-                        'role_id' => $programDirectorRoleId->id, $program->program_id]);
+                        'role_id' => $programDirectorRoleId, 'program_id' => $program->program_id]);
                     if ($courseUserRole->save()) {
 
                     } else {
@@ -483,6 +476,7 @@ class CourseController extends Controller
         ]);
 
         $course = Course::where('course_id', $course_id)->first();
+        $oldCourseCode = $course->course_code;
         $course->course_num = $request->input('course_num');
         $course->course_code = strtoupper($request->input('course_code'));
         $course->course_title = $request->input('course_title');
@@ -509,6 +503,43 @@ class CourseController extends Controller
             $user = User::find(Auth::id());
             $course->last_modified_user = $user->name;
             $course->save();
+
+            //Add department heads and program directors of Faculty of Forestry owners of all courses in the faculty
+            $vancouverCampusId = Campus::where('campus', 'Vancouver')->first()->campus_id;
+            $forestryFacultyId = Faculty::where(['campus_id' => $vancouverCampusId,
+                'faculty' => 'Faculty of Forestry'])->first()->faculty_id;
+
+            if(FacultyCourseCodes::where('course_code', $course->course_code)->exists()){
+                if (FacultyCourseCodes::where(['course_code' => $course->course_code,
+                    'faculty_id' => $forestryFacultyId])->exists()) {
+                    $this->addForestryDepartmentHeadsToCourse($course);
+                    $this->addForestryProgramDirectorsToCourse($course);
+                }
+            } else {
+                if(FacultyCourseCodes::where(['course_code' => $oldCourseCode,
+                    'faculty_id' => $forestryFacultyId])->exists()){
+                    $departmentHeadRoleId = Role::where('role', 'department head')->first()->id;
+                    CourseUserRole::where(['course_id' => $course->course_id, 'role_id' => $departmentHeadRoleId,
+                        'program_id'=>null])->delete();
+
+
+                    $programDirectorRoleId = Role::where('role', 'program director')->first()->id;
+                    $programsWithCourse = CourseUserRole::where('course_id', $course_id)
+                        ->where('role_id', $programDirectorRoleId)->get();
+
+                    // Delete program director access from course for Faculty of Forestry programs which do not include
+                    // the course in their course list
+                    foreach ($programsWithCourse as $courseUserRole) {
+                        $programId = $courseUserRole->program_id;
+                        $program = Program::where('program_id', $programId)->first();
+                        if((!$program->courses()->where(['course_programs.course_id' => $course_id,
+                                'course_programs.program_id'=> $program->program_id])->exists())
+                            && $program->campus == 'Vancouver' && $program->faculty == 'Faculty of Forestry') {
+                            $courseUserRole->delete();
+                        }
+                    }
+                }
+            }
 
             $request->session()->flash('success', 'Course updated');
         } else {
@@ -980,18 +1011,14 @@ class CourseController extends Controller
 
                 CourseUserRole::where(['course_id' => $course->course_id, 'role_id' => $departmentHeadRoleId, 'program_id' => $program->program_id])->delete();
 
-            } 
-            
-            // else {
-            //     $forestryPrograms = Program::where('campus', 'Vancouver')->where('faculty', 'Faculty of Forestry')->get();
-            //     $programDirectorCollaboratorsForCourse = CourseUserRole::where(['course_id' => $course->course_id, 
-            //     'role_id' => $programDirectorRoleId, 'program_id' => $program->program_id])->get();
-            //     $DepartmentHeadCollaboratorsForCourse = CourseUserRole::where(['course_id' => $course->course_id, 
-            //     'role_id' => $programDirectorRoleId, 'program_id' => $program->program_id])->get();
-
-
-
-            // }
+            } else {
+                if($program->campus != 'Vancouver' && $program->faculty != 'Faculty of Forestry'){
+                    CourseUserRole::where(['course_id' => $course->course_id,
+                        'role_id' => $programDirectorRoleId, 'program_id' => $program->program_id])->delete();
+                    CourseUserRole::where(['course_id' => $course->course_id,
+                        'role_id' => $departmentHeadRoleId, 'program_id' => $program->program_id])->delete();
+                }
+             }
 
 
             // get users name for last_modified_user
@@ -1166,7 +1193,7 @@ class CourseController extends Controller
 
             if (FacultyCourseCodes::where(['course_code' => $course->course_code,
                 'faculty_id' => $forestryFacultyId])->exists()) {
-                $this->addAllDepartmentHeadsToCourse($course, null);
+                $this->addForestryDepartmentHeadsToCourse($course);
                 $this->addForestryProgramDirectorsToCourse($course);
             }
         }
