@@ -9,6 +9,7 @@ use App\Models\CourseProgram;
 use App\Models\CourseUserRole;
 use App\Models\Department;
 use App\Models\Faculty;
+use App\Models\FacultyCourseCodes;
 use App\Models\LearningActivity;
 use App\Models\MappingScale;
 use App\Models\MappingScaleProgram;
@@ -277,11 +278,34 @@ class ProgramController extends Controller
             $program->touch();
 
             if($program->campus != $oldProgramCampus || $program->faculty != $oldProgramFaculty
-                || $program->department != $oldProgramDepartment){
+                || $program->department != $oldProgramDepartment) {
                 $departmentHeadRoleId = Role::where('role', 'department head')->first()->id;
                 CourseUserRole::where(['role_id' => $departmentHeadRoleId, 'program_id' => $program->program_id])->delete();
                 ProgramUserRole::where(['program_id' => $program->program_id, 'role_id' => $departmentHeadRoleId])->delete();
+
+                if ($oldProgramCampus == 'Vancouver' && $oldProgramFaculty == 'Faculty of Forestry') {
+                    $programDirectorRoleId = Role::where('role', 'program director')->first()->id;
+                    $coursesAccessedThroughProgram = CourseUserRole::where(['role_id' => $programDirectorRoleId,
+                        'program_id' => $program->program_id])->get();
+
+                    $campusVID = Campus::where('campus', 'Vancouver')->first()->campus_id;
+                    $facultyOfForestryId = Faculty::where(['faculty' => 'Faculty of Forestry',
+                        'campus_id'=>$campusVID])->first()->faculty_id;
+
+                    foreach ($coursesAccessedThroughProgram as $courseAccessedThroughProgram) {
+                        $courseAccessedCode = Course::where('course_id', $courseAccessedThroughProgram->course_id)->first()->course_code;
+                        if ((!$program->courses()->where(['course_programs.course_id' => $courseAccessedThroughProgram->course_id,
+                                'course_programs.program_id' => $program->program_id])->exists())
+                            && FacultyCourseCodes::where(['course_code' => $courseAccessedCode,
+                                'faculty_id' => $facultyOfForestryId])->exists()) {
+                            $courseAccessedThroughProgram->delete();
+                        }
+
+                    }
+                }
             }
+
+
 
             $this->addAllDepartmentHeadsToProgram($program);
 
