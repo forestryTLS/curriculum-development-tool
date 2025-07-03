@@ -269,7 +269,7 @@ class AdminAssignRoleController extends Controller{
                     }
                 } else {
                     if(!CourseUserRole::where(['course_id' => $course->course_id, 'user_id' => $user->id,
-                        'role_id' => $role->id])->exists()){
+                        'role_id' => $role->id, 'program_id' => null])->exists()){
 
                         $courseUserRole = CourseUserRole::create(['course_id' => $course->course_id, 'user_id' => $user->id,
                             'role_id' => $role->id]);

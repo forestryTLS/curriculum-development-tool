@@ -749,4 +749,152 @@ class ManageRolesTest extends TestCase
             'program_id' => $program->program_id
         ]);
     }
+
+    public function test_collab_update_on_removing_non_forestry_course_from_forestry_program(){
+        $adminUser = User::where('email', 'admintest@gmail.com')->first();
+        $user = User::where('email', 'usertest@gmail.com')->first();
+        $role = Role::where(['role' => 'program director'])->first();
+        $program = Program::where('program', 'Bachelor of New Test Program')->orderBy('program_id', 'DESC')->first();
+        $course = Course::where('course_title', 'Intro to Unit Testing')->orderBy('course_id', 'DESC')->first();
+
+        $response = $this->actingAs($user)->get(route('courses.remove', [
+            'program_id' => $program->program_id,
+            'course' => $course
+        ]));
+
+        $this->assertDatabaseMissing('course_user_role', [
+            'course_id' => $course->course_id,
+            'user_id' => $user->id,
+            'role_id' => $role->id,
+            'program_id' => $program->program_id
+        ]);
+
+        $this->assertDatabaseMissing('course_programs', [
+            'course_id' => $course->course_id,
+            'program_id' => $program->program_id,
+        ]);
+    }
+
+    public function test_collab_update_remove_forestry_course_from_forestry_program(){
+        $adminUser = User::where('email', 'admintest@gmail.com')->first();
+        $user = User::where('email', 'usertest@gmail.com')->first();
+        $role = Role::where(['role' => 'program director'])->first();
+        $program = Program::where('program', 'Bachelor of New Test Program')->orderBy('program_id', 'DESC')->first();
+
+        $response = $this->actingAs($adminUser)->post(route('admin.assignRole'), [
+            'email' => 'usertest@gmail.com',
+            'role' => 'department-head',
+            'campus' => 'Vancouver',
+            'faculty' => 'Faculty of Forestry',
+            'department' => 'Department of Forest Resources Management'
+        ]);
+
+        $course = Course::where('course_title', 'Forestry Testing Course')->orderBy('course_id', 'DESC')->first();
+
+        $response = $this->actingAs($user)->post(route('courseProgram.addCoursesToProgram', $program->program_id), [
+            'selectedCourses' => [
+                0 => $course->course_id],
+            'program_id' => $program->program_id,
+        ]);
+
+        $this->assertDatabaseHas('course_programs', [
+            'course_id' => $course->course_id,
+            'program_id' => $program->program_id,
+        ]);
+
+        $response = $this->actingAs($user)->get(route('courses.remove', [
+            'program_id' => $program->program_id,
+            'course' => $course
+        ]));
+
+        $this->assertDatabaseMissing('course_programs', [
+            'course_id' => $course->course_id,
+            'program_id' => $program->program_id,
+        ]);
+
+        $this->assertDatabaseHas('course_user_role', [
+            'course_id' => $course->course_id,
+            'user_id' => $user->id,
+            'role_id' => $role->id,
+            'program_id' => $program->program_id
+        ]);
+
+        $role = Role::where('role', 'department head')->first();
+
+        $this->assertDatabaseHas('course_user_role', [
+            'course_id' => $course->course_id,
+            'user_id' => $user->id,
+            'role_id' => $role->id,
+            'program_id' => null
+        ]);
+    }
+
+    public function test_collab_on_course_update(){
+        $adminUser = User::where('email', 'admintest@gmail.com')->first();
+        $user = User::where('email', 'usertest@gmail.com')->first();
+
+        $course = Course::where('course_title', 'Forestry Testing Course')->orderBy('course_id', 'DESC')->first();
+
+        $response = $this->actingAs($adminUser)->put(action([\App\Http\Controllers\CourseController::class, 'update'],
+            $course->course_id),
+            [
+                'course_code' => 'TEST',
+                'course_title' => 'Changed To Non-Forestry Testing Course',
+                'course_num' => $course->course_num,
+                'delivery_modality' => $course->delivery_modality,
+                'course_year' => $course->year,
+                'course_semester' => $course->semester,
+                'standard_category_id' => $course->standard_category_id,
+
+            ]
+        );
+
+        $this->assertDatabaseHas('courses', [
+            'course_id' => $course->course_id,
+            'course_title' => 'Changed To Non-Forestry Testing Course',
+            'course_num' => $course->course_num,
+            'course_code' => 'TEST'
+        ]);
+
+        $this->assertDatabaseMissing('course_user_role', [
+            'course_id' => $course->course_id,
+            'user_id' => $user->id
+        ]);
+    }
+
+    public function test_collab_on_program_update(){
+        $adminUser = User::where('email', 'admintest@gmail.com')->first();
+        $user = User::where('email', 'usertest@gmail.com')->first();
+        $program = Program::where('program', 'Bachelor of New Test Program')->orderBy('program_id', 'DESC')->first();
+
+        $response = $this->actingAs($adminUser)->post(route('programs.update', $program->program_id),[
+            'program_id' => $program->program_id,
+            'program' => 'Changed Name of Program',
+            'level' => $program->level,
+            'department' => 'other',
+            'campus' => 'other',
+            'faculty' => 'other',
+        ]);
+
+        $this->assertDatabaseHas('programs',[
+            'program' =>'Changed Name of Program'
+        ]);
+
+        $role = Role::where('role', 'department head')->first();
+
+        $this->assertDatabaseMissing('program_user_role',[
+            'program_id' => $program->program_id,
+            'role_id' => $role->id,
+            'user_id' => $user->id,
+        ]);
+
+        $role = Role::where('role', 'program director')->first();
+
+        $this->assertDatabaseHas('program_user_role',[
+            'program_id' => $program->program_id,
+            'user_id' => $user->id,
+            'role_id' => $role->id,
+        ]);
+
+    }
 }
