@@ -820,12 +820,12 @@ class ManageRolesTest extends TestCase
             'program_id' => $program->program_id,
         ]);
 
-//        $this->assertDatabaseHas('course_user_role', [
-//            'course_id' => $course->course_id,
-//            'user_id' => $user->id,
-//            'role_id' => $role->id,
-//            'program_id' => $program->program_id
-//        ]);
+        $this->assertDatabaseHas('course_user_role', [
+            'course_id' => $course->course_id,
+            'user_id' => $user->id,
+            'role_id' => $role->id,
+            'program_id' => $program->program_id
+        ]);
 
         $role = Role::where('role', 'department head')->first();
 
