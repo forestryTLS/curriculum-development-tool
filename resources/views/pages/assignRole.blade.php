@@ -108,6 +108,14 @@
                                         @enderror
                                     </div>
                                 </div>
+                                <div id="provideAccessAllCoursesInFaculty-div" class="row m-2 position-relative" hidden>
+                                    <div class="col-12">
+                                        <label>
+                                        <input type="checkbox" value="1" name="accessToAllCoursesInFaculty">
+                                            Provide access to all courses in faculty
+                                        </label>
+                                    </div>
+                                </div>
                                 <div class="row m-2 position-relative">
                                     <div class="col-12">
                                         <button id="" type="submit" class="btn btn-primary col"><i class="bi bi-plus"></i> User</button>
@@ -149,6 +157,29 @@
                                     <tbody>
                                     @foreach(session('roles') as $role)
                                         @if($role->role === 'department head')
+                                            @if(session('departmentsHeaded')->count() < 1)
+                                                <tr>
+                                                    <td>
+                                                        {{ucwords($role->role)}}
+                                                    </td>
+                                                    <td>
+                                                    </td>
+                                                    <td>
+                                                        <button type="button" class="btn btn-danger btn"
+                                                                data-bs-toggle="modal"
+                                                                data-bs-target="#confirmRemoveModal"
+                                                                data-role-id="{{ $role->id }}"
+                                                                data-role-name = "{{ucwords($role->role)}}"
+                                                                data-user-id="{{ session('user')->id }}"
+                                                                data-user-name = "{{ucwords(session('user')->name)}}"
+                                                                data-context="department"
+                                                                data-context-id="{{ null }}"
+                                                                data-action="{{route('admin.assignRole.deleteDepartmentHeadRoleUnassignedDepartment',
+                                                            ['user' => session('user')->id, 'role' => $role->id, 'department' => null])}}">Remove</button>
+
+                                                    </td>
+                                                </tr>
+                                            @endif
                                             @foreach(session('departmentsHeaded') as $department)
                                                 <tr>
                                                     <td>
@@ -174,6 +205,28 @@
                                                 </tr>
                                             @endforeach
                                         @elseif($role->role === 'program director')
+                                            @if(session('directedPrograms')->count() < 1)
+                                                <tr>
+                                                    <td>
+                                                        {{ucwords($role->role)}}
+                                                    </td>
+                                                    <td>
+                                                    </td>
+                                                    <td>
+                                                        <button type="button" class="btn btn-danger btn"
+                                                                data-bs-toggle="modal"
+                                                                data-bs-target="#confirmRemoveModal"
+                                                                data-role-id="{{ $role->id }}"
+                                                                data-role-name = "{{ucwords($role->role)}}"
+                                                                data-user-id="{{ session('user')->id }}"
+                                                                data-user-name = "{{ucwords(session('user')->name)}}"
+                                                                data-context="program"
+                                                                data-context-id="{{ null }}"
+                                                                data-action="{{route('admin.assignRole.deleteProgramDirectorRoleUnassignedProgram',
+                                                            ['user' => session('user')->id, 'role' => $role->id, 'program' => null])}}">Remove</button>
+                                                    </td>
+                                                </tr>
+                                            @endif
                                             @foreach(session('directedPrograms') as $program)
                                                 <tr>
                                                     <td>
@@ -433,6 +486,7 @@
         $('#department-text').prop( "hidden", true );
         $('#department-text').prop( "disabled", true );
         $('#program').prop( "hidden", true );
+        $('#provideAccessAllCoursesInFaculty-div').prop("hidden", false);
 
     }
 
@@ -455,6 +509,7 @@
         $('#department-text').prop( "disabled", true );
         $('#program').prop( "hidden", false );
         $('#program').prop( "required", true );
+        $('#provideAccessAllCoursesInFaculty-div').prop("hidden", false);
     }
 
     function departmentDefaultOption() {

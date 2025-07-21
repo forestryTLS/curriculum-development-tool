@@ -181,11 +181,11 @@ class ProgramController extends Controller
 
                     foreach ($departmentHeads as $departmentHead) {
                         if(!ProgramUserRole::where('program_id', $program->program_id)->where('user_id', $departmentHead->id)
-                            ->where('role_id', $departmentHeadRoleId)->exists()) {
+                            ->where('role_id', $departmentHeadRoleId)->where('department_id', $department->department_id)->exists()) {
 
-                            $programUserRole = ProgramUserRole::firstOrCreate(
+                            $programUserRole = ProgramUserRole::create(
                                 ['program_id' => $program->program_id, 'user_id' => $departmentHead->id,
-                                    'role_id' => $departmentHeadRoleId]
+                                    'role_id' => $departmentHeadRoleId, 'department_id' => $department->department_id]
                             );
                             if($programUserRole->save()){
                             } else{
@@ -196,10 +196,11 @@ class ProgramController extends Controller
                         foreach($coursesInProgram as $course){
                             if (!CourseUserRole::where('course_id', $course->course_id)->where('role_id', $departmentHeadRoleId)
                                 ->where('user_id', $departmentHead->id)->exists()) {
-                                $courseUserRole = CourseUserRole::firstOrCreate(
+                                $courseUserRole = CourseUserRole::create(
                                     ['course_id' => $course->course_id, 'user_id' => $departmentHead->id,
                                         'role_id' => $departmentHeadRoleId,
-                                        'program_id' => $program->program_id],
+                                        'program_id' => $program->program_id,
+                                        'department_id' => $department->department_id],
                                 );
                                 if($courseUserRole->save()){
                                 }else{
@@ -280,28 +281,24 @@ class ProgramController extends Controller
             if($program->campus != $oldProgramCampus || $program->faculty != $oldProgramFaculty
                 || $program->department != $oldProgramDepartment) {
                 $departmentHeadRoleId = Role::where('role', 'department head')->first()->id;
-                CourseUserRole::where(['role_id' => $departmentHeadRoleId, 'program_id' => $program->program_id])->delete();
-                ProgramUserRole::where(['program_id' => $program->program_id, 'role_id' => $departmentHeadRoleId])->delete();
+                $prevCampus = Campus::where('campus', $oldProgramCampus)->first();
+                $prevFaculty = Faculty::where(['campus_id'=> $prevCampus->campus_id,
+                    'faculty'=> $oldProgramFaculty])->first();
+                $prevDepartment = Department::where(['faculty_id'=> $prevFaculty->faculty_id,
+                    'department'=> $oldProgramDepartment])->first();
+                CourseUserRole::where(['role_id' => $departmentHeadRoleId, 'program_id' => $program->program_id,
+                    'department_id' => $prevDepartment->department_id])->delete();
+                ProgramUserRole::where(['program_id' => $program->program_id, 'role_id' => $departmentHeadRoleId,
+                    'department_id' => $prevDepartment->department_id])->delete();
 
-                if ($oldProgramCampus == 'Vancouver' && $oldProgramFaculty == 'Faculty of Forestry') {
-                    $programDirectorRoleId = Role::where('role', 'program director')->first()->id;
-                    $coursesAccessedThroughProgram = CourseUserRole::where(['role_id' => $programDirectorRoleId,
-                        'program_id' => $program->program_id])->get();
-
-                    $campusVID = Campus::where('campus', 'Vancouver')->first()->campus_id;
-                    $facultyOfForestryId = Faculty::where(['faculty' => 'Faculty of Forestry',
-                        'campus_id'=>$campusVID])->first()->faculty_id;
-
-                    foreach ($coursesAccessedThroughProgram as $courseAccessedThroughProgram) {
-                        $courseAccessedCode = Course::where('course_id', $courseAccessedThroughProgram->course_id)->first()->course_code;
-                        if ((!$program->courses()->where(['course_programs.course_id' => $courseAccessedThroughProgram->course_id,
-                                'course_programs.program_id' => $program->program_id])->exists())
-                            && FacultyCourseCodes::where(['course_code' => $courseAccessedCode,
-                                'faculty_id' => $facultyOfForestryId])->exists()) {
-                            $courseAccessedThroughProgram->delete();
-                        }
-
-                    }
+                $programDirectorRoleId = Role::where('role', 'program director')->first()->id;
+                $programDirectorsWithAllCourseAccessInFaculty = ProgramUserRole::where(['program_id' => $program->program_id,
+                    'role_id' => $programDirectorRoleId, 'has_access_to_all_courses_in_faculty' => true])->get();
+                $programCourseIds = $program->courses()->get()->pluck('course_id')->toArray();
+                foreach ($programDirectorsWithAllCourseAccessInFaculty as $programDirectorWithAllCourseAccessInFaculty){
+                    CourseUserRole::where(['role_id' => $programDirectorRoleId,
+                        'user_id'=> $programDirectorWithAllCourseAccessInFaculty->user_id,
+                        'program_id' => $program->program_id])->whereNotIn('course_id', $programCourseIds)->delete();
                 }
             }
 

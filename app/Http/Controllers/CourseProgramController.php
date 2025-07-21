@@ -97,7 +97,7 @@ class CourseProgramController extends Controller
             foreach($coursesInProgram as $course){
                 if (!CourseUserRole::where('course_id', $course->course_id)->where('role_id', $programDirectorRoleId)
                     ->where('user_id', $director->id)->where('program_id', $program->program_id)->exists()) {
-                    $courseUserRole = CourseUserRole::firstOrCreate(
+                    $courseUserRole = CourseUserRole::create(
                         ['course_id' => $course->course_id, 'user_id' => $director->id,
                             'role_id' => $programDirectorRoleId,
                             'program_id' => $program->program_id],
@@ -129,11 +129,12 @@ class CourseProgramController extends Controller
                     foreach ($departmentHeads as $departmentHead) {
                         foreach($coursesInProgram as $course){
                             if (!CourseUserRole::where('course_id', $course->course_id)->where('role_id', $departmentHeadRoleId)
-                                ->where('user_id', $departmentHead->id)->exists()) {
-                                $courseUserRole = CourseUserRole::firstOrCreate(
+                                ->where('user_id', $departmentHead->id)->where('department_id', $department->department_id)->exists()) {
+                                $courseUserRole = CourseUserRole::create(
                                     ['course_id' => $course->course_id, 'user_id' => $departmentHead->id,
                                         'role_id' => $departmentHeadRoleId,
-                                        'program_id' => $program->program_id],
+                                        'program_id' => $program->program_id,
+                                        'department_id' => $department->department_id],
                                 );
                                 if($courseUserRole->save()){
                                 }else{

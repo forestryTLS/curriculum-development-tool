@@ -16,6 +16,7 @@ return new class extends Migration
             $table->unsignedBigInteger('department_id');
             $table->foreign('department_id')->references('department_id')->on('departments')->constrained()->onDelete('cascade');
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->boolean('has_access_to_all_courses_in_faculty')->default(false);;
             $table->timestamps();
 
             $table->unique(['department_id', 'user_id']);

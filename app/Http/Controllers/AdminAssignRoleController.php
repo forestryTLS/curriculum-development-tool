@@ -73,13 +73,18 @@ class AdminAssignRoleController extends Controller{
             return back()->with('error', 'User not found');
         }
 
+        $warningMessage = "";
+
         if($request->input('role')=='admin'){
             $role = Role::where('role', 'administrator')->first();
             if ($user->roles()->where('role_id', $role->id)->exists()) {
                 return back()->with('warning', 'User already assigned admin role');
             }
             $user->roles()->syncWithoutDetaching([$role->id]);
-            $errorMessages = $this->assignOwenershipOfAllCoursesNPrograms($request->input('email'));
+            $errorMessages = $this->assignOwnershipOfAllCoursesNPrograms($request->input('email'));
+            if($errorMessages->count() > 0){
+                $warningMessage = 'Admin Role assigned. User could not be added to all courses/programs.';
+            }
 
         } elseif ($request->input('role')=='department-head') {
             $role = Role::where('role', 'department head')->first();
@@ -105,9 +110,28 @@ class AdminAssignRoleController extends Controller{
                 }
                 $department->heads()->syncWithoutDetaching([$user->id]);
                 $errorMessages = $this->addUserToAllProgramInDepertment($user,$department, $campusName, $facultyName);
-                if($department->faculty->faculty == "Faculty of Forestry" and $department->faculty->campus->campus == "Vancouver"){
+                if($errorMessages->count() > 0){
+                    $warningMessage = 'Department Head Role assigned. User could not be added to all programs in department.';
+                }
+                if($request->input('accessToAllCoursesInFaculty') == "1"){
+                    $department->heads()->updateExistingPivot($user->id, ['has_access_to_all_courses_in_faculty' => true]);
                     $errors = $this->assignOwnershipOfAllCoursesInFaculty($user, $department->faculty->campus->campus,
-                        $department->faculty->faculty, $role, null);
+                        $department->faculty->faculty, $role, null, $department);
+                    if($errors->count() > 0){
+                        if(strlen($warningMessage) > 1){
+                            $warningMessage = $warningMessage . ' ';
+                        }
+                        $warningMessage = $warningMessage . 'User could not be assigned to all courses in faculty';
+                    }
+                } else {
+                    $errors = $this->assignOwnershipOfAllCoursesInDepartment($user, $department->faculty->campus->campus,
+                        $department->faculty->faculty, $role, $department);
+                    if($errors->count() > 0){
+                        if(strlen($warningMessage) > 1){
+                            $warningMessage = $warningMessage . ' ';
+                        }
+                        $warningMessage = $warningMessage . 'User could not be assigned to all courses in department';
+                    }
                 }
             }
 
@@ -128,15 +152,29 @@ class AdminAssignRoleController extends Controller{
                 $programDirectorRoleId = Role::where('role', 'program director')->first()->id;
                 $programUserRole = ProgramUserRole::create(
                     ['program_id' => $program->program_id, 'user_id' => $user->id,
-                        'role_id' => $programDirectorRoleId],
+                        'role_id' => $programDirectorRoleId,
+                        'has_access_to_all_courses_in_faculty' => $request->input('accessToAllCoursesInFaculty') == "1"],
+
                 );
-                $programUserRole->save();
                 $errorMessages = $this->assignOwnershipOfAllCoursesInProgram($request);
-                if($program->campus == "Vancouver" and $program->faculty == "Faculty of Forestry"){
-                    $errors = $this->assignOwnershipOfAllCoursesInFaculty($user, "Vancouver",
-                        "Faculty of Forestry"  , $role, $program);
+                if($errorMessages->count() > 0){
+                    $warningMessage = 'Program Director role assigned to user. User could not be assigned to all courses in the program.';
+                }
+                if($request->input('accessToAllCoursesInFaculty') == "1"){
+                    $errors = $this->assignOwnershipOfAllCoursesInFaculty($user, $program->campus,
+                        $program->faculty, $role, $program, null);
+                    if($errors->count() > 0){
+                        if(strlen($warningMessage) > 1){
+                            $warningMessage = $warningMessage . ' ';
+                        }
+                        $warningMessage = $warningMessage . 'User could not be assigned to all courses in faculty';
+                    }
                 }
             }
+        }
+
+        if(strlen($warningMessage) > 1){
+            return redirect()->route('admin.assignRole.index', ['tab' => 'assign-role'])->with('warning', $warningMessage);
         }
 
         return redirect()->route('admin.assignRole.index', ['tab' => 'assign-role'])->with('success', 'User successfully assigned role');
@@ -147,13 +185,12 @@ class AdminAssignRoleController extends Controller{
      * Helper function to add the requested new administrator to all courses and programs.
      */
 
-    private function assignOwenershipOfAllCoursesNPrograms($userEmail)
+    private function assignOwnershipOfAllCoursesNPrograms($userEmail)
     {
         $courses = Course::all();
         $programs = Program::all();
-        $userAdmin = User::where('email', $userEmail)->first();
         $adminRoleId = Role::where('role', 'administrator')->first()->id;
-
+        $userAdmin = User::where('email', $userEmail)->whereRelation('roles', 'id', $adminRoleId)->first();
 
         $errorMessages = Collection::make();
 
@@ -194,14 +231,15 @@ class AdminAssignRoleController extends Controller{
         foreach($programsInDepartment as $program){
             $programUserRole = ProgramUserRole::create(
                 ['program_id' => $program->program_id, 'user_id' => $user->id,
-                    'role_id' => $departmentHeadRoleId]);
+                    'role_id' => $departmentHeadRoleId, 'department_id' => $department->department_id]);
             if($programUserRole->save()){
                 $coursesInProgram = $program->courses()->get();
                 foreach($coursesInProgram as $course){
                     $courseUserRole = CourseUserRole::create(
                         ['course_id' => $course->course_id, 'user_id' => $user->id,
                             'role_id' => $departmentHeadRoleId,
-                            'program_id' => $program->program_id],
+                            'program_id' => $program->program_id,
+                            'department_id' => $department->department_id],
                     );
                     if($courseUserRole->save()){
                     } else{
@@ -223,6 +261,7 @@ class AdminAssignRoleController extends Controller{
     private function assignOwnershipOfAllCoursesInProgram($request){
 
         $program = Program::where('program', $request->input('program'))->first();
+        $user = User::where('email', $request->input('email'))->first();
 
         $coursesInProgram = $program->courses()->get();
         $programDirectorRoleId = Role::where('role', 'program director')->first()->id;
@@ -230,7 +269,6 @@ class AdminAssignRoleController extends Controller{
         $errorMessages = Collection::make();
 
         foreach($coursesInProgram as $course){
-            $user = User::where('email', $request->input('email'))->first();
             $courseUserRole = CourseUserRole::create(
                     ['course_id' => $course->course_id, 'user_id' => $user->id,
                         'role_id' => $programDirectorRoleId,
@@ -245,45 +283,103 @@ class AdminAssignRoleController extends Controller{
         return $errorMessages;
     }
 
-    private function assignOwnershipOfAllCoursesInFaculty($user, $campusName, $facultyName, $role, $program){
-        $errorMessages = Collection::make();
+
+    /**
+     * Helper function to get all courses in faculty by stored faculty information and by identified faculty
+     * through course codes
+     */
+    private function getAllCoursesInFaculty($campusName, $facultyName){
+        $coursesInFacultyByName = Course::where(['campus' => $campusName, 'faculty' => $facultyName])->get();
 
         $campus = Campus::where('campus', $campusName)->first();
-        $faculty = Faculty::where('faculty', $facultyName)->where('campus_id', $campus->campus_id)->first();
+        $faculty = $campus?->faculties()->where('faculty', $facultyName)->first();
 
-        $courseCodes = FacultyCourseCodes::where('faculty_id', $faculty->faculty_id)->get();
+        if(!$campus || !$faculty){
+            return $coursesInFacultyByName;
+        }
 
-        foreach($courseCodes as $courseCode){
-            $courses = Course::where('course_code', $courseCode->course_code)->get();
-            foreach($courses as $course){
-                if($program){
-                    if(!CourseUserRole::where(['course_id' => $course->course_id, 'user_id' => $user->id,
-                        'role_id' => $role->id, 'program_id' => $program->program_id])->exists()){
-                        $courseUserRole = CourseUserRole::create(['course_id' => $course->course_id, 'user_id' => $user->id,
-                            'role_id' => $role->id, 'program_id' => $program->program_id]);
-                        if($courseUserRole->save()){
+        $courseCodes = FacultyCourseCodes::where('faculty_id', $faculty->faculty_id)->get()->pluck('course_code')->toArray();
 
-                        } else{
-                            $errorMessages->add('There was an error adding '.'<b>'.$user->email.'</b>'.' to course '.$course->course_code.' '.$course->course_num);
-                        }
+        if (count($courseCodes) === 0) {
+            return $coursesInFacultyByName;
+        }
+
+        $coursesInFacultyByCode = Course::whereIn('course_code', $courseCodes)->where(
+            function ($query) use ($campusName, $facultyName) {
+                $query->where(function ($q) {
+                    $q->whereNull('campus')->whereNull('faculty');
+                })->orWhere(function ($q) use ($campusName, $facultyName) {
+                    $q->where('campus', $campusName)
+                        ->where('faculty', $facultyName);
+                });
+            })->get();
+
+        return $coursesInFacultyByName->merge($coursesInFacultyByCode)->unique('course_id');
+
+
+    }
+
+    /**
+     * Helper function to add the requested new user with given elevated role to all courses in faculty.
+     */
+
+    private function assignOwnershipOfAllCoursesInFaculty($user, $campusName, $facultyName, $role, $program, $department){
+        $errorMessages = Collection::make();
+
+        $allCoursesInFaculty = $this->getAllCoursesInFaculty($campusName, $facultyName);
+
+        foreach($allCoursesInFaculty as $course){
+            if($program){
+                if(!CourseUserRole::where(['course_id' => $course->course_id, 'user_id' => $user->id,
+                    'role_id' => $role->id, 'program_id' => $program->program_id])->exists()){
+                    $courseUserRole = CourseUserRole::create(['course_id' => $course->course_id, 'user_id' => $user->id,
+                        'role_id' => $role->id, 'program_id' => $program->program_id]);
+                    if($courseUserRole->save()){
+
+                    } else{
+                        $errorMessages->add('There was an error adding '.'<b>'.$user->email.'</b>'.' to course '.$course->course_code.' '.$course->course_num);
                     }
-                } else {
-                    if(!CourseUserRole::where(['course_id' => $course->course_id, 'user_id' => $user->id,
-                        'role_id' => $role->id, 'program_id' => null])->exists()){
+                }
+            } else if($department) {
+                if(!CourseUserRole::where(['course_id' => $course->course_id, 'user_id' => $user->id,
+                    'role_id' => $role->id, 'program_id' => null, 'department_id' => $department->department_id])->exists()){
 
-                        $courseUserRole = CourseUserRole::create(['course_id' => $course->course_id, 'user_id' => $user->id,
-                            'role_id' => $role->id]);
+                    $courseUserRole = CourseUserRole::create(['course_id' => $course->course_id, 'user_id' => $user->id,
+                        'role_id' => $role->id, 'department_id' => $department->department_id]);
 
-                        if($courseUserRole->save()){
+                    if($courseUserRole->save()){
 
-                        } else{
-                            $errorMessages->add('There was an error adding '.'<b>'.$user->email.'</b>'.' to course '.$course->course_code.' '.$course->course_num);
-                        }
+                    } else{
+                        $errorMessages->add('There was an error adding '.'<b>'.$user->email.'</b>'.' to course '.$course->course_code.' '.$course->course_num);
                     }
-               }
+                }
             }
         }
 
+        return $errorMessages;
+    }
+
+    /**
+     * Helper function to add the requested new department head to all courses in department.
+     */
+    private function assignOwnershipOfAllCoursesInDepartment($user, $campusName, $facultyName, $role, $department){
+        $errorMessages = Collection::make();
+        $coursesInDepartement = Course::where('campus', $campusName)->where('faculty', $facultyName)
+            ->where('department', $department->department)->get();
+        foreach($coursesInDepartement as $course){
+            if(!CourseUserRole::where(['course_id' => $course->course_id, 'user_id' => $user->id,
+                'role_id' => $role->id, 'program_id' => null, 'department_id' => $department->department_id])->exists()){
+
+                $courseUserRole = CourseUserRole::create(['course_id' => $course->course_id, 'user_id' => $user->id,
+                    'role_id' => $role->id, 'department_id' => $department->department_id]);
+
+                if($courseUserRole->save()){
+
+                } else{
+                    $errorMessages->add('There was an error adding '.'<b>'.$user->email.'</b>'.' to course '.$course->course_code.' '.$course->course_num);
+                }
+            }
+        }
         return $errorMessages;
     }
 
@@ -292,14 +388,11 @@ class AdminAssignRoleController extends Controller{
      */
     public function getUserRoles(Request $request){
         $email = $request->input('userEmail');
-        $user = User::where('email', $email)->first();
 
-        if ($user) {
-            $roles = $user->roles()->get();
-            $departmentsHeaded = $user->headedDepartments()->get();
-            $directedPrograms = $user->directedPrograms()->get();
+        $user = User::where('email', $email)->with('roles', 'headedDepartments', 'directedPrograms')->first();
+        if($user) {
             return redirect()->route('admin.assignRole.index', ['tab' => 'manage-roles'])->with('user', $user)
-                ->with('roles', $roles)->with('departmentsHeaded', $departmentsHeaded)->with('directedPrograms', $directedPrograms);
+                ->with('roles', $user->roles)->with('departmentsHeaded', $user->headedDepartments)->with('directedPrograms', $user->directedPrograms);
         } else {
             return redirect()->route('admin.assignRole.index', ['tab' => 'manage-roles'])->with('error', 'User not found.')->with('activeTab', 'manage-roles');
         }
@@ -327,9 +420,15 @@ class AdminAssignRoleController extends Controller{
      * @param int $program
      */
 
-    public function deleteProgramDirectorRole(Request $request, $user, $role, $program){
+    public function deleteProgramDirectorRole(Request $request, $user, $role, $program = null){
         $user = User::where(['id' => $user])->first();
         $role = Role::where(['id' => $role])->first();
+        if(!$program){
+            if($role->role == 'program director'){
+                $user->roles()->detach($role->id);
+                return redirect()->route('admin.assignRole.index', ['tab' => 'manage-roles'])->with('success', 'Program Director role removed for '.$user->name);
+            }
+        }
         $program = Program::where(['program_id' => $program])->first();
         CourseUserRole::where([ 'user_id' => $user->id, 'role_id' => $role->id,
             'program_id' => $program->program_id])->delete();
@@ -340,23 +439,8 @@ class AdminAssignRoleController extends Controller{
 
         $programsDirected = $user->directedPrograms()->get();
 
-        $hasDirectedProgramsInForestry = $programsDirected->contains(function ($program) {
-            return $program->campus == 'Vancouver' && $program->faculty == 'Faculty of Forestry';
-        });
-
         if($programsDirected->isEmpty()){
             $user->roles()->detach($role->id);
-        } else if($hasDirectedProgramsInForestry){
-
-            $forestryProgram = $programsDirected->first(function ($program) {
-                return $program->campus == 'Vancouver' && $program->faculty == 'Faculty of Forestry';
-            });
-
-            // This ensures that the user still has ownership of all courses in the faculty of forestry
-            $this->assignOwnershipOfAllCoursesInFaculty($user, "Vancouver",
-                "Faculty of Forestry"  , $role, $forestryProgram);
-
-
         }
 
         return redirect()->route('admin.assignRole.index', ['tab' => 'manage-roles'])->with('success', 'Program Director role removed for '.$user->name.' for '.$program->program);
@@ -368,54 +452,30 @@ class AdminAssignRoleController extends Controller{
      * @param int $role
      * @param int $department
      */
-    public function deleteDepartmentHeadRole(Request $request, $user, $role, $department){
+    public function deleteDepartmentHeadRole(Request $request, $user, $role, $department=null){
         $user = User::where(['id' => $user])->first();
         $role = Role::where(['id' => $role])->first();
-        $department = Department::where(['department_id' => $department])->first();
-        $faculty = $department->faculty;
-        $campus = $faculty->campus;
-        $programsInDepartment = Program::where(['campus' => $campus->campus, 'faculty'=>$faculty->faculty,
-            'department' => $department->department])->get();
-
-        $vancouverCampusId = Campus::where('campus', 'Vancouver')->first()->campus_id;
-        $forestryFacultyId = Faculty::where(['faculty' => 'Faculty of Forestry',
-            'campus_id' => $vancouverCampusId])->first()->faculty_id;
-
-        foreach($programsInDepartment as $program){
-            CourseUserRole::where([ 'user_id' => $user->id, 'role_id' => $role->id,
-                'program_id' => $program->program_id])->delete();
-            ProgramUserRole::where(['user_id' => $user->id, 'role_id' => $role->id,
-                'program_id' => $program->program_id])->delete();
+        if(!$department){
+            if($role->role == 'department head'){
+                $user->roles()->detach($role->id);
+                return redirect()->route('admin.assignRole.index', ['tab' => 'manage-roles'])->with('success', 'Department Head role removed '. $user->name);
+            }
         }
 
-        $user->headedDepartments()->wherePivot('department_id', $department->department_id)->detach();;
+        CourseUserRole::where([ 'user_id' => $user->id, 'role_id' => $role->id,
+            'department_id' => $department])->delete();
+        ProgramUserRole::where(['user_id' => $user->id, 'role_id' => $role->id,
+            'department_id' => $department])->delete();
+
+        $user->headedDepartments()->wherePivot('department_id', $department)->detach();;
 
         $departmentHeaded = $user->headedDepartments()->get();
 
         if ($departmentHeaded->isEmpty()) {
             $user->roles()->detach($role->id);
-        } else {
-            // Department heads in Faculty of Forestry are assigned access to all courses in the faculty
-            $hasDepartmentInForestry = $departmentHeaded->contains(function ($department) use ($forestryFacultyId) {
-                return optional($department->faculty)->faculty_id === $forestryFacultyId;
-            });
-            if (!$hasDepartmentInForestry) {
-                $forestryCourseCodes = FacultyCourseCodes::where('faculty_id', $forestryFacultyId)->get();
-                foreach ($forestryCourseCodes as $forestryCourseCode) {
-                    $coursesWithCode = Course::where(['course_code' => $forestryCourseCode->course_code])->get();
-                    foreach ($coursesWithCode as $course) {
-                        CourseUserRole::where([ 'user_id' => $user->id, 'role_id' => $role->id,
-                            'course_id' => $course->course_id])->delete();
-                    }
-                }
-            } else {
-                // This ensures that the user still has ownership of all courses in the faculty of forestry
-                $this->assignOwnershipOfAllCoursesInFaculty($user, "Vancouver",
-                    "Faculty of Forestry"  , $role, null);
-            }
         }
 
-        return redirect()->route('admin.assignRole.index', ['tab' => 'manage-roles'])->with('success', 'Department Head role removed '. $user->name . ' for ' . $department->department);
+        return redirect()->route('admin.assignRole.index', ['tab' => 'manage-roles'])->with('success', 'Department Head role removed '. $user->name);
     }
 
 }

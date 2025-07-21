@@ -74,8 +74,12 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::delete("/assignRole/admin/{user}/{role}/deleteRole", [AdminAssignRoleController::class, 'deleteAdminRole'])->name('assignRole.deleteAdminRole');
     Route::delete("/assignRole/department/{user}/{role}/{department}/deleteRole", [AdminAssignRoleController::class, 'deleteDepartmentHeadRole'])
         ->name('assignRole.deleteDepartmentHeadRole');
+    Route::delete("/assignRole/department/{user}/{role}/deleteRole", [AdminAssignRoleController::class, 'deleteDepartmentHeadRole'])
+        ->name('assignRole.deleteDepartmentHeadRoleUnassignedDepartment');
     Route::delete("/assignRole/program/{user}/{role}/{program}/deleteRole", [AdminAssignRoleController::class, 'deleteProgramDirectorRole'])
         ->name('assignRole.deleteProgramDirectorRole');
+    Route::delete("/assignRole/program/{user}/{role}/deleteRole", [AdminAssignRoleController::class, 'deleteProgramDirectorRole'])
+        ->name('assignRole.deleteProgramDirectorRoleUnassignedProgram');
 
 
 

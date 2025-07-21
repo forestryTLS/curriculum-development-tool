@@ -61,7 +61,7 @@ $coursePermission = $user->allCourses()->where('course_id', $course->course_id)-
                     </div>
                 </div>
 
-                @if ($course->users->count() < 1 and $course->usersWithElevatedRoles->count() < 1)
+                @if ($course->collaborators()->count() < 1)
                     <div class="alert alert-warning wizard">
                         <i class="bi bi-exclamation-circle-fill"></i>You have not added any collaborators to this course
                         yet.

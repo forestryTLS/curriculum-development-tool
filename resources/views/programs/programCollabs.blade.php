@@ -60,7 +60,7 @@ $programPermission = $user->allPrograms()->where('program_id', $program->program
                     </div>
                 </div>
 
-                @if ($program->users->count() < 1 and $program->usersWithElevatedRoles->count() < 1)
+                @if ($program->collaborators()->count() < 1)
                     <div class="alert alert-warning wizard">
                         <i class="bi bi-exclamation-circle-fill"></i>You have not added any collaborators to this
                         program yet.

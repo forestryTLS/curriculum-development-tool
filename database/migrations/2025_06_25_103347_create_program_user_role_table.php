@@ -19,7 +19,10 @@ return new class extends Migration
             $table->unsignedBigInteger('user_id');
             $table->unsignedBigInteger('role_id')->nullable();
             $table->foreign(['user_id', 'role_id'])->references(['user_id', 'role_id'])->on('role_user')->onDelete('cascade');
-            $table->unique(['program_id', 'user_id', 'role_id']);
+            $table->unsignedBigInteger('department_id')->nullable();
+            $table->foreign('department_id')->references('department_id')->on('departments')->onDelete('cascade');
+            $table->boolean('has_access_to_all_courses_in_faculty')->default(false);;
+            $table->unique(['program_id', 'user_id', 'role_id', 'department_id']);
         });
     }
 

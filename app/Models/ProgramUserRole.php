@@ -13,7 +13,7 @@ class ProgramUserRole extends Model
 
     protected $primary = 'id';
 
-    protected $fillable = ['user_id', 'program_id', 'role_id'];
+    protected $fillable = ['user_id', 'program_id', 'role_id', 'department_id', 'has_access_to_all_courses_in_faculty'];
 
     public $incrementing = false;
 }

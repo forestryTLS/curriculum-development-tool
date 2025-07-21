@@ -13,7 +13,7 @@ class CourseUserRole extends Model
 
     protected $primary = 'id';
 
-    protected $fillable = ['user_id', 'course_id', 'role_id', 'program_id'];
+    protected $fillable = ['user_id', 'course_id', 'role_id', 'program_id', 'department_id'];
 
     public $incrementing = false;
 }
