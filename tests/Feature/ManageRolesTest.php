@@ -241,6 +241,7 @@ class ManageRolesTest extends TestCase
             'program_id' => $program->program_id,
             'user_id' => $user->id,
             'role_id' => $programDirectorRoleId,
+            'has_access_to_all_courses_in_faculty' => true
 
         ]);
 
@@ -320,7 +321,8 @@ class ManageRolesTest extends TestCase
 
         $this->assertDatabaseHas('department_head', [
             'department_id' => $department->department_id,
-            'user_id' => $user->id
+            'user_id' => $user->id,
+            'has_access_to_all_courses_in_faculty' => true
         ]);
 
         $course = Course::where('course_title', 'Forestry Testing Course')->orderBy('course_id', 'DESC')->first();
@@ -328,7 +330,8 @@ class ManageRolesTest extends TestCase
         $this->assertDatabaseHas('program_user_role', [
             'program_id' => $program->program_id,
             'user_id' => $user->id,
-            'role_id' => $role->id
+            'role_id' => $role->id,
+            'department_id' => $department->department_id
 
         ]);
 
@@ -336,7 +339,8 @@ class ManageRolesTest extends TestCase
         $this->assertDatabaseHas('course_user_role', [
             'course_id' => $course->course_id,
             'user_id' => $user->id,
-            'role_id' => $role->id
+            'role_id' => $role->id,
+            'department_id' => $department->department_id
         ]);
 
     }
@@ -349,6 +353,12 @@ class ManageRolesTest extends TestCase
         $program = Program::where('program', 'Bachelor of Testing')->first();
 
         $course = Course::where('course_title', 'Intro to Unit Testing')->first();
+
+        $campus = Campus::where('campus', 'Vancouver')->first();
+        $faculty = Faculty::where(['faculty'=> 'Faculty of Forestry',
+            'campus_id' => $campus->campus_id])->first();
+        $department = Department::where(['department'=> 'Department of Forest Resources Management',
+            'faculty_id' => $faculty->faculty_id])->first();
 
         $response = $this->actingAs($user)->post(route('courseProgram.addCoursesToProgram', $program->program_id), [
             'selectedCourses' => [
@@ -365,11 +375,12 @@ class ManageRolesTest extends TestCase
             'course_id' => $course->course_id,
             'user_id' => $user->id,
             'role_id' => $role->id,
-            'program_id' => $program->program_id
+            'program_id' => $program->program_id,
+            'department_id' => $department->department_id
         ]);
     }
 
-    public function test_existing_department_head_access_to_new_course_in_forestry(){
+    public function test_existing_department_head_with_accesss_to_all_faculty_courses_access_to_new_course_in_forestry(){
         //Test Existing Department head in Faculty of forestry access to new forestry course
 
         $adminUser = User::where('email', 'admintest@gmail.com')->first();
@@ -394,6 +405,12 @@ class ManageRolesTest extends TestCase
             'scale_category_id' => 1,
             'user_id' => $adminUser->id,
         ]);
+
+        $campus = Campus::where('campus', 'Vancouver')->first();
+        $faculty = Faculty::where(['faculty'=> 'Faculty of Forestry',
+            'campus_id' => $campus->campus_id])->first();
+        $department = Department::where(['department'=> 'Department of Forest Resources Management',
+            'faculty_id' => $faculty->faculty_id])->first();
 
         $course = Course::where('course_title', 'Forestry New Test Course')->orderBy('course_id', 'DESC')->first();
 
@@ -422,12 +439,20 @@ class ManageRolesTest extends TestCase
             'user_id' => $adminUser->id,
         ]);
 
+        $campus = Campus::where('campus', 'Vancouver')->first();
+        $faculty = Faculty::where(['faculty'=> 'Faculty of Forestry',
+            'campus_id' => $campus->campus_id])->first();
+        $department = Department::where(['department'=> 'Department of Forest Resources Management',
+            'faculty_id' => $faculty->faculty_id])->first();
+
+
         $program = Program::where('program', 'Bachelor of New Test Program')->orderBy('program_id', 'DESC')->first();
 
         $this->assertDatabaseHas('program_user_role', [
             'program_id' => $program->program_id,
             'user_id' => $user->id,
-            'role_id' => $role->id
+            'role_id' => $role->id,
+            'department_id' => $department->department_id
         ]);
     }
 
@@ -458,7 +483,8 @@ class ManageRolesTest extends TestCase
 
         $this->assertDatabaseHas('department_head', [
             'department_id' => $department->department_id,
-            'user_id' => $user->id
+            'user_id' => $user->id,
+            'has_access_to_all_courses_in_faculty' => true
         ]);
     }
 
@@ -484,7 +510,8 @@ class ManageRolesTest extends TestCase
         $this->assertDatabaseHas('program_user_role', [
             'program_id' => $program->program_id,
             'user_id' => $user->id,
-            'role_id' => $programDirectorRoleId
+            'role_id' => $programDirectorRoleId,
+            'has_access_to_all_courses_in_faculty' => true
         ]);
 
         $course = Course::where('course_title', 'Forestry New Test Course')->orderBy('course_id', 'DESC')->first();
@@ -553,6 +580,12 @@ class ManageRolesTest extends TestCase
             'user_id' => $user->id
         ]);
 
+        $campus = Campus::where('campus', 'Vancouver')->first();
+        $faculty = Faculty::where(['faculty'=> 'Faculty of Forestry',
+            'campus_id' => $campus->campus_id])->first();
+        $department = Department::where(['department'=> 'Department of Forest Sciences',
+            'faculty_id' => $faculty->faculty_id])->first();
+
         // User should still have access to all forestry courses
 
         $course = Course::where('course_title', 'Forestry New Test Course')->orderBy('course_id', 'DESC')->first();
@@ -560,7 +593,8 @@ class ManageRolesTest extends TestCase
         $this->assertDatabaseHas('course_user_role', [
             'course_id' => $course->course_id,
             'user_id' => $user->id,
-            'role_id' => $role->id
+            'role_id' => $role->id,
+            'department_id' => $department->department_id
         ]);
 
         $course = Course::where('course_title', 'Forestry Testing Course')->orderBy('course_id', 'DESC')->first();
@@ -600,6 +634,7 @@ class ManageRolesTest extends TestCase
         ]);
 
         $role = Role::where(['role' => 'program director'])->first();
+        $program = Program::where('program', 'Bachelor of Testing')->first();
 
         // User should still have access to all forestry courses as a program director
         $course = Course::where('course_title', 'Forestry New Test Course')->orderBy('course_id', 'DESC')->first();
@@ -607,7 +642,8 @@ class ManageRolesTest extends TestCase
         $this->assertDatabaseHas('course_user_role', [
             'course_id' => $course->course_id,
             'user_id' => $user->id,
-            'role_id' => $role->id
+            'role_id' => $role->id,
+            'program_id' => $program->program_id
         ]);
 
         $course = Course::where('course_title', 'Forestry Testing Course')->orderBy('course_id', 'DESC')->first();
@@ -615,7 +651,8 @@ class ManageRolesTest extends TestCase
         $this->assertDatabaseHas('course_user_role', [
             'course_id' => $course->course_id,
             'user_id' => $user->id,
-            'role_id' => $role->id
+            'role_id' => $role->id,
+            'program_id' => $program->program_id
         ]);
     }
 
@@ -641,6 +678,7 @@ class ManageRolesTest extends TestCase
             'program_id' => $program->program_id,
             'user_id' => $user->id,
             'role_id' => $role->id,
+            'has_access_to_all_courses_in_faculty' => true
 
         ]);
 
@@ -827,13 +865,20 @@ class ManageRolesTest extends TestCase
             'program_id' => $program->program_id
         ]);
 
+        $campus = Campus::where('campus', 'Vancouver')->first();
+        $faculty = Faculty::where(['faculty'=> 'Faculty of Forestry',
+            'campus_id' => $campus->campus_id])->first();
+        $department = Department::where(['department'=> 'Department of Forest Resources Management',
+            'faculty_id' => $faculty->faculty_id])->first();
+
         $role = Role::where('role', 'department head')->first();
 
         $this->assertDatabaseHas('course_user_role', [
             'course_id' => $course->course_id,
             'user_id' => $user->id,
             'role_id' => $role->id,
-            'program_id' => null
+            'program_id' => null, 
+            'department_id' => $department->department_id
         ]);
     }
 
@@ -905,4 +950,151 @@ class ManageRolesTest extends TestCase
         ]);
 
     }
+
+    public function test_assign_program_director_for_forestry_course_without_full_faculty_course_access(){
+        $adminUser = User::where('email', 'admintest@gmail.com')->first();
+        $user = User::where('email', 'usertest@gmail.com')->first();
+        $role = Role::where(['role' => 'program director'])->first();
+
+        $response = $this->actingAs($adminUser)->post(route('programs.store'), [
+            'program' => 'Bachelor of Test Forestry Program',
+            'campus' => 'Vancouver',
+            'faculty' => 'Faculty of Forestry',
+            'department' => 'Department of Forest Resources Management',
+            'level' => 'Bachelors',
+            'created_at' => Carbon::now(),
+            'updated_at' => Carbon::now(),
+            'user_id' => $adminUser->id,
+        ]);
+
+        $program = Program::where('program', 'Bachelor of Test Forestry Program')->first();
+
+        $response = $this->actingAs($adminUser)->post(route('admin.assignRole'), [
+            'email' => 'usertest@gmail.com',
+            'role' => 'program-director',
+            'program' => 'Bachelor of Test Forestry Program',
+            'accessToAllCoursesInFaculty' => '0'
+        ]);
+
+        $this->assertDatabaseHas('program_user_role',[
+            'program_id' => $program->program_id,
+            'role_id' => $role->id,
+            'user_id' => $user->id,
+            'has_access_to_all_courses_in_faculty' => false
+        ]);
+
+        $course = Course::where('course_title', 'Forestry New Test Course')->orderBy('course_id', 'DESC')->first();
+
+        $this->assertDatabaseMissing('course_user_role', [
+            'role_id' => $role->id,
+            'user_id' => $user->id,
+            'course_id' => $course->course_id
+        ]);
+    }
+
+    public function test_assign_department_head_without_full_faculty_course_access(){
+        $adminUser = User::where('email', 'admintest@gmail.com')->first();
+        $user = User::where('email', 'usertest@gmail.com')->first();
+        $role = Role::where(['role' => 'department head'])->first();
+
+        // remove existing department head access
+        $campus = Campus::where('campus', 'Vancouver')->first();
+        $faculty = Faculty::where(['faculty'=> 'Faculty of Forestry',
+            'campus_id' => $campus->campus_id])->first();
+        $department = Department::where(['department'=> 'Department of Forest Resources Management',
+            'faculty_id' => $faculty->faculty_id])->first();
+
+        $response = $this->actingAs($adminUser)->delete(route('admin.assignRole.deleteDepartmentHeadRole', [
+                'user'=>$user->id,
+                'role'=>$role->id,
+                'department'=>$department->department_id]
+        ));
+
+        $this->assertDatabaseMissing('department_head', [
+            'user_id'=>$user->id,
+            'department_id'=>$department->department_id
+        ]);
+
+        $course = Course::where('course_title', 'Forestry New Test Course')->orderBy('course_id', 'DESC')->first();
+
+        $this->assertDatabaseMissing('course_user_role', [
+            'course_id' => $course->course_id,
+            'user_id' => $user->id,
+            'role_id' => $role->id
+        ]);
+
+        $response = $this->actingAs($adminUser)->post(route('admin.assignRole'), [
+            'email' => 'usertest@gmail.com',
+            'role' => 'department-head',
+            'campus' => 'Vancouver',
+            'faculty' => 'Faculty of Forestry',
+            'department' => 'Department of Forest Sciences',
+            'accessToAllCoursesInFaculty' => '0'
+        ]);
+
+        $campus = Campus::where('campus', 'Vancouver')->first();
+        $faculty = Faculty::where(['faculty'=> 'Faculty of Forestry',
+            'campus_id' => $campus->campus_id])->first();
+        $department = Department::where(['department'=> 'Department of Forest Sciences',
+            'faculty_id' => $faculty->faculty_id])->first();
+
+
+        $this->assertDatabaseHas('department_head', [
+            'user_id' => $user->id,
+            'department_id' => $department->department_id,
+            'has_access_to_all_courses_in_faculty' => false
+        ]);
+        
+        $this->assertDatabaseMissing('course_user_role', [
+            'role_id' => $role->id,
+            'user_id' => $user->id,
+            'course_id' => $course->course_id
+        ]);
+
+    }
+
+    public function test_existing_dept_head_access_to_course_in_dept_stored_with_depart_info(){
+        $adminUser = User::where('email', 'admintest@gmail.com')->first();
+        $user = User::where('email', 'usertest@gmail.com')->first();
+        $role = Role::where(['role' => 'department head'])->first();
+
+        $delivery_modalities = ['O', 'B', 'I'];
+        $semesters = ['W1', 'W2', 'S1', 'S2'];
+
+
+        $response = $this->actingAs($adminUser)->post(route('courses.store'), [
+            'course_code' => 'TEST',
+            'course_num' => '271',
+            'delivery_modality' => $delivery_modalities[array_rand($delivery_modalities)],
+            'course_year' => 2025,
+            'course_semester' => $semesters[array_rand($semesters)],
+            'course_title' => 'Forestry New Test Course',
+            'created_at' => Carbon::now(),
+            'updated_at' => Carbon::now(),
+            'assigned' => 1,
+            'type' => 'unassigned',
+            'standard_category_id' => 1,
+            'scale_category_id' => 1,
+            'user_id' => $adminUser->id,
+            'campus' => 'Vancouver',
+            'faculty' => 'Faculty of Forestry',
+            'department' => 'Department of Forest Sciences',
+        ]);
+
+        $course = Course::where(['course_code' => 'TEST', 'course_num' => 271])->first();
+
+        $campus = Campus::where('campus', 'Vancouver')->first();
+        $faculty = Faculty::where(['faculty'=> 'Faculty of Forestry',
+            'campus_id' => $campus->campus_id])->first();
+        $department = Department::where(['department'=> 'Department of Forest Sciences',
+            'faculty_id' => $faculty->faculty_id])->first();
+
+        $this->assertDatabaseHas('course_user_role', [
+            'user_id' => $user->id,
+            'course_id' => $course->course_id,
+            'role_id' => $role->id,
+            'department_id' => $department->department_id
+        ]);
+    }
+    
 }
