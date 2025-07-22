@@ -1711,196 +1711,129 @@
 
         $('#campus').change( function() {
             // filter faculty based on campus
-            if ($('#campus').find(':selected').text() == 'Vancouver') {
-                // Hide text / show select
-                campusDefaultOption('#campus-text', '#faculty', '#faculty-text', '#department', '#department-text');
-
-                //Displays Vancouver Faculties
-                // delete drop down items
-                $('#faculty').empty();
-                // populate drop down
-                $('#faculty').append($('<option disabled selected hidden>Open list of faculties/schools</option>'));
-                vFaculties.forEach (faculty => $('#faculty').append($('<option name="'+faculty.faculty_id+'" />').val(faculty.faculty).text(faculty.faculty)));
-                $('#faculty').append($('<option name="-1" />').val('Other').text('Other'));
-
-                // enable the faculty select field
-                if ($('#faculty').is(':disabled')) {
-                    $('#faculty').prop('disabled', false);
-                }
-                // disable the department field
-                if (!($('#department').is(':disabled'))) {
-                    $('#department').empty();
-                    $('#department').append($('<option disabled selected hidden>Open list of departments</option>'));
-                    $('#department').prop('disabled', true);
-                }
-
-            } else if ($('#campus').find(':selected').text() == 'Okanagan') {
-                // Hide text / show select
-                campusDefaultOption('#campus-text', '#faculty', '#faculty-text', '#department', '#department-text');
-
-                // Display Okangan Faculties
-                // delete drop down items
-                $('#faculty').empty();
-                // populate drop down
-                $('#faculty').append($('<option disabled selected hidden>Open list of faculties/schools</option>'));
-                oFaculties.forEach (faculty => $('#faculty').append($('<option name="'+faculty.faculty_id+'" />').val(faculty.faculty).text(faculty.faculty)));
-                $('#faculty').append($('<option name="-1" />').val('Other').text('Other'));
-
-                // enable the faculty select field
-                if ($('#faculty').is(':disabled')) {
-                    $('#faculty').prop('disabled', false);
-                }
-                // disable the department field
-                if (!($('#department').is(':disabled'))) {
-                    $('#department').empty();
-                    $('#department').append($('<option disabled selected hidden>Open list of departments</option>'));
-                    $('#department').prop('disabled', true);
-                }
-
-            } else {
-                campusOtherOption('#campus-text', '#faculty', '#faculty-text', '#department', '#department-text');
-            }
+            campusChangeOperations('#campus', '#campus-text', '#faculty', '#faculty-text', '#department', '#department-text');
 
         });
 
         // var departments = {!! json_encode($departments, JSON_HEX_TAG) !!};
 
         $('#faculty').change( function() {
-            var facultyId = parseInt($('#faculty').find(':selected').attr('name'));
-
-            // get departments by faculty if they belong to a faculty, else display all departments
-            if (facultyId >= 0) {
-                // Hide text / show select
-                facultyDefaultOption('#faculty-text', '#department', '#department-text');
-
-                // delete drop down items
-                $('#department').empty();
-                // populate drop down
-                $('#department').append($('<option disabled selected hidden>Open list of departments</option>'));
-                var filteredDepartments = departments.filter(item => {
-                    return item.faculty_id === facultyId;
-                });
-                filteredDepartments.forEach(department => $('#department').append($('<option />').val(department.department).text(department.department)));
-
-
-                $('#department').append($('<option />').val('Other').text('Other'));
-
-                // enable the faculty select field
-                if ($('#department').is(':disabled')) {
-                    $('#department').prop('disabled', false);
-                }
-
-            } else {
-                // Hide text / show select
-                facultyOtherOption('#faculty-text', '#department', '#department-text');
-            }
-
+            facultyChangeOperations('#faculty', '#faculty-text', '#department', '#department-text');
         });
 
         $('#department').change( function() {
-            if ($('#department').find(':selected').val() !== 'Other') {
-                departmentDefaultOption('#department-text');
-            } else {
-                departmentOtherOption('#department-text');
-            }
+            departmentChangeOperations('#department', '#department-text');
         });
 
         $('#campus-course').change( function() {
             // filter faculty based on campus
-            if ($('#campus-course').find(':selected').text() == 'Vancouver') {
-                // Hide text / show select
-                campusDefaultOption('#campus-text-course', '#faculty-course',
-                    '#faculty-text-course', '#department-course', '#department-text-course');
-
-                //Displays Vancouver Faculties
-                // delete drop down items
-                $('#faculty-course').empty();
-                // populate drop down
-                $('#faculty-course').append($('<option disabled selected hidden>Open list of faculties/schools</option>'));
-                vFaculties.forEach (faculty => $('#faculty-course').append($('<option name="'+faculty.faculty_id+'" />').val(faculty.faculty).text(faculty.faculty)));
-                $('#faculty-course').append($('<option name="-1" />').val('Other').text('Other'));
-
-                // enable the faculty select field
-                if ($('#faculty-course').is(':disabled')) {
-                    $('#faculty-course').prop('disabled', false);
-                }
-                // disable the department field
-                if (!($('#department-course').is(':disabled'))) {
-                    $('#department-course').empty();
-                    $('#department-course').append($('<option disabled selected hidden>Open list of departments</option>'));
-                    $('#department-course').prop('disabled', true);
-                }
-
-            } else if ($('#campus-course').find(':selected').text() == 'Okanagan') {
-                // Hide text / show select
-                campusDefaultOption();
-
-                // Display Okangan Faculties
-                // delete drop down items
-                $('#faculty-course').empty();
-                // populate drop down
-                $('#faculty-course').append($('<option disabled selected hidden>Open list of faculties/schools</option>'));
-                oFaculties.forEach (faculty => $('#faculty').append($('<option name="'+faculty.faculty_id+'" />').val(faculty.faculty).text(faculty.faculty)));
-                $('#faculty-course').append($('<option name="-1" />').val('Other').text('Other'));
-
-                // enable the faculty select field
-                if ($('#faculty-course').is(':disabled')) {
-                    $('#faculty-course').prop('disabled', false);
-                }
-                // disable the department field
-                if (!($('#department-course').is(':disabled'))) {
-                    $('#department-course').empty();
-                    $('#department-course').append($('<option disabled selected hidden>Open list of departments</option>'));
-                    $('#department-course').prop('disabled', true);
-                }
-
-            } else {
-                campusOtherOption('#campus-text-course', '#faculty-course',
-                    '#faculty-text-course', '#department-course', '#department-text-course');
-            }
+            campusChangeOperations('#campus-course', '#campus-text-course', '#faculty-course', '#faculty-text-course', '#department-course', '#department-text-course');
 
         });
 
         $('#faculty-course').change( function() {
-            var facultyId = parseInt($('#faculty-course').find(':selected').attr('name'));
-
-            // get departments by faculty if they belong to a faculty, else display all departments
-            if (facultyId >= 0) {
-                // Hide text / show select
-                facultyDefaultOption('#faculty-text-course', '#department-course', '#department-text-course');
-
-                // delete drop down items
-                $('#department-course').empty();
-                // populate drop down
-                $('#department-course').append($('<option disabled selected hidden>Open list of departments</option>'));
-                var filteredDepartments = departments.filter(item => {
-                    return item.faculty_id === facultyId;
-                });
-                filteredDepartments.forEach(department => $('#department-course').append($('<option />').val(department.department).text(department.department)));
-
-
-                $('#department-course').append($('<option />').val('Other').text('Other'));
-
-                // enable the faculty select field
-                if ($('#department-course').is(':disabled')) {
-                    $('#department-course').prop('disabled', false);
-                }
-
-            } else {
-                // Hide text / show select
-                facultyOtherOption('#faculty-text-course', '#department-course', '#department-text-course');
-            }
-
+            facultyChangeOperations('#faculty-course', '#faculty-text-course', '#department-course', '#department-text-course');
         });
 
         $('#department-course').change( function() {
-            if ($('#department-course').find(':selected').val() !== 'Other') {
-                departmentDefaultOption('#department-text-course');
-            } else {
-                departmentOtherOption('#department-text-course');
-            }
+            departmentChangeOperations('#department-course', '#department-text-course');
         });
     });
+
+    function campusChangeOperations(campusFeildId, campusTextId, facultyFeildId, facultyTextId, departmentFeildId, departmentTextId) {
+        // filter faculty based on campus
+            if ($(campusFeildId).find(':selected').text() == 'Vancouver') {
+                // Hide text / show select
+                campusDefaultOption(campusTextId, facultyFeildId,
+                    facultyTextId, departmentFeildId, departmentTextId);
+
+                //Displays Vancouver Faculties
+                // delete drop down items
+                $(facultyFeildId).empty();
+                // populate drop down
+                $(facultyFeildId).append($('<option disabled selected hidden>Open list of faculties/schools</option>'));
+                vFaculties.forEach (faculty => $(facultyFeildId).append($('<option name="'+faculty.faculty_id+'" />').val(faculty.faculty).text(faculty.faculty)));
+                $(facultyFeildId).append($('<option name="-1" />').val('Other').text('Other'));
+
+                // enable the faculty select field
+                if ($(facultyFeildId).is(':disabled')) {
+                    $(facultyFeildId).prop('disabled', false);
+                }
+                // disable the department field
+                if (!($(departmentFeildId).is(':disabled'))) {
+                    $(departmentFeildId).empty();
+                    $(departmentFeildId).append($('<option disabled selected hidden>Open list of departments</option>'));
+                    $(departmentFeildId).prop('disabled', true);
+                }
+
+            } else if ($(campusFeildId).find(':selected').text() == 'Okanagan') {
+                // Hide text / show select
+                campusDefaultOption(campusTextId, facultyFeildId,
+                    facultyTextId, departmentFeildId, departmentTextId);
+
+                // Display Okangan Faculties
+                // delete drop down items
+                $(facultyFeildId).empty();
+                // populate drop down
+                $(facultyFeildId).append($('<option disabled selected hidden>Open list of faculties/schools</option>'));
+                oFaculties.forEach (faculty => $(facultyFeildId).append($('<option name="'+faculty.faculty_id+'" />').val(faculty.faculty).text(faculty.faculty)));
+                $(facultyFeildId).append($('<option name="-1" />').val('Other').text('Other'));
+
+                // enable the faculty select field
+                if ($(facultyFeildId).is(':disabled')) {
+                    $(facultyFeildId).prop('disabled', false);
+                }
+                // disable the department field
+                if (!($(departmentFeildId).is(':disabled'))) {
+                    $(departmentFeildId).empty();
+                    $(departmentFeildId).append($('<option disabled selected hidden>Open list of departments</option>'));
+                    $(departmentFeildId).prop('disabled', true);
+                }
+
+            } else {
+                campusOtherOption(campusTextId, facultyFeildId,
+                    facultyTextId, departmentFeildId, departmentTextId);
+            }
+    }
+
+    function facultyChangeOperations(facultyFeildId, facultyTextId, departmentFeildId, departmentTextId) {
+        var facultyId = parseInt($(facultyFeildId).find(':selected').attr('name'));
+
+            // get departments by faculty if they belong to a faculty, else display all departments
+        if (facultyId >= 0) {
+            // Hide text / show select
+            facultyDefaultOption(facultyTextId, departmentFeildId, departmentTextId);
+
+            // delete drop down items
+            $(departmentFeildId).empty();
+            // populate drop down
+            $(departmentFeildId).append($('<option disabled selected hidden>Open list of departments</option>'));
+            var filteredDepartments = departments.filter(item => {
+                return item.faculty_id === facultyId;
+            });
+            filteredDepartments.forEach(department => $(departmentFeildId).append($('<option />').val(department.department).text(department.department)));
+
+
+            $(departmentFeildId).append($('<option />').val('Other').text('Other'));
+
+            // enable the faculty select field
+            if ($(departmentFeildId).is(':disabled')) {
+                $(departmentFeildId).prop('disabled', false);
+            }
+
+        } else {
+            // Hide text / show select
+            facultyOtherOption(facultyTextId, departmentFeildId, departmentTextId);
+        }
+    }
+
+    function departmentChangeOperations(departmentFeildId, departmentTextId) {
+        if ($(departmentFeildId).find(':selected').val() !== 'Other') {
+                departmentDefaultOption(departmentTextId);
+            } else {
+                departmentOtherOption(departmentTextId);
+            }
+    }
 
     function departmentDefaultOption(departmentTextId) {
         // Hide text / show select

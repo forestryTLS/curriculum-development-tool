@@ -80,7 +80,7 @@ class RoleAssignmentHelpers
             ]);
             if($courseUserRole->save()){
             }else{
-                return 'There was an error adding '.'<b>'.$user->email.'</b>'.' as ' . $role->role . ' to course';
+                return 'There was an error adding '.'<b>'.$user->email.'</b>'.' as ' . $role->role . ' to course ' .$course->course_code.' '.$course->course_num;
             }
         }
         return null;
@@ -107,7 +107,7 @@ class RoleAssignmentHelpers
             ]);
             if($programUserRole->save()){
             }else{
-                return 'There was an error adding '.'<b>'.$user->email.'</b>'.' as ' . $role->role . ' to program';
+                return 'There was an error adding '.'<b>'.$user->email.'</b>'.' as ' . $role->role . ' to program '. $program->program;
             }
         }
         return null;

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Helpers\RoleAssignmentHelpers;
 use App\Models\CourseUserRole;
 use App\Models\FacultyCourseCodes;
 use App\Models\ProgramUserRole;
@@ -73,7 +74,7 @@ class AdminAssignRoleController extends Controller{
             return back()->with('error', 'User not found');
         }
 
-        $warningMessage = "";
+        $warningMessage = Collection::make();
 
         if($request->input('role')=='admin'){
             $role = Role::where('role', 'administrator')->first();
@@ -83,7 +84,7 @@ class AdminAssignRoleController extends Controller{
             $user->roles()->syncWithoutDetaching([$role->id]);
             $errorMessages = $this->assignOwnershipOfAllCoursesNPrograms($request->input('email'));
             if($errorMessages->count() > 0){
-                $warningMessage = 'Admin Role assigned. User could not be added to all courses/programs.';
+                $warningMessage->add('Admin Role assigned. User could not be added to all courses/programs.');
             }
 
         } elseif ($request->input('role')=='department-head') {
@@ -111,26 +112,20 @@ class AdminAssignRoleController extends Controller{
                 $department->heads()->syncWithoutDetaching([$user->id]);
                 $errorMessages = $this->addUserToAllProgramInDepertment($user,$department, $campusName, $facultyName);
                 if($errorMessages->count() > 0){
-                    $warningMessage = 'Department Head Role assigned. User could not be added to all programs in department.';
+                    $warningMessage->add('Department Head Role assigned. User could not be added to all programs in department.');
                 }
                 if($request->input('accessToAllCoursesInFaculty') == "1"){
                     $department->heads()->updateExistingPivot($user->id, ['has_access_to_all_courses_in_faculty' => true]);
                     $errors = $this->assignOwnershipOfAllCoursesInFaculty($user, $department->faculty->campus->campus,
                         $department->faculty->faculty, $role, null, $department);
                     if($errors->count() > 0){
-                        if(strlen($warningMessage) > 1){
-                            $warningMessage = $warningMessage . ' ';
-                        }
-                        $warningMessage = $warningMessage . 'User could not be assigned to all courses in faculty';
+                        $warningMessage->add('User could not be assigned to all courses in faculty');
                     }
                 } else {
                     $errors = $this->assignOwnershipOfAllCoursesInDepartment($user, $department->faculty->campus->campus,
                         $department->faculty->faculty, $role, $department);
                     if($errors->count() > 0){
-                        if(strlen($warningMessage) > 1){
-                            $warningMessage = $warningMessage . ' ';
-                        }
-                        $warningMessage = $warningMessage . 'User could not be assigned to all courses in department';
+                        $warningMessage->add('User could not be assigned to all courses in department');
                     }
                 }
             }
@@ -158,23 +153,20 @@ class AdminAssignRoleController extends Controller{
                 );
                 $errorMessages = $this->assignOwnershipOfAllCoursesInProgram($request);
                 if($errorMessages->count() > 0){
-                    $warningMessage = 'Program Director role assigned to user. User could not be assigned to all courses in the program.';
+                    $warningMessage->add('Program Director role assigned to user. User could not be assigned to all courses in the program.');
                 }
                 if($request->input('accessToAllCoursesInFaculty') == "1"){
                     $errors = $this->assignOwnershipOfAllCoursesInFaculty($user, $program->campus,
                         $program->faculty, $role, $program, null);
                     if($errors->count() > 0){
-                        if(strlen($warningMessage) > 1){
-                            $warningMessage = $warningMessage . ' ';
-                        }
-                        $warningMessage = $warningMessage . 'User could not be assigned to all courses in faculty';
+                        $warningMessage->add('User could not be assigned to all courses in faculty');
                     }
                 }
             }
         }
 
-        if(strlen($warningMessage) > 1){
-            return redirect()->route('admin.assignRole.index', ['tab' => 'assign-role'])->with('warning', $warningMessage);
+        if($warningMessage->count() > 0){
+            return redirect()->route('admin.assignRole.index', ['tab' => 'assign-role'])->with('warningMessages', $warningMessage);
         }
 
         return redirect()->route('admin.assignRole.index', ['tab' => 'assign-role'])->with('success', 'User successfully assigned role');
@@ -226,29 +218,21 @@ class AdminAssignRoleController extends Controller{
         $programsInDepartment = Program::where(['campus' => $campusName, 'faculty' => $facultyName,
             'department' => $department->department])->get();
 
-        $departmentHeadRoleId = Role::where('role', 'department head')->first()->id;
+        $departmentHeadRole = Role::where('role', 'department head')->first();
+        $roleAssignmnetHelpers = new RoleAssignmentHelpers();
 
         foreach($programsInDepartment as $program){
-            $programUserRole = ProgramUserRole::create(
-                ['program_id' => $program->program_id, 'user_id' => $user->id,
-                    'role_id' => $departmentHeadRoleId, 'department_id' => $department->department_id]);
-            if($programUserRole->save()){
+            $errorMessage = $roleAssignmnetHelpers->addElevatedRoleUserToProgram($user, $departmentHeadRole, $program, $department->department_id, false);
+            if($errorMessage == null){
                 $coursesInProgram = $program->courses()->get();
                 foreach($coursesInProgram as $course){
-                    $courseUserRole = CourseUserRole::create(
-                        ['course_id' => $course->course_id, 'user_id' => $user->id,
-                            'role_id' => $departmentHeadRoleId,
-                            'program_id' => $program->program_id,
-                            'department_id' => $department->department_id],
-                    );
-                    if($courseUserRole->save()){
-                    } else{
-                        $errorMessages->add('There was an error adding '.'<b>'.$user->email.'</b>'.' to course '.$course->course_code.' '.$course->course_num);
+                    $error = $roleAssignmnetHelpers->addElevatedRoleUserToCourse($user, $departmentHeadRole, $course, $program->program_id, $department->department_id);
+                    if($error != null){
+                        $errorMessages->add($error);
                     }
                 }
-
             }else{
-                $errorMessages->add('There was an error adding '.'<b>'.$user->email.'</b>'.' to course '.$program->program);
+                $errorMessages->add($errorMessage);
             }
         }
         return $errorMessages;
@@ -264,19 +248,15 @@ class AdminAssignRoleController extends Controller{
         $user = User::where('email', $request->input('email'))->first();
 
         $coursesInProgram = $program->courses()->get();
-        $programDirectorRoleId = Role::where('role', 'program director')->first()->id;
+        $programDirectorRole = Role::where('role', 'program director')->first();
 
         $errorMessages = Collection::make();
+        $roleAssignmnetHelpers = new RoleAssignmentHelpers();
 
         foreach($coursesInProgram as $course){
-            $courseUserRole = CourseUserRole::create(
-                    ['course_id' => $course->course_id, 'user_id' => $user->id,
-                        'role_id' => $programDirectorRoleId,
-                        'program_id' => $program->program_id],
-            );
-            if($courseUserRole->save()){
-            } else{
-                $errorMessages->add('There was an error adding '.'<b>'.$user->email.'</b>'.' to course '.$course->course_code.' '.$course->course_num);
+            $errorMessage = $roleAssignmnetHelpers->addElevatedRoleUserToCourse($user, $programDirectorRole, $course, $program->program_id, null);
+            if($errorMessage != null){
+                $errorMessages->add($errorMessage);
             }
         }
 
@@ -327,31 +307,18 @@ class AdminAssignRoleController extends Controller{
         $errorMessages = Collection::make();
 
         $allCoursesInFaculty = $this->getAllCoursesInFaculty($campusName, $facultyName);
+        $roleAssignmnetHelpers = new RoleAssignmentHelpers();
 
         foreach($allCoursesInFaculty as $course){
             if($program){
-                if(!CourseUserRole::where(['course_id' => $course->course_id, 'user_id' => $user->id,
-                    'role_id' => $role->id, 'program_id' => $program->program_id])->exists()){
-                    $courseUserRole = CourseUserRole::create(['course_id' => $course->course_id, 'user_id' => $user->id,
-                        'role_id' => $role->id, 'program_id' => $program->program_id]);
-                    if($courseUserRole->save()){
-
-                    } else{
-                        $errorMessages->add('There was an error adding '.'<b>'.$user->email.'</b>'.' to course '.$course->course_code.' '.$course->course_num);
-                    }
+                $errorMessage = $roleAssignmnetHelpers->addElevatedRoleUserToCourse($user, $role, $course, $program->program_id, null);
+                if($errorMessage != null){
+                    $errorMessages->add($errorMessage);
                 }
             } else if($department) {
-                if(!CourseUserRole::where(['course_id' => $course->course_id, 'user_id' => $user->id,
-                    'role_id' => $role->id, 'program_id' => null, 'department_id' => $department->department_id])->exists()){
-
-                    $courseUserRole = CourseUserRole::create(['course_id' => $course->course_id, 'user_id' => $user->id,
-                        'role_id' => $role->id, 'department_id' => $department->department_id]);
-
-                    if($courseUserRole->save()){
-
-                    } else{
-                        $errorMessages->add('There was an error adding '.'<b>'.$user->email.'</b>'.' to course '.$course->course_code.' '.$course->course_num);
-                    }
+                $errorMessage = $roleAssignmnetHelpers->addElevatedRoleUserToCourse($user, $role, $course, null, $department->department_id);
+                if($errorMessage != null){
+                    $errorMessages->add($errorMessage);
                 }
             }
         }
@@ -366,18 +333,11 @@ class AdminAssignRoleController extends Controller{
         $errorMessages = Collection::make();
         $coursesInDepartement = Course::where('campus', $campusName)->where('faculty', $facultyName)
             ->where('department', $department->department)->get();
+        $roleAssignmnetHelpers = new RoleAssignmentHelpers();
         foreach($coursesInDepartement as $course){
-            if(!CourseUserRole::where(['course_id' => $course->course_id, 'user_id' => $user->id,
-                'role_id' => $role->id, 'program_id' => null, 'department_id' => $department->department_id])->exists()){
-
-                $courseUserRole = CourseUserRole::create(['course_id' => $course->course_id, 'user_id' => $user->id,
-                    'role_id' => $role->id, 'department_id' => $department->department_id]);
-
-                if($courseUserRole->save()){
-
-                } else{
-                    $errorMessages->add('There was an error adding '.'<b>'.$user->email.'</b>'.' to course '.$course->course_code.' '.$course->course_num);
-                }
+            $errorMessage = $roleAssignmnetHelpers->addElevatedRoleUserToCourse($user,$role, $course, null, $department->department_id);
+            if($errorMessage != null){
+                $errorMessages->add($errorMessage);
             }
         }
         return $errorMessages;
