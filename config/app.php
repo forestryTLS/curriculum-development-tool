@@ -192,6 +192,7 @@ return [
     'aliases' => Facade::defaultAliases()->merge([
         'PDF' => Barryvdh\DomPDF\Facade::class,
         'Redis' => Illuminate\Support\Facades\Redis::class,
+        'RoleAssignmentHelpers' => App\Helpers\RoleAssignmentHelpers::class,
     ])->toArray(),
 
 ];

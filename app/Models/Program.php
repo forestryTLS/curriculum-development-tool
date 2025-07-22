@@ -53,7 +53,7 @@ class Program extends Model
 
     public function usersWithElevatedRoles()
     {
-        return $this->belongsToMany(User::class, 'program_user_role', 'program_id', 'user_id')->withPivot('role_id');
+        return $this->belongsToMany(User::class, 'program_user_role', 'program_id', 'user_id')->withPivot('role_id', 'department_id', 'has_access_to_all_courses_in_faculty');
     }
 
     public function collaborators()

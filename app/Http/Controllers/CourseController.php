@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Helpers\RoleAssignmentHelpers;
 use App\Mail\NotifyInstructorForMappingMail;
 use App\Mail\NotifyNewCourseInstructorMail;
 use App\Mail\NotifyNewUserAndInstructorMail;
@@ -161,7 +162,8 @@ class CourseController extends Controller
             }
 
             $user = User::find(Auth::id());
-            $errorMessages = $this->addAllAdminsToCourse($course);
+            $roleAssignmentHelper = new RoleAssignmentHelpers();
+            $errorMessages = $roleAssignmentHelper->addAllAdminsToEntity($course);
 
 
 
@@ -221,7 +223,8 @@ class CourseController extends Controller
             $course->save();
 
             $user = User::find(Auth::id());
-            $errorMessages = $this->addAllAdminsToCourse($course);
+            $roleAssignmentHelper = new RoleAssignmentHelpers();
+            $errorMessages = $roleAssignmentHelper->addAllAdminsToEntity($course);
 
             //Add department heads and program directors of with all faculty course access as owners of course
             if($course->campus && $course->faculty) {
@@ -261,86 +264,31 @@ class CourseController extends Controller
      */
 
     private function addAllProgramDirectors($program, $course){
-
         $programDirectors = $program->directors()->get();
-        $programDirectorRoleId = Role::where('role', 'program director')->first()->id;
+        $programDirectorRole = Role::where('role', 'program director')->first();
+        $roleAssignmentHelper = new RoleAssignmentHelpers();
 
         foreach($programDirectors as $director){
-            if (!CourseUserRole::where('course_id', $course->course_id)->where('role_id', $programDirectorRoleId)
-                ->where('user_id', $director->id)->where('program_id', $program->program_id)->exists()) {
-
-                $courseUserRole = CourseUserRole::create(
-                    ['course_id' => $course->course_id, 'user_id' => $director->id,
-                        'role_id' => $programDirectorRoleId,
-                        'program_id' => $program->program_id],
-                );
-                $courseUserRole->save();
-            }
+            $roleAssignmentHelper->addElevatedRoleUserToCourse($director,$programDirectorRole, $course,
+                $program->program_id, null);
         }
-    }
-
-    /**
-     * Helper function to add all admins to the given course.
-     */
-
-    private function addAllAdminsToCourse($course) {
-
-        $errorMessages = Collection::make();
-
-        $adminRoleId = Role::where('role', 'administrator')->first()->id;
-
-        $adminUsers = User::whereHas('roles', function ($query){
-            $query->where('role', 'administrator');
-            })->get();
-
-        foreach ($adminUsers as $adminUser) {
-            if (!CourseUserRole::where('course_id', $course->course_id)->where('role_id', $adminRoleId)
-                ->where('user_id', $adminUser->id)->exists()) {
-                $courseUserRole = CourseUserRole::create(
-                    ['course_id' => $course->course_id, 'user_id' => $adminUser->id,
-                        'role_id' => $adminRoleId]
-                );
-                if($courseUserRole->save()){
-                } else{
-                    $errorMessages->add('There was an error adding '.'<b>'.$adminUser->email.'</b>'.' to course '.$course->course_code.' '.$course->course_num);
-                }
-
-            }
-        }
-
-        return $errorMessages;
-
     }
 
     private function addAllDepartmentHeadsToCourse($course)
     {
         $errorMessages = Collection::make();
-        $campus = Campus::where('campus', $course->campus)->first();
-        if ($campus) {
-            $faculty = Faculty::where(['faculty' => $course->faculty,
-                'campus_id' => $campus->campus_id])->first();
-            if ($faculty) {
-                $department = Department::where(['department' => $course->department,
-                    'faculty_id' => $faculty->faculty_id])->first();
-                if ($department) {
-                    $departmentHeadRoleId = Role::where('role', 'department head')->first()->id;
-                    $departmentHeads = $department->heads()->get();
-                    foreach ($departmentHeads as $departmentHead) {
-                        if (!CourseUserRole::where(['course_id' => $course->course_id, 'user_id' => $departmentHead->id,
-                            'role_id' => $departmentHeadRoleId, 'department_id' => $department->department_id,
-                            'program_id' => null])->exists()) {
-
-                            $courseUserRole = CourseUserRole::create(['course_id' => $course->course_id, 'user_id' => $departmentHead->id,
-                                'role_id' => $departmentHeadRoleId, 'department_id' => $department->department_id]);
-                            if ($courseUserRole->save()) {
-
-                            } else {
-                                $errorMessages->add('There was an error adding ' . '<b>' . $departmentHead->email . '</b>' . ' to course ' . $course->course_code . ' ' . $course->course_num);
-                            }
-                        }
-
-                    }
+        $roleAssignmentHelper = new RoleAssignmentHelpers();
+        $department = $roleAssignmentHelper->getDepartmentFromEntity($course);
+        if ($department) {
+            $departmentHeadRole = Role::where('role', 'department head')->first();
+            $departmentHeads = $department->heads()->get();
+            foreach ($departmentHeads as $departmentHead) {
+                $errorMessage = $roleAssignmentHelper->addElevatedRoleUserToCourse($departmentHead, $departmentHeadRole,
+                    $course, null, $department->department_id);
+                if ($errorMessage != null) {
+                    $errorMessages->add($errorMessage);
                 }
+
             }
         }
         return $errorMessages;
@@ -353,29 +301,19 @@ class CourseController extends Controller
     {
         $errorMessages = Collection::make();
         $departmentsInFaculty = Department::where('faculty_id', $facultyId)->get();
-        $departmentHeadRoleId = Role::where('role', 'department head')->first()->id;
-
+        $departmentHeadRole = Role::where('role', 'department head')->first();
+        $roleAssignmentHelper = new RoleAssignmentHelpers();
         foreach ($departmentsInFaculty as $department) {
             $departmentHeads = $department->heads()->where('has_access_to_all_courses_in_faculty', true)->get();
             foreach ($departmentHeads as $head) {
-                if(!CourseUserRole::where(['course_id' => $course->course_id, 'user_id' => $head->id,
-                    'role_id' => $departmentHeadRoleId, 'department_id' => $department->department_id,
-                    'program_id' => null])->exists()) {
-
-                    $courseUserRole = CourseUserRole::create(['course_id' => $course->course_id, 'user_id' => $head->id,
-                        'role_id' => $departmentHeadRoleId, 'department_id' => $department->department_id]);
-                    if ($courseUserRole->save()) {
-
-                    } else {
-                        $errorMessages->add('There was an error adding ' . '<b>' . $head->email . '</b>' . ' to course ' . $course->course_code . ' ' . $course->course_num);
-                    }
+                $errorMessage = $roleAssignmentHelper->addElevatedRoleUserToCourse($head,$departmentHeadRole,
+                    $course, null, $department->department_id);
+                if($errorMessage != null) {
+                    $errorMessages->add($errorMessage);
                 }
             }
-
         }
-
         return $errorMessages;
-
     }
 
     /**
@@ -383,36 +321,26 @@ class CourseController extends Controller
      */
     private function addFacultyProgramDirectorsToCourse($course, $facultyId){
         $errorMessages = Collection::make();
-
         $faculty = Faculty::where('faculty_id', $facultyId)->first();
-
         if(!$faculty){
             return $errorMessages;
         }
-
         $programs = Program::where(['campus' => $faculty->campus->campus,
             'faculty' => $faculty->faculty])->get();
-        $programDirectorRoleId = Role::where('role', 'program director')->first()->id;
+        $programDirectorRole = Role::where('role', 'program director')->first();
+        $roleAssignmentHelper = new RoleAssignmentHelpers();
 
         foreach ($programs as $program) {
             $programDirectors = $program->directors()->wherePivot('has_access_to_all_courses_in_faculty', true)->get();
             foreach ($programDirectors as $director) {
-                if(!CourseUserRole::where(['course_id' => $course->course_id, 'user_id' => $director->id,
-                    'role_id' => $programDirectorRoleId, 'program_id' => $program->program_id])->exists()) {
-
-                    $courseUserRole = CourseUserRole::create(['course_id' => $course->course_id, 'user_id' => $director->id,
-                        'role_id' => $programDirectorRoleId, 'program_id' => $program->program_id]);
-                    if ($courseUserRole->save()) {
-
-                    } else {
-                        $errorMessages->add('There was an error adding ' . '<b>' . $director->email . '</b>' . ' to course ' . $course->course_code . ' ' . $course->course_num);
-                    }
+                $errorMessage =$roleAssignmentHelper->addElevatedRoleUserToCourse($director,$programDirectorRole,
+                    $course, $program->program_id, null);
+                if($errorMessage != null) {
+                    $errorMessages->add($errorMessage);
                 }
             }
         }
-
         return $errorMessages;
-
     }
 
     /**
@@ -1257,7 +1185,8 @@ class CourseController extends Controller
         }
 
         $user = User::find(Auth::id());
-        $errorMessages = $this->addAllAdminsToCourse($course);
+        $roleAssignmentHelper = new RoleAssignmentHelpers();
+        $errorMessages = $roleAssignmentHelper->addAllAdminsToEntity($course);
 
         //Add department heads and program directors of with all faculty course access as owners of course
         if($course->campus && $course->faculty) {

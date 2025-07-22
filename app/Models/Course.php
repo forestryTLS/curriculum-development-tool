@@ -27,7 +27,7 @@ class Course extends Model
 
     public function usersWithElevatedRoles()
     {
-        return $this->belongsToMany(User::class, 'course_user_role', 'course_id', 'user_id')->withPivot('role_id');
+        return $this->belongsToMany(User::class, 'course_user_role', 'course_id', 'user_id')->withPivot('role_id', 'program_id', 'department_id');
     }
 
     public function collaborators()
