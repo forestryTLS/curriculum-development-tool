@@ -506,6 +506,9 @@ class CourseController extends Controller
                     $this->addAllDepartmentHeadsToCourse($course);
 
                 }
+            } else if($oldCourseDepartment != $course->department){
+                $this->removeCourseAcessForDeptHeadsWithoutFullFacultyCourseAccess($course);
+                $this->addAllDepartmentHeadsToCourse($course);
             }
 
             $request->session()->flash('success', 'Course updated');
@@ -515,6 +518,19 @@ class CourseController extends Controller
 
         return redirect()->back();
 
+    }
+
+    private function removeCourseAcessForDeptHeadsWithoutFullFacultyCourseAccess($course){
+        $departmentHeadRoleId = Role::where('role', 'department head')->first()->id;
+        $usersWithDeptHeadAccessToCourse = CourseUserRole::where(['course_id' => $course->course_id,
+            'role_id' => $departmentHeadRoleId, 'program_id' => null])->get();
+        foreach ($usersWithDeptHeadAccessToCourse as $courseUserRole){
+            $hasFullFacultyCourseAccessForDept = User::where('id', $courseUserRole->user_id)->first()->headedDepartments()
+            ->wherePivot('department_id', $courseUserRole->department_id)->first();
+            if(!$hasFullFacultyCourseAccessForDept->has_access_to_all_courses_in_faculty){
+                $courseUserRole->delete();
+            }
+        }
     }
 
     private function removeCourseAccessForOldDepartmentHead($course){

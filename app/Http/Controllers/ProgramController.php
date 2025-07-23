@@ -229,19 +229,28 @@ class ProgramController extends Controller
                     'faculty'=> $oldProgramFaculty])->first();
                 $prevDepartment = Department::where(['faculty_id'=> $prevFaculty->faculty_id,
                     'department'=> $oldProgramDepartment])->first();
-                CourseUserRole::where(['role_id' => $departmentHeadRoleId, 'program_id' => $program->program_id,
-                    'department_id' => $prevDepartment->department_id])->delete();
-                ProgramUserRole::where(['program_id' => $program->program_id, 'role_id' => $departmentHeadRoleId,
-                    'department_id' => $prevDepartment->department_id])->delete();
+                if($prevDepartment){
+                    CourseUserRole::where(['role_id' => $departmentHeadRoleId, 'program_id' => $program->program_id,
+                        'department_id' => $prevDepartment->department_id])->delete();
+                    ProgramUserRole::where(['program_id' => $program->program_id, 'role_id' => $departmentHeadRoleId,
+                        'department_id' => $prevDepartment->department_id])->delete();
+                }
 
-                $programDirectorRoleId = Role::where('role', 'program director')->first()->id;
+                $programDirectorRole = Role::where('role', 'program director')->first();
                 $programDirectorsWithAllCourseAccessInFaculty = ProgramUserRole::where(['program_id' => $program->program_id,
-                    'role_id' => $programDirectorRoleId, 'has_access_to_all_courses_in_faculty' => true])->get();
+                    'role_id' => $programDirectorRole->id, 'has_access_to_all_courses_in_faculty' => true])->get();
                 $programCourseIds = $program->courses()->get()->pluck('course_id')->toArray();
+                $roleAssignmentHelper = new RoleAssignmentHelpers();
                 foreach ($programDirectorsWithAllCourseAccessInFaculty as $programDirectorWithAllCourseAccessInFaculty){
-                    CourseUserRole::where(['role_id' => $programDirectorRoleId,
+                    if($program->campus != $oldProgramCampus || $program->faculty != $oldProgramFaculty) {
+                    CourseUserRole::where(['role_id' => $programDirectorRole->id,
                         'user_id'=> $programDirectorWithAllCourseAccessInFaculty->user_id,
                         'program_id' => $program->program_id])->whereNotIn('course_id', $programCourseIds)->delete();
+                        $programDirectorUser = User::where('id', $programDirectorWithAllCourseAccessInFaculty->user_id)->first();
+                        // Assign program directors with full faculty course access, access to courses in newly assigned faculty
+                        $roleAssignmentHelper->assignOwnershipOfAllCoursesInFaculty($programDirectorUser,
+                            $program->campus, $program->faculty, $programDirectorRole, $program, null);
+                    }
                 }
             }
 

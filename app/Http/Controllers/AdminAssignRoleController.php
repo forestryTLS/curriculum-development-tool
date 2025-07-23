@@ -116,7 +116,8 @@ class AdminAssignRoleController extends Controller{
                 }
                 if($request->input('accessToAllCoursesInFaculty') == "1"){
                     $department->heads()->updateExistingPivot($user->id, ['has_access_to_all_courses_in_faculty' => true]);
-                    $errors = $this->assignOwnershipOfAllCoursesInFaculty($user, $department->faculty->campus->campus,
+                    $roleAssignmentHelpers = new RoleAssignmentHelpers();
+                    $errors = $roleAssignmentHelpers->assignOwnershipOfAllCoursesInFaculty($user, $department->faculty->campus->campus,
                         $department->faculty->faculty, $role, null, $department);
                     if($errors->count() > 0){
                         $warningMessage->add('User could not be assigned to all courses in faculty');
@@ -156,7 +157,8 @@ class AdminAssignRoleController extends Controller{
                     $warningMessage->add('Program Director role assigned to user. User could not be assigned to all courses in the program.');
                 }
                 if($request->input('accessToAllCoursesInFaculty') == "1"){
-                    $errors = $this->assignOwnershipOfAllCoursesInFaculty($user, $program->campus,
+                    $roleAssignmentHelpers = new RoleAssignmentHelpers();
+                    $errors = $roleAssignmentHelpers->assignOwnershipOfAllCoursesInFaculty($user, $program->campus,
                         $program->faculty, $role, $program, null);
                     if($errors->count() > 0){
                         $warningMessage->add('User could not be assigned to all courses in faculty');
@@ -219,14 +221,14 @@ class AdminAssignRoleController extends Controller{
             'department' => $department->department])->get();
 
         $departmentHeadRole = Role::where('role', 'department head')->first();
-        $roleAssignmnetHelpers = new RoleAssignmentHelpers();
+        $roleAssignmentHelpers = new RoleAssignmentHelpers();
 
         foreach($programsInDepartment as $program){
-            $errorMessage = $roleAssignmnetHelpers->addElevatedRoleUserToProgram($user, $departmentHeadRole, $program, $department->department_id, false);
+            $errorMessage = $roleAssignmentHelpers->addElevatedRoleUserToProgram($user, $departmentHeadRole, $program, $department->department_id, false);
             if($errorMessage == null){
                 $coursesInProgram = $program->courses()->get();
                 foreach($coursesInProgram as $course){
-                    $error = $roleAssignmnetHelpers->addElevatedRoleUserToCourse($user, $departmentHeadRole, $course, $program->program_id, $department->department_id);
+                    $error = $roleAssignmentHelpers->addElevatedRoleUserToCourse($user, $departmentHeadRole, $course, $program->program_id, $department->department_id);
                     if($error != null){
                         $errorMessages->add($error);
                     }
@@ -251,75 +253,12 @@ class AdminAssignRoleController extends Controller{
         $programDirectorRole = Role::where('role', 'program director')->first();
 
         $errorMessages = Collection::make();
-        $roleAssignmnetHelpers = new RoleAssignmentHelpers();
+        $roleAssignmentHelpers = new RoleAssignmentHelpers();
 
         foreach($coursesInProgram as $course){
-            $errorMessage = $roleAssignmnetHelpers->addElevatedRoleUserToCourse($user, $programDirectorRole, $course, $program->program_id, null);
+            $errorMessage = $roleAssignmentHelpers->addElevatedRoleUserToCourse($user, $programDirectorRole, $course, $program->program_id, null);
             if($errorMessage != null){
                 $errorMessages->add($errorMessage);
-            }
-        }
-
-        return $errorMessages;
-    }
-
-
-    /**
-     * Helper function to get all courses in faculty by stored faculty information and by identified faculty
-     * through course codes
-     */
-    private function getAllCoursesInFaculty($campusName, $facultyName){
-        $coursesInFacultyByName = Course::where(['campus' => $campusName, 'faculty' => $facultyName])->get();
-
-        $campus = Campus::where('campus', $campusName)->first();
-        $faculty = $campus?->faculties()->where('faculty', $facultyName)->first();
-
-        if(!$campus || !$faculty){
-            return $coursesInFacultyByName;
-        }
-
-        $courseCodes = FacultyCourseCodes::where('faculty_id', $faculty->faculty_id)->get()->pluck('course_code')->toArray();
-
-        if (count($courseCodes) === 0) {
-            return $coursesInFacultyByName;
-        }
-
-        $coursesInFacultyByCode = Course::whereIn('course_code', $courseCodes)->where(
-            function ($query) use ($campusName, $facultyName) {
-                $query->where(function ($q) {
-                    $q->whereNull('campus')->whereNull('faculty');
-                })->orWhere(function ($q) use ($campusName, $facultyName) {
-                    $q->where('campus', $campusName)
-                        ->where('faculty', $facultyName);
-                });
-            })->get();
-
-        return $coursesInFacultyByName->merge($coursesInFacultyByCode)->unique('course_id');
-
-
-    }
-
-    /**
-     * Helper function to add the requested new user with given elevated role to all courses in faculty.
-     */
-
-    private function assignOwnershipOfAllCoursesInFaculty($user, $campusName, $facultyName, $role, $program, $department){
-        $errorMessages = Collection::make();
-
-        $allCoursesInFaculty = $this->getAllCoursesInFaculty($campusName, $facultyName);
-        $roleAssignmnetHelpers = new RoleAssignmentHelpers();
-
-        foreach($allCoursesInFaculty as $course){
-            if($program){
-                $errorMessage = $roleAssignmnetHelpers->addElevatedRoleUserToCourse($user, $role, $course, $program->program_id, null);
-                if($errorMessage != null){
-                    $errorMessages->add($errorMessage);
-                }
-            } else if($department) {
-                $errorMessage = $roleAssignmnetHelpers->addElevatedRoleUserToCourse($user, $role, $course, null, $department->department_id);
-                if($errorMessage != null){
-                    $errorMessages->add($errorMessage);
-                }
             }
         }
 
@@ -333,9 +272,9 @@ class AdminAssignRoleController extends Controller{
         $errorMessages = Collection::make();
         $coursesInDepartement = Course::where('campus', $campusName)->where('faculty', $facultyName)
             ->where('department', $department->department)->get();
-        $roleAssignmnetHelpers = new RoleAssignmentHelpers();
+        $roleAssignmentHelpers = new RoleAssignmentHelpers();
         foreach($coursesInDepartement as $course){
-            $errorMessage = $roleAssignmnetHelpers->addElevatedRoleUserToCourse($user,$role, $course, null, $department->department_id);
+            $errorMessage = $roleAssignmentHelpers->addElevatedRoleUserToCourse($user,$role, $course, null, $department->department_id);
             if($errorMessage != null){
                 $errorMessages->add($errorMessage);
             }

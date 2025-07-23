@@ -877,7 +877,7 @@ class ManageRolesTest extends TestCase
             'course_id' => $course->course_id,
             'user_id' => $user->id,
             'role_id' => $role->id,
-            'program_id' => null, 
+            'program_id' => null,
             'department_id' => $department->department_id
         ]);
     }
@@ -1044,7 +1044,7 @@ class ManageRolesTest extends TestCase
             'department_id' => $department->department_id,
             'has_access_to_all_courses_in_faculty' => false
         ]);
-        
+
         $this->assertDatabaseMissing('course_user_role', [
             'role_id' => $role->id,
             'user_id' => $user->id,
@@ -1068,7 +1068,7 @@ class ManageRolesTest extends TestCase
             'delivery_modality' => $delivery_modalities[array_rand($delivery_modalities)],
             'course_year' => 2025,
             'course_semester' => $semesters[array_rand($semesters)],
-            'course_title' => 'Forestry New Test Course',
+            'course_title' => 'Another Forestry Test Course',
             'created_at' => Carbon::now(),
             'updated_at' => Carbon::now(),
             'assigned' => 1,
@@ -1096,5 +1096,145 @@ class ManageRolesTest extends TestCase
             'department_id' => $department->department_id
         ]);
     }
-    
+
+    public function test_program_director_with_full_faculty_course_access_update_on_program_faculty_update(){
+        $adminUser = User::where('email', 'admintest@gmail.com')->first();
+        $user = User::where('email', 'usertest@gmail.com')->first();
+        $role = Role::where(['role' => 'program director'])->first();
+
+        $response = $this->actingAs($adminUser)->post(route('programs.store'), [
+            'program' => 'Bachelor of New Test Forestry Program',
+            'campus' => 'Vancouver',
+            'faculty' => 'Faculty of Forestry',
+            'department' => 'Department of Forest Resources Management',
+            'level' => 'Bachelors',
+            'created_at' => Carbon::now(),
+            'updated_at' => Carbon::now(),
+            'user_id' => $adminUser->id,
+        ]);
+
+        $program = Program::where('program', 'Bachelor of New Test Forestry Program')->first();
+
+        $response = $this->actingAs($adminUser)->post(route('admin.assignRole'), [
+            'email' => 'usertest@gmail.com',
+            'role' => 'program-director',
+            'program' => 'Bachelor of New Test Forestry Program',
+            'accessToAllCoursesInFaculty' => '1'
+        ]);
+
+        $this->assertDatabaseHas('program_user_role',[
+            'program_id' => $program->program_id,
+            'role_id' => $role->id,
+            'user_id' => $user->id,
+            'has_access_to_all_courses_in_faculty' => true
+        ]);
+
+        $course1 = Course::where('course_title', 'Forestry New Test Course')->orderBy('course_id', 'DESC')->first();
+
+        $this->assertDatabaseHas('course_user_role', [
+            'role_id' => $role->id,
+            'user_id' => $user->id,
+            'course_id' => $course1->course_id,
+            'program_id' => $program->program_id,
+        ]);
+
+        $course2 = Course::where(['course_code' => 'TEST', 'course_num' => 271])->first();
+
+        $this->assertDatabaseHas('course_user_role', [
+            'role_id' => $role->id,
+            'user_id' => $user->id,
+            'course_id' => $course2->course_id,
+            'program_id' => $program->program_id,
+        ]);
+
+        $delivery_modalities = ['O', 'B', 'I'];
+        $semesters = ['W1', 'W2', 'S1', 'S2'];
+
+
+        $response = $this->actingAs($adminUser)->post(route('courses.store'), [
+            'course_code' => 'CPSC',
+            'course_num' => '234',
+            'delivery_modality' => $delivery_modalities[array_rand($delivery_modalities)],
+            'course_year' => 2025,
+            'course_semester' => $semesters[array_rand($semesters)],
+            'course_title' => 'Different Faculty Test Course',
+            'created_at' => Carbon::now(),
+            'updated_at' => Carbon::now(),
+            'assigned' => 1,
+            'type' => 'unassigned',
+            'standard_category_id' => 1,
+            'scale_category_id' => 1,
+            'user_id' => $adminUser->id,
+            'campus' => 'Vancouver',
+            'faculty' => 'Faculty of Science',
+            'department' => 'Department of Computer Science',
+        ]);
+
+        $courseNew = Course::where(['course_code' => 'CPSC', 'course_num' => 234])->first();
+
+        $response = $this->actingAs($adminUser)->post(route('programs.update', $program->program_id),[
+            'program_id' => $program->program_id,
+            'program' => 'Changed Faculty of Program',
+            'level' => $program->level,
+            'campus' => 'Vancouver',
+            'faculty' => 'Faculty of Science',
+            'department' => 'Department of Computer Science',
+        ]);
+
+        $this->assertDatabaseHas('course_user_role', [
+            'role_id' => $role->id,
+            'user_id' => $user->id,
+            'course_id' => $courseNew->course_id,
+            'program_id' => $program->program_id,
+        ]);
+
+        $this->assertDatabaseMissing('course_user_role', [
+            'role_id' => $role->id,
+            'user_id' => $user->id,
+            'course_id' => $course1->course_id,
+        ]);
+
+        $this->assertDatabaseMissing('course_user_role', [
+            'role_id' => $role->id,
+            'user_id' => $user->id,
+            'course_id' => $course2->course_id,
+        ]);
+    }
+
+    public function test_dept_head_access_update_on_course_dept_change(){
+        $adminUser = User::where('email', 'admintest@gmail.com')->first();
+        $user = User::where('email', 'usertest@gmail.com')->first();
+        $role = Role::where(['role' => 'department head'])->first();
+
+        $course = Course::where(['course_code' => 'TEST', 'course_num' => 271])->first();
+
+        $this->assertDatabaseHas('course_user_role', [
+            'role_id' => $role->id,
+            'user_id' => $user->id,
+            'course_id' => $course->course_id,
+        ]);
+
+        $response = $this->actingAs($adminUser)->put(action([\App\Http\Controllers\CourseController::class, 'update'],
+            $course->course_id),
+            [
+                'course_code' => 'TEST',
+                'course_title' => 'Changed To Non-Forestry Testing Course',
+                'course_num' => $course->course_num,
+                'delivery_modality' => $course->delivery_modality,
+                'course_year' => $course->year,
+                'course_semester' => $course->semester,
+                'standard_category_id' => $course->standard_category_id,
+                'campus' => 'Vancouver',
+                'faculty' => 'Faculty of Forestry',
+                'department' => 'Department of Wood Science'
+
+            ]
+        );
+
+        $this->assertDatabaseMissing('course_user_role', [
+            'role_id' => $role->id,
+            'user_id' => $user->id,
+            'course_id' => $course->course_id,
+        ]);
+    }
 }

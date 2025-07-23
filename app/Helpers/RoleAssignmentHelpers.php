@@ -7,6 +7,7 @@ use App\Models\Course;
 use App\Models\CourseUserRole;
 use App\Models\Department;
 use App\Models\Faculty;
+use App\Models\FacultyCourseCodes;
 use App\Models\Program;
 use App\Models\ProgramUserRole;
 use App\Models\Role;
@@ -111,5 +112,74 @@ class RoleAssignmentHelpers
             }
         }
         return null;
+    }
+
+    /**
+     * @param $campusName string
+     * @param $facultyName string
+     * Helper function to get all courses in faculty by stored faculty information and by identified faculty
+     * through course codes
+     */
+    private function getAllCoursesInFaculty($campusName, $facultyName){
+        $coursesInFacultyByName = Course::where(['campus' => $campusName, 'faculty' => $facultyName])->get();
+
+        $campus = Campus::where('campus', $campusName)->first();
+        $faculty = $campus?->faculties()->where('faculty', $facultyName)->first();
+
+        if(!$campus || !$faculty){
+            return $coursesInFacultyByName;
+        }
+
+        $courseCodes = FacultyCourseCodes::where('faculty_id', $faculty->faculty_id)->get()->pluck('course_code')->toArray();
+
+        if (count($courseCodes) === 0) {
+            return $coursesInFacultyByName;
+        }
+
+        $coursesInFacultyByCode = Course::whereIn('course_code', $courseCodes)->where(
+            function ($query) use ($campusName, $facultyName) {
+                $query->where(function ($q) {
+                    $q->whereNull('campus')->whereNull('faculty');
+                })->orWhere(function ($q) use ($campusName, $facultyName) {
+                    $q->where('campus', $campusName)
+                        ->where('faculty', $facultyName);
+                });
+            })->get();
+
+        return $coursesInFacultyByName->merge($coursesInFacultyByCode)->unique('course_id');
+
+
+    }
+
+    /**
+     * @param $user User
+     * @param $campusName string
+     * @param $facultyName string
+     * @param $role Role
+     * @param $program Program
+     * @param $department Department
+     * Helper function to add the requested new user with given elevated role to all courses in faculty.
+     */
+
+    public function assignOwnershipOfAllCoursesInFaculty($user, $campusName, $facultyName, $role, $program, $department){
+        $errorMessages = Collection::make();
+
+        $allCoursesInFaculty = $this->getAllCoursesInFaculty($campusName, $facultyName);
+
+        foreach($allCoursesInFaculty as $course){
+            if($program){
+                $errorMessage = $this->addElevatedRoleUserToCourse($user, $role, $course, $program->program_id, null);
+                if($errorMessage != null){
+                    $errorMessages->add($errorMessage);
+                }
+            } else if($department) {
+                $errorMessage = $this->addElevatedRoleUserToCourse($user, $role, $course, null, $department->department_id);
+                if($errorMessage != null){
+                    $errorMessages->add($errorMessage);
+                }
+            }
+        }
+
+        return $errorMessages;
     }
 }

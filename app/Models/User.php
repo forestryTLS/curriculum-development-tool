@@ -134,7 +134,7 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function headedDepartments()
     {
-        return $this->belongsToMany(\App\Models\Department::class, 'department_head', 'user_id','department_id');
+        return $this->belongsToMany(\App\Models\Department::class, 'department_head', 'user_id','department_id')->withPivot('has_access_to_all_courses_in_faculty');
     }
 
     public function directedPrograms()
