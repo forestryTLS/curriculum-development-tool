@@ -23,7 +23,7 @@
 
                 <div class="card-body">
                     <div class="alert alert-primary d-flex align-items-center ml-3 mr-3" role="alert" style="text-align:justify">
-                        <i class="bi bi-info-circle-fill pr-2 fs-3"></i>                        
+                        <i class="bi bi-info-circle-fill pr-2 fs-3"></i>
                         <div class="ml-2">
                             <div class="mt-2 mb-2">
                                 <li class="m-0 p-0">Add required and non-required courses to the program.</li>
@@ -38,7 +38,7 @@
                     <ul class="mr-2">
                         <li class="my-2"><b>Button - Map Course:</b> You will see this button if you are the owner or editor of the course to complete the course to program mapping.</li>
                     </ul>
-                    
+
                     <div class="row mb-2">
                         <div class="col">
                             <button type="button" class="btn btn-primary btn-md col-2 mt-2 float-right" data-toggle="modal" data-target="#createCourseModal" style="background-color:#002145;color:white;"><i class="bi bi-plus pr-2"></i>New Course</button>
@@ -51,9 +51,9 @@
                             <div class="col">
                                 @if ($programCourses->count() < 1)
                                     <div class="alert alert-warning wizard">
-                                        <div class="notes"><i class="bi bi-exclamation-circle-fill pr-2 fs-5"></i>There are no courses set for this program yet.</div>                    
+                                        <div class="notes"><i class="bi bi-exclamation-circle-fill pr-2 fs-5"></i>There are no courses set for this program yet.</div>
                                     </div>
-                                @else 
+                                @else
                                     <table class="table table-light table-bordered" >
                                         <tr class="table-primary">
                                             <th class="w-25">Course Title</th>
@@ -71,14 +71,14 @@
                                                     <br>
                                                     <p class="mb-0 form-text text-muted">
                                                         @if($programCourse->pivot->course_required == 1)
-                                                            Required 
+                                                            Required
                                                         @elseif($programCourse->pivot->course_required == 0)
-                                                            Not Required 
+                                                            Not Required
                                                         @endif
                                                     </p>
                                                     <p class="form-text text-muted">
-                                                        <b>Note: </b>{{$programCourse->pivot->note}}   
-                                                    </p>                                    
+                                                        <b>Note: </b>{{$programCourse->pivot->note}}
+                                                    </p>
                                                 </td>
                                             @else
                                                 <td>
@@ -86,11 +86,11 @@
                                                     <br>
                                                     <p class="form-text text-muted">
                                                         @if($programCourse->pivot->course_required == 1)
-                                                            Required 
+                                                            Required
                                                         @elseif($programCourse->pivot->course_required == 0)
-                                                            Not Required 
+                                                            Not Required
                                                         @endif
-                                                    </p>                                   
+                                                    </p>
                                                 </td>
                                             @endif
                                             <td>
@@ -152,7 +152,7 @@
                                                         @endif
                                                     @endforeach
                                                 @endif
-                                                
+
                                                 <!-- Delete Confirmation Modal -->
                                                 <div class="modal fade" id="deleteConfirmationCourse{{$programCourse->course_id}}" tabindex="-1" role="dialog" aria-labelledby="deleteConfirmationCourse" aria-hidden="true">
                                                     <div class="modal-dialog" role="document">
@@ -181,7 +181,7 @@
                                                         </div>
                                                     </div>
                                                 </div>
-                                                
+
                                                 <!-- Edit Course Required Modal -->
                                                 <div class="modal fade" id="editCourseModal{{$programCourse->course_id}}" tabindex="-1" role="dialog" aria-labelledby="editCourseModalLabel" aria-hidden="true">
                                                     <div class="modal-dialog modal-lg" role="document">
@@ -250,7 +250,7 @@
 
                                                                         </div>
                                                                     </div>
-                                                                    
+
                                                                     <input type="hidden" class="form-input" name="course_id" value="{{$programCourse->course_id}}">
                                                                     <input type="hidden" class="form-input" name="program_id" value="{{$program->program_id}}">
                                                                     <input type="hidden" class="form-check-input" name="user_id" value="{{Auth::id()}}">
@@ -264,7 +264,7 @@
                                                         </div>
                                                     </div>
                                                 </div>
-                                            </td>                                        
+                                            </td>
                                         </tr>
                                         @endforeach
                                     </table>
@@ -312,10 +312,10 @@
 
                                         <div class="form-group row">
                                             <label for="course_num" class="col-md-3 col-form-label text-md-right">Course Number</label>
-            
+
                                             <div class="col-md-8">
                                                 <input id="course_num" type="text" oninput="validateMaxlength()" onpaste="validateMaxlength()" maxlength="30" class="form-control @error('course_num') is-invalid @enderror" name="course_num" autofocus>
-            
+
                                                 @error('course_num')
                                                 <span class="invalid-feedback" role="alert">
                                                     <strong>{{ $message }}</strong>
@@ -337,6 +337,58 @@
                                                 <span class="invalid-feedback" role="alert">
                                                     <strong>{{ $message }}</strong>
                                                 </span>
+                                                @enderror
+                                            </div>
+                                        </div>
+
+                                        <!-- Campus -->
+                                        <div class="form-group row">
+                                            <label for="campus" class="col-md-3 col-form-label text-md-right">Campus</label>
+                                            <div class="col-md-8">
+                                                <select id="campus-course" class="custom-select" name="campus">
+                                                    <option disabled selected hidden>Open list of campuses</option>
+                                                    @foreach ($campuses as $campus)
+                                                        <option value="{{$campus->campus}}">{{$campus->campus}}</option>
+                                                    @endforeach
+                                                    <option value="Other">Other</option>
+                                                </select>
+                                                <input id='campus-text-course' class="form-control campus_text" name="campus" type="text" placeholder="(Optional) Enter the campus name" disabled hidden></input>
+                                                @error('campus')
+                                                <span class="invalid-feedback" role="alert">
+                                    <strong>{{ $message }}</strong>
+                            </span>
+                                                @enderror
+                                            </div>
+                                        </div>
+
+                                        <!-- Faculty - dropdown -->
+                                        <div class="form-group row">
+                                            <label for="faculty" class="col-md-3 col-form-label text-md-right">Faculty/School</label>
+                                            <div class="col-md-8">
+                                                <select id="faculty-course" class="custom-select" name="faculty" disabled>
+                                                    <option disabled selected hidden>Open list of faculties/schools</option>
+                                                </select>
+                                                <input id='faculty-text-course' class="form-control faculty_text" name="faculty" type="text" placeholder="(Optional) Enter the faculty/school" disabled hidden></input>
+                                                @error('faculty')
+                                                <span class="invalid-feedback" role="alert">
+                                    <strong>{{ $message }}</strong>
+                            </span>
+                                                @enderror
+                                            </div>
+                                        </div>
+
+                                        <!-- Department -->
+                                        <div class="form-group row">
+                                            <label for="department" class="col-md-3 col-form-label text-md-right">Department</label>
+                                            <div class="col-md-8">
+                                                <select id="department-course" class="custom-select department_select" name="department" disabled>
+                                                    <option disabled selected hidden>Open list of departments</option>
+                                                </select>
+                                                <input id='department-text-course' class="form-control" name="department" type="text" placeholder="(Optional) Enter the department" disabled hidden></input>
+                                                @error('department')
+                                                <span class="invalid-feedback" role="alert">
+                                    <strong>{{ $message }}</strong>
+                            </span>
                                                 @enderror
                                             </div>
                                         </div>
@@ -510,7 +562,7 @@
                                 </div>
                                 @if (count($userCoursesNotInProgram) < 1)
                                     <div class="alert alert-warning wizard">
-                                        <i class="bi bi-exclamation-circle-fill pr-2 fs-5"></i>There are no courses to assign.                    
+                                        <i class="bi bi-exclamation-circle-fill pr-2 fs-5"></i>There are no courses to assign.
                                     </div>
                                 @else
                                     <div class="modal-body">
@@ -543,13 +595,13 @@
                                                     <td>
                                                         <div class="form-check form-switch">
                                                             <input class="form-check-input ml-0" name="require{{$course->course_id}}" type="checkbox" id="flexSwitchCheck{{$course->course_id}}">
-                                                        </div>                                           
+                                                        </div>
                                                     </td>
                                                 </tr>
                                                 @endforeach
                                             </table>
                                         </form>
-                                    </div> 
+                                    </div>
 
                                     <div class="modal-footer">
                                         <button type="button" class="btn btn-secondary col-2 btn-sm" data-dismiss="modal">Close</button>
@@ -587,14 +639,187 @@
             $(this).find(":submit").html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>');
 
             });
+
+        $('#campus-course').change( function() {
+            // filter faculty based on campus
+            campusChangeOperations('#campus-course', '#campus-text-course', '#faculty-course', '#faculty-text-course', '#department-course', '#department-text-course');
+
+        });
+
+        $('#faculty-course').change( function() {
+            facultyChangeOperations('#faculty-course', '#faculty-text-course', '#department-course', '#department-text-course');
+        });
+
+        $('#department-course').change( function() {
+            departmentChangeOperations('#department-course', '#department-text-course');
+        });
+
     });
+
+    function campusChangeOperations(campusFeildId, campusTextId, facultyFeildId, facultyTextId, departmentFeildId, departmentTextId) {
+        // filter faculty based on campus
+        if ($(campusFeildId).find(':selected').text() == 'Vancouver') {
+            // Hide text / show select
+            campusDefaultOption(campusTextId, facultyFeildId,
+                facultyTextId, departmentFeildId, departmentTextId);
+
+            //Displays Vancouver Faculties
+            // delete drop down items
+            $(facultyFeildId).empty();
+            // populate drop down
+            $(facultyFeildId).append($('<option disabled selected hidden>Open list of faculties/schools</option>'));
+            vFaculties.forEach (faculty => $(facultyFeildId).append($('<option name="'+faculty.faculty_id+'" />').val(faculty.faculty).text(faculty.faculty)));
+            $(facultyFeildId).append($('<option name="-1" />').val('Other').text('Other'));
+
+            // enable the faculty select field
+            if ($(facultyFeildId).is(':disabled')) {
+                $(facultyFeildId).prop('disabled', false);
+            }
+            // disable the department field
+            if (!($(departmentFeildId).is(':disabled'))) {
+                $(departmentFeildId).empty();
+                $(departmentFeildId).append($('<option disabled selected hidden>Open list of departments</option>'));
+                $(departmentFeildId).prop('disabled', true);
+            }
+
+        } else if ($(campusFeildId).find(':selected').text() == 'Okanagan') {
+            // Hide text / show select
+            campusDefaultOption(campusTextId, facultyFeildId,
+                facultyTextId, departmentFeildId, departmentTextId);
+
+            // Display Okangan Faculties
+            // delete drop down items
+            $(facultyFeildId).empty();
+            // populate drop down
+            $(facultyFeildId).append($('<option disabled selected hidden>Open list of faculties/schools</option>'));
+            oFaculties.forEach (faculty => $(facultyFeildId).append($('<option name="'+faculty.faculty_id+'" />').val(faculty.faculty).text(faculty.faculty)));
+            $(facultyFeildId).append($('<option name="-1" />').val('Other').text('Other'));
+
+            // enable the faculty select field
+            if ($(facultyFeildId).is(':disabled')) {
+                $(facultyFeildId).prop('disabled', false);
+            }
+            // disable the department field
+            if (!($(departmentFeildId).is(':disabled'))) {
+                $(departmentFeildId).empty();
+                $(departmentFeildId).append($('<option disabled selected hidden>Open list of departments</option>'));
+                $(departmentFeildId).prop('disabled', true);
+            }
+
+        } else {
+            campusOtherOption(campusTextId, facultyFeildId,
+                facultyTextId, departmentFeildId, departmentTextId);
+        }
+    }
+
+    function facultyChangeOperations(facultyFeildId, facultyTextId, departmentFeildId, departmentTextId) {
+        var facultyId = parseInt($(facultyFeildId).find(':selected').attr('name'));
+
+        // get departments by faculty if they belong to a faculty, else display all departments
+        if (facultyId >= 0) {
+            // Hide text / show select
+            facultyDefaultOption(facultyTextId, departmentFeildId, departmentTextId);
+
+            // delete drop down items
+            $(departmentFeildId).empty();
+            // populate drop down
+            $(departmentFeildId).append($('<option disabled selected hidden>Open list of departments</option>'));
+            var filteredDepartments = departments.filter(item => {
+                return item.faculty_id === facultyId;
+            });
+            filteredDepartments.forEach(department => $(departmentFeildId).append($('<option />').val(department.department).text(department.department)));
+
+
+            $(departmentFeildId).append($('<option />').val('Other').text('Other'));
+
+            // enable the faculty select field
+            if ($(departmentFeildId).is(':disabled')) {
+                $(departmentFeildId).prop('disabled', false);
+            }
+
+        } else {
+            // Hide text / show select
+            facultyOtherOption(facultyTextId, departmentFeildId, departmentTextId);
+        }
+    }
+
+    function departmentChangeOperations(departmentFeildId, departmentTextId) {
+        if ($(departmentFeildId).find(':selected').val() !== 'Other') {
+            departmentDefaultOption(departmentTextId);
+        } else {
+            departmentOtherOption(departmentTextId);
+        }
+    }
+
+    function departmentDefaultOption(departmentTextId) {
+        // Hide text / show select
+        $(departmentTextId).prop( "hidden", true );
+        $(departmentTextId).prop( "disabled", true );
+    }
+
+    function departmentOtherOption(departmentTextId) {
+        // Hide text / show select
+        $(departmentTextId).prop( "hidden", false );
+        $(departmentTextId).prop( "disabled", false );
+    }
+
+    function facultyDefaultOption(facultyTextId, departmentId, departmentTextId) {
+        // Hide text / show select
+        $(facultyTextId).prop( "hidden", true );
+        $(facultyTextId).prop( "disabled", true );
+        $(departmentId).prop( "hidden", false );
+        $(departmentId).prop( "disabled", false );
+        $(departmentTextId).prop( "hidden", true );
+        $(departmentTextId).prop( "disabled", true );
+    }
+
+    function facultyOtherOption(facultyTextId, departmentId, departmentTextId) {
+        // Hide text / show select
+        $(facultyTextId).prop( "hidden", false );
+        $(facultyTextId).prop( "disabled", false );
+        $(departmentId).prop( "disabled", true );
+        $(departmentId).prop( "hidden", true );
+        $(departmentId).text('');
+        $(departmentTextId).prop( "hidden", false );
+        $(departmentTextId).prop( "disabled", false );
+    }
+
+    function campusDefaultOption(campusTextId, facultyId, facultyTextId, departmentId, departmentTextId) {
+        // Hide text / show select
+        $(campusTextId).prop( "hidden", true );
+        $(campusTextId).prop( "disabled", true );
+        $(facultyId).prop( "hidden", false );
+        $(facultyId).prop( "disabled", false );
+        $(facultyTextId).prop( "hidden", true );
+        $(facultyTextId).prop( "disabled", true );
+        $(departmentId).prop( "hidden", false );
+        $(departmentId).prop( "disabled", false );
+        $(departmentTextId).prop( "hidden", true );
+        $(departmentTextId).prop( "disabled", true );
+    }
+
+    function campusOtherOption(campusTextId, facultyId, facultyTextId, departmentId, departmentTextId) {
+        // Hide text / show select
+        $(campusTextId).prop( "hidden", false );
+        $(campusTextId).prop( "disabled", false );
+        $(facultyId).prop( "disabled", true );
+        $(facultyId).prop( "hidden", true );
+        $(facultyId).text('');
+        $(facultyTextId).prop( "hidden", false );
+        $(facultyTextId).prop( "disabled", false );
+        $(departmentId).prop( "disabled", true );
+        $(departmentId).prop( "hidden", true );
+        $(departmentId).text('');
+        $(departmentTextId).prop( "hidden", false );
+        $(departmentTextId).prop( "disabled", false );
+    }
 </script>
 
-<style> 
+<style>
 .tooltip-inner {
     text-align: left;
     max-width: 600px;
-    width: auto; 
+    width: auto;
 }
 </style>
 @endsection

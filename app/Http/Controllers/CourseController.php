@@ -92,6 +92,8 @@ class CourseController extends Controller
             'course_num' => 'max:30',
         ]);
 
+        $errorMessages = Collection::make();
+
         $course = new Course;
         $course->course_title = $request->input('course_title');
         $course->course_num = $request->input('course_num');
@@ -163,7 +165,7 @@ class CourseController extends Controller
 
             $user = User::find(Auth::id());
             $roleAssignmentHelper = new RoleAssignmentHelpers();
-            $errorMessages = $roleAssignmentHelper->addAllAdminsToEntity($course);
+            $errorMessages = $errorMessages->merge($roleAssignmentHelper->addAllAdminsToEntity($course));
 
 
 
@@ -172,15 +174,15 @@ class CourseController extends Controller
                 $campusId = Campus::where('campus', $course->campus)->first()->campus_id;
                 $facultyId = Faculty::where(['faculty'=> $course->faculty,
                     'campus_id' => $campusId])->first()->faculty_id;
-                $this->addFacultyDepartmentHeadsToCourse($course, $facultyId);
-                $this->addFacultyProgramDirectorsToCourse($course, $facultyId);
+                $errorMessages = $errorMessages->merge($this->addFacultyDepartmentHeadsToCourse($course, $facultyId));
+                $errorMessages = $errorMessages->merge($this->addFacultyProgramDirectorsToCourse($course, $facultyId));
                 if($course->department) {
-                    $this->addAllDepartmentHeadsToCourse($course);
+                    $errorMessages = $errorMessages->merge($this->addAllDepartmentHeadsToCourse($course));
                 }
             } elseif(FacultyCourseCodes::where('course_code', $course->course_code)->exists()){
                 $facultyId = FacultyCourseCodes::where('course_code', $course->course_code)->first()->faculty_id;
-                $this->addFacultyDepartmentHeadsToCourse($course, $facultyId);
-                $this->addFacultyProgramDirectorsToCourse($course, $facultyId);
+                $errorMessages = $errorMessages->merge($this->addFacultyDepartmentHeadsToCourse($course, $facultyId));
+                $errorMessages = $errorMessages->merge($this->addFacultyProgramDirectorsToCourse($course, $facultyId));
             }
 
             $courseUser = new CourseUser;
@@ -206,7 +208,7 @@ class CourseController extends Controller
                     $program->last_modified_user = $user->name;
                     $program->save();
 
-                    $this->addAllProgramDirectors($program, $course);
+                    $errorMessages = $errorMessages->merge($this->addAllProgramDirectors($program, $course));
 
                     $request->session()->flash('success', 'New course added');
                 }
@@ -224,22 +226,22 @@ class CourseController extends Controller
 
             $user = User::find(Auth::id());
             $roleAssignmentHelper = new RoleAssignmentHelpers();
-            $errorMessages = $roleAssignmentHelper->addAllAdminsToEntity($course);
+            $errorMessages = $errorMessages->merge($roleAssignmentHelper->addAllAdminsToEntity($course));
 
             //Add department heads and program directors of with all faculty course access as owners of course
             if($course->campus && $course->faculty) {
                 $campusId = Campus::where('campus', $course->campus)->first()->campus_id;
                 $facultyId = Faculty::where(['faculty'=> $course->faculty,
                     'campus_id' => $campusId])->first()->faculty_id;
-                $this->addFacultyDepartmentHeadsToCourse($course, $facultyId);
-                $this->addFacultyProgramDirectorsToCourse($course, $facultyId);
+                $errorMessages = $errorMessages->merge($this->addFacultyDepartmentHeadsToCourse($course, $facultyId));
+                $errorMessages = $errorMessages->merge($this->addFacultyProgramDirectorsToCourse($course, $facultyId));
                 if($course->department) {
-                    $this->addAllDepartmentHeadsToCourse($course);
+                    $errorMessages = $errorMessages->merge($this->addAllDepartmentHeadsToCourse($course));
                 }
             } elseif(FacultyCourseCodes::where('course_code', $course->course_code)->exists()){
                 $facultyId = FacultyCourseCodes::where('course_code', $course->course_code)->first()->faculty_id;
-                $this->addFacultyDepartmentHeadsToCourse($course, $facultyId);
-                $this->addFacultyProgramDirectorsToCourse($course, $facultyId);
+                $errorMessages = $errorMessages->merge($this->addFacultyDepartmentHeadsToCourse($course, $facultyId));
+                $errorMessages = $errorMessages->merge($this->addFacultyProgramDirectorsToCourse($course, $facultyId));
             }
 
             $user = User::where('id', $request->input('user_id'))->first();
@@ -264,14 +266,19 @@ class CourseController extends Controller
      */
 
     private function addAllProgramDirectors($program, $course){
+        $errorMessages = Collection::make();
         $programDirectors = $program->directors()->get();
         $programDirectorRole = Role::where('role', 'program director')->first();
         $roleAssignmentHelper = new RoleAssignmentHelpers();
 
         foreach($programDirectors as $director){
-            $roleAssignmentHelper->addElevatedRoleUserToCourse($director,$programDirectorRole, $course,
+            $errorMessage = $roleAssignmentHelper->addElevatedRoleUserToCourse($director,$programDirectorRole, $course,
                 $program->program_id, null);
+            if($errorMessage != null){
+                $errorMessages->add($errorMessage);
+            }
         }
+        return $errorMessages;
     }
 
     private function addAllDepartmentHeadsToCourse($course)
