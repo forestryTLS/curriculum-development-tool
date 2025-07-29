@@ -52,9 +52,11 @@ use Illuminate\Database\Eloquent\Collection;
 
 class ProgramController extends Controller
 {
+    private $roleAssignmentHelper;
     public function __construct()
     {
         $this->middleware(['auth', 'verified']);
+        $this->roleAssignmentHelper = new RoleAssignmentHelpers();
     }
 
     /**
@@ -111,8 +113,7 @@ class ProgramController extends Controller
             $request->session()->flash('error', 'There was an error Adding the program');
         }
 
-        $roleAssignmentHelper = new RoleAssignmentHelpers();
-        $errorMessages = $roleAssignmentHelper->addAllAdminsToEntity($program);
+        $errorMessages = $this->roleAssignmentHelper->addAllAdminsToEntity($program);
 
         $this->addAllDepartmentHeadsToProgram($program);
 
@@ -133,8 +134,7 @@ class ProgramController extends Controller
     {
         $errorMessages = Collection::make();
 
-        $roleAssignmentHelper = new RoleAssignmentHelpers();
-        $department = $roleAssignmentHelper->getDepartmentFromEntity($program);
+        $department = $this->roleAssignmentHelper->getDepartmentFromEntity($program);
 
         if($department){
             $departmentHeadRole = Role::where('role', 'department head')->first();
@@ -144,14 +144,14 @@ class ProgramController extends Controller
 
             foreach ($departmentHeads as $departmentHead) {
 
-                $errorMessage = $roleAssignmentHelper->addElevatedRoleUserToProgram($departmentHead, $departmentHeadRole,
+                $errorMessage = $this->roleAssignmentHelper->addElevatedRoleUserToProgram($departmentHead, $departmentHeadRole,
                     $program, $department->department_id, false);
                 if($errorMessage != null){
                     $errorMessages->add($errorMessage);
                 }
 
                 foreach ($coursesInProgram as $course) {
-                    $errorMessage = $roleAssignmentHelper->addElevatedRoleUserToCourse($departmentHead, $departmentHeadRole,
+                    $errorMessage = $this->roleAssignmentHelper->addElevatedRoleUserToCourse($departmentHead, $departmentHeadRole,
                     $course, $program->program_id, $department->department_id);
                     if($errorMessage != null){
                         $errorMessages->add($errorMessage);
@@ -240,7 +240,6 @@ class ProgramController extends Controller
                 $programDirectorsWithAllCourseAccessInFaculty = ProgramUserRole::where(['program_id' => $program->program_id,
                     'role_id' => $programDirectorRole->id, 'has_access_to_all_courses_in_faculty' => true])->get();
                 $programCourseIds = $program->courses()->get()->pluck('course_id')->toArray();
-                $roleAssignmentHelper = new RoleAssignmentHelpers();
                 foreach ($programDirectorsWithAllCourseAccessInFaculty as $programDirectorWithAllCourseAccessInFaculty){
                     if($program->campus != $oldProgramCampus || $program->faculty != $oldProgramFaculty) {
                     CourseUserRole::where(['role_id' => $programDirectorRole->id,
@@ -248,7 +247,7 @@ class ProgramController extends Controller
                         'program_id' => $program->program_id])->whereNotIn('course_id', $programCourseIds)->delete();
                         $programDirectorUser = User::where('id', $programDirectorWithAllCourseAccessInFaculty->user_id)->first();
                         // Assign program directors with full faculty course access, access to courses in newly assigned faculty
-                        $roleAssignmentHelper->assignOwnershipOfAllCoursesInFaculty($programDirectorUser,
+                        $this->roleAssignmentHelper->assignOwnershipOfAllCoursesInFaculty($programDirectorUser,
                             $program->campus, $program->faculty, $programDirectorRole, $program, null);
                     }
                 }
@@ -2951,8 +2950,7 @@ class ProgramController extends Controller
 
         $user = User::find(Auth::id());
 
-        $roleAssignmentHelper = new RoleAssignmentHelpers();
-        $errorMessages = $roleAssignmentHelper->addAllAdminsToEntity($program);
+        $errorMessages = $this->roleAssignmentHelper->addAllAdminsToEntity($program);
         $this->addAllDepartmentHeadsToProgram($program);
 
         $user = User::find(Auth::id());

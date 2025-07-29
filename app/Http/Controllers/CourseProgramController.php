@@ -21,6 +21,12 @@ class CourseProgramController extends Controller
 {
     //
 
+    private $roleAssignmentHelper;
+    public function __construct()
+    {
+        $this->roleAssignmentHelper = new RoleAssignmentHelpers();
+    }
+
     /**
      * Add courses to a program
      */
@@ -91,11 +97,10 @@ class CourseProgramController extends Controller
         $programDirectors = $program->directors()->get();
         $coursesInProgram = $program->courses()->get();
         $programDirectorRole = Role::where('role', 'program director')->first();
-        $roleAssignmentHelper = new RoleAssignmentHelpers();
 
         foreach($programDirectors as $director){
             foreach($coursesInProgram as $course){
-                $roleAssignmentHelper->addElevatedRoleUserToCourse($director, $programDirectorRole, $course,
+                $this->roleAssignmentHelper->addElevatedRoleUserToCourse($director, $programDirectorRole, $course,
                     $program->program_id, null);
             }
         }
@@ -106,8 +111,7 @@ class CourseProgramController extends Controller
      */
     private function addDepartmentHeadsToProgramCourses($program){
         $errorMessages = Collection::make();
-        $roleAssignmentHelper = new RoleAssignmentHelpers();
-        $department = $roleAssignmentHelper->getDepartmentFromEntity($program);
+        $department = $this->roleAssignmentHelper->getDepartmentFromEntity($program);
         if($department){
             $departmentHeadRole = Role::where('role', 'department head')->first();
             $departmentHeads = $department->heads()->get();
@@ -115,7 +119,7 @@ class CourseProgramController extends Controller
 
             foreach ($departmentHeads as $departmentHead) {
                 foreach($coursesInProgram as $course){
-                    $errorMessage = $roleAssignmentHelper->addElevatedRoleUserToCourse($departmentHead, $departmentHeadRole,
+                    $errorMessage = $this->roleAssignmentHelper->addElevatedRoleUserToCourse($departmentHead, $departmentHeadRole,
                         $course, $program->program_id, $department->department_id);
                     if ($errorMessage) {
                         $errorMessages->add($errorMessage);

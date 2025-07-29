@@ -24,9 +24,12 @@ use Illuminate\Database\Eloquent\Collection;
 
 class AdminAssignRoleController extends Controller{
 
+    private $roleAssignmentHelper;
+
     public function __construct()
     {
         $this->middleware(['auth', 'verified']);
+        $this->roleAssignmentHelper = new RoleAssignmentHelpers();
     }
 
 
@@ -116,8 +119,7 @@ class AdminAssignRoleController extends Controller{
                 }
                 if($request->input('accessToAllCoursesInFaculty') == "1"){
                     $department->heads()->updateExistingPivot($user->id, ['has_access_to_all_courses_in_faculty' => true]);
-                    $roleAssignmentHelpers = new RoleAssignmentHelpers();
-                    $errors = $roleAssignmentHelpers->assignOwnershipOfAllCoursesInFaculty($user, $department->faculty->campus->campus,
+                    $errors = $this->roleAssignmentHelper->assignOwnershipOfAllCoursesInFaculty($user, $department->faculty->campus->campus,
                         $department->faculty->faculty, $role, null, $department);
                     if($errors->count() > 0){
                         $warningMessage->add('User could not be assigned to all courses in faculty');
@@ -157,8 +159,7 @@ class AdminAssignRoleController extends Controller{
                     $warningMessage->add('Program Director role assigned to user. User could not be assigned to all courses in the program.');
                 }
                 if($request->input('accessToAllCoursesInFaculty') == "1"){
-                    $roleAssignmentHelpers = new RoleAssignmentHelpers();
-                    $errors = $roleAssignmentHelpers->assignOwnershipOfAllCoursesInFaculty($user, $program->campus,
+                    $errors = $this->roleAssignmentHelper->assignOwnershipOfAllCoursesInFaculty($user, $program->campus,
                         $program->faculty, $role, $program, null);
                     if($errors->count() > 0){
                         $warningMessage->add('User could not be assigned to all courses in faculty');
@@ -221,14 +222,13 @@ class AdminAssignRoleController extends Controller{
             'department' => $department->department])->get();
 
         $departmentHeadRole = Role::where('role', 'department head')->first();
-        $roleAssignmentHelpers = new RoleAssignmentHelpers();
 
         foreach($programsInDepartment as $program){
-            $errorMessage = $roleAssignmentHelpers->addElevatedRoleUserToProgram($user, $departmentHeadRole, $program, $department->department_id, false);
+            $errorMessage = $this->roleAssignmentHelper->addElevatedRoleUserToProgram($user, $departmentHeadRole, $program, $department->department_id, false);
             if($errorMessage == null){
                 $coursesInProgram = $program->courses()->get();
                 foreach($coursesInProgram as $course){
-                    $error = $roleAssignmentHelpers->addElevatedRoleUserToCourse($user, $departmentHeadRole, $course, $program->program_id, $department->department_id);
+                    $error = $this->roleAssignmentHelper->addElevatedRoleUserToCourse($user, $departmentHeadRole, $course, $program->program_id, $department->department_id);
                     if($error != null){
                         $errorMessages->add($error);
                     }
@@ -253,10 +253,9 @@ class AdminAssignRoleController extends Controller{
         $programDirectorRole = Role::where('role', 'program director')->first();
 
         $errorMessages = Collection::make();
-        $roleAssignmentHelpers = new RoleAssignmentHelpers();
 
         foreach($coursesInProgram as $course){
-            $errorMessage = $roleAssignmentHelpers->addElevatedRoleUserToCourse($user, $programDirectorRole, $course, $program->program_id, null);
+            $errorMessage = $this->roleAssignmentHelper->addElevatedRoleUserToCourse($user, $programDirectorRole, $course, $program->program_id, null);
             if($errorMessage != null){
                 $errorMessages->add($errorMessage);
             }
@@ -272,9 +271,8 @@ class AdminAssignRoleController extends Controller{
         $errorMessages = Collection::make();
         $coursesInDepartement = Course::where('campus', $campusName)->where('faculty', $facultyName)
             ->where('department', $department->department)->get();
-        $roleAssignmentHelpers = new RoleAssignmentHelpers();
         foreach($coursesInDepartement as $course){
-            $errorMessage = $roleAssignmentHelpers->addElevatedRoleUserToCourse($user,$role, $course, null, $department->department_id);
+            $errorMessage = $this->roleAssignmentHelper->addElevatedRoleUserToCourse($user,$role, $course, null, $department->department_id);
             if($errorMessage != null){
                 $errorMessages->add($errorMessage);
             }
