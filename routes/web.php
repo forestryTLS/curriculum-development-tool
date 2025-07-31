@@ -267,9 +267,6 @@ Route::get('/construction', function () {
 Route::get('/email', [AdminEmailController::class, 'index'])->name('email');
 Route::post('/email', [AdminEmailController::class, 'send'])->name('email.send');
 
-// Admin Assign Role Page
-Route::get('/assignRole', [AdminAssignRoleController::class, 'index'])->name('assignRole');
-
 Auth::routes();
 
 // register backpack auth routes manually

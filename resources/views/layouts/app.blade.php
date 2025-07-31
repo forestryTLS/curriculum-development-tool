@@ -106,7 +106,7 @@
                                         @endcan
 
                                         @can('admin-privilege')
-                                            <a class="dropdown-item" href="{{ route('assignRole') }}">
+                                            <a class="dropdown-item" href="{{ route('admin.assignRole.index') }}">
                                                 Manage Roles
                                             </a>
                                         @endcan

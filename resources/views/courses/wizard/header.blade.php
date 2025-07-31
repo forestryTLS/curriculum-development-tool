@@ -110,7 +110,7 @@
                 <div class="row">
                     <div class="col">
                         <!-- Edit button -->
-                        <button type="button" class="btn btn-secondary btn-sm float-right" style="width:200px" data-toggle="modal" data-target="#editCourseModal{{$course->course_id}}">
+                        <button type="button" class="btn btn-secondary btn-sm float-right" style="width:200px" data-toggle="modal" data-target="#editCourseModal{{$course->course_id}}" onclick="fillInformation()">
                             Edit Course Information
                         </button>
                         <!-- Edit Course Modal -->
@@ -496,31 +496,13 @@
 
     function fillInformation() {
 
-        if (!(campuses.every(e => {
-            if (e.campus === course.campus) {
-                return false;
-            } else {
-                return true;
-            }
-        }))) {
+        if (campuses.find(e => e.campus === course.campus)) {
             // search for faculty
-            if (!(faculties.every(e => {
-                if (e.faculty === course.faculty) {
-                    return false;
-                } else {
-                    return true;
-                }
-            }))) {
+            if (faculties.find(e => e.faculty === course.faculty)) {
                 appendFaculties()
 
                 // search for faculty
-                if (!(departments.every(e => {
-                    if (e.department === course.department) {
-                        return false;
-                    } else {
-                        return true;
-                    }
-                }))) {
+                if (departments.find(e => e.department === course.department)) {
                     appendDepartments();
                 } else {
                     // other department selected
