@@ -240,15 +240,15 @@ class ProgramController extends Controller
                 $programDirectorsWithAllCourseAccessInFaculty = ProgramUserRole::where(['program_id' => $program->program_id,
                     'role_id' => $programDirectorRole->id, 'has_access_to_all_courses_in_faculty' => true])->get();
                 $programCourseIds = $program->courses()->get()->pluck('course_id')->toArray();
-                foreach ($programDirectorsWithAllCourseAccessInFaculty as $programDirectorWithAllCourseAccessInFaculty){
-                    if($program->campus != $oldProgramCampus || $program->faculty != $oldProgramFaculty) {
-                    CourseUserRole::where(['role_id' => $programDirectorRole->id,
-                        'user_id'=> $programDirectorWithAllCourseAccessInFaculty->user_id,
-                        'program_id' => $program->program_id])->whereNotIn('course_id', $programCourseIds)->delete();
-                        $programDirectorUser = User::where('id', $programDirectorWithAllCourseAccessInFaculty->user_id)->first();
-                        // Assign program directors with full faculty course access, access to courses in newly assigned faculty
-                        $this->roleAssignmentHelper->assignOwnershipOfAllCoursesInFaculty($programDirectorUser,
-                            $program->campus, $program->faculty, $programDirectorRole, $program, null);
+                if($program->campus != $oldProgramCampus || $program->faculty != $oldProgramFaculty) {
+                    foreach ($programDirectorsWithAllCourseAccessInFaculty as $programDirectorWithAllCourseAccessInFaculty){
+                        CourseUserRole::where(['role_id' => $programDirectorRole->id,
+                            'user_id'=> $programDirectorWithAllCourseAccessInFaculty->user_id,
+                            'program_id' => $program->program_id])->whereNotIn('course_id', $programCourseIds)->delete();
+                            $programDirectorUser = User::where('id', $programDirectorWithAllCourseAccessInFaculty->user_id)->first();
+                            // Assign program directors with full faculty course access, access to courses in newly assigned faculty
+                            $this->roleAssignmentHelper->assignOwnershipOfAllCoursesInFaculty($programDirectorUser,
+                                $program->campus, $program->faculty, $programDirectorRole, $program, null);
                     }
                 }
             }

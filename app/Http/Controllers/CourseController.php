@@ -327,6 +327,7 @@ class CourseController extends Controller
         $errorMessages = Collection::make();
         $faculty = Faculty::where('faculty_id', $facultyId)->first();
         if(!$faculty){
+            $errorMessages->add("Course Faculty doesn't exist");
             return $errorMessages;
         }
         $programs = Program::where(['campus' => $faculty->campus->campus,

@@ -1808,10 +1808,15 @@
             $(departmentFeildId).empty();
             // populate drop down
             $(departmentFeildId).append($('<option disabled selected hidden>Open list of departments</option>'));
-            var filteredDepartments = departments.filter(item => {
-                return item.faculty_id === facultyId;
+            departments.forEach(department => {
+                if (department.faculty_id === facultyId){
+                    $(departmentFeildId).append($('<option />').val(department.department).text(department.department));
+                }
             });
-            filteredDepartments.forEach(department => $(departmentFeildId).append($('<option />').val(department.department).text(department.department)));
+            // var filteredDepartments = departments.filter(item => {
+            //     return item.faculty_id === facultyId;
+            // });
+            // filteredDepartments.forEach(department => $(departmentFeildId).append($('<option />').val(department.department).text(department.department)));
 
 
             $(departmentFeildId).append($('<option />').val('Other').text('Other'));
