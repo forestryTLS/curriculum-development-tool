@@ -61,7 +61,7 @@ $coursePermission = $user->allCourses()->where('course_id', $course->course_id)-
                     </div>
                 </div>
 
-                @if ($course->collaborators()->count() < 1)
+                @if ($course->users->count() < 1)
                     <div class="alert alert-warning wizard">
                         <i class="bi bi-exclamation-circle-fill"></i>You have not added any collaborators to this course
                         yet.
@@ -77,17 +77,7 @@ $coursePermission = $user->allCourses()->where('course_id', $course->course_id)-
                         </thead>
 
                         <tbody>
-                        @foreach($course->collaborators() as $courseCollaborator)
-                            @php
-                                $pivot = $courseCollaborator->pivot;
-                                $elevatedRoleIds = Role::whereIn('role', ['administrator', 'program director', 'department head'])
-                                                    ->pluck('id')->toArray();
-                                $effectivePermission = 0;
-
-                                if (isset($pivot->role_id) && in_array($pivot->role_id, $elevatedRoleIds)) {
-                                    $effectivePermission = 1;
-                                }
-                            @endphp
+                        @foreach($course->users as $courseCollaborator)
                             <tr>
                                 <td class="align-middle">
                                     <b>{{$courseCollaborator->name}} @if ($courseCollaborator->email == $user->email)
@@ -99,12 +89,6 @@ $coursePermission = $user->allCourses()->where('course_id', $course->course_id)-
                                     <td class="text-center">
                                         <input form="saveCourseCollabChanges{{$course->course_id}}"
                                                class="form-control fw-bold" type="text" readonly value="Owner">
-                                    </td>
-                                    <td colspan="2"></td>
-                                @elseif($effectivePermission == 1)
-                                    <td class="text-center">
-                                        <input form="saveCourseCollabChanges{{$course->course_id}}"
-                                               class="form-control fw-bold" type="text" readonly value="{{ucwords(Role::where('id', $pivot->role_id)->first()->role)}}">
                                     </td>
                                     <td colspan="2"></td>
                                 @else
@@ -192,7 +176,7 @@ $coursePermission = $user->allCourses()->where('course_id', $course->course_id)-
                                             </div>
                                         </div>
                                     @else
-                                        @if ($coursePermission->pivot->permission == 1 or $user->effectivePermissionForCourse($coursePermission->course_id) == 1)
+                                        @if ($coursePermission->pivot->permission == 1)
                                             <td class="text-center align-middle">
                                                 <button type="input" class="btn btn-danger btn"
                                                         onclick="deleteCourseCollab(this)">Remove

@@ -96,14 +96,14 @@ class HomeController extends Controller
         // returns a collection of programs associated with users (Collaborators Icon)
         $programUsers = [];
         foreach ($myPrograms as $program) {
-            $programsUsers = $program->collaborators();
+            $programsUsers = $program->users()->get();
             $programUsers[$program->program_id] = $programsUsers;
         }
         // returns a collection of courses associated with users
         $courseUsers = [];
         foreach ($myCourses as $course) {
-            #$coursesUsers = $course->users()->get();
-            $coursesUsers = $course->collaborators();
+            $coursesUsers = $course->users()->get();
+            #$coursesUsers = $course->collaborators();
             $courseUsers[$course->course_id] = $coursesUsers;
         }
         // get the associated users for every one of this users syllabi

@@ -86,6 +86,14 @@ class CourseTest extends TestCase
             'course_title' => 'Intro to Unit Testing - Copy',
         ]);
 
+        $course = Course::where('course_title', 'Intro to Unit Testing - Copy')->orderBy('course_id', 'DESC')->first();
+
+        $this->assertDatabaseHas('course_users', [
+            'course_id' => $course->course_id,
+            'user_id' => $user->id,
+            'permission' => 1
+        ]);
+
     }
 
     public function test_create_clo(): void

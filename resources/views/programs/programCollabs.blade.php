@@ -60,7 +60,7 @@ $programPermission = $user->allPrograms()->where('program_id', $program->program
                     </div>
                 </div>
 
-                @if ($program->collaborators()->count() < 1)
+                @if ($program->users->count() < 1)
                     <div class="alert alert-warning wizard">
                         <i class="bi bi-exclamation-circle-fill"></i>You have not added any collaborators to this
                         program yet.
@@ -76,17 +76,7 @@ $programPermission = $user->allPrograms()->where('program_id', $program->program
                         </thead>
 
                         <tbody>
-                        @foreach($program->collaborators() as $programCollaborator)
-                            @php
-                                $pivot = $programCollaborator->pivot;
-                                $elevatedRoleIds = Role::whereIn('role', ['administrator', 'program director', 'department head'])
-                                                    ->pluck('id')->toArray();
-                                $effectivePermission = 0;
-
-                                if (isset($pivot->role_id) && in_array($pivot->role_id, $elevatedRoleIds)) {
-                                    $effectivePermission = 1;
-                                }
-                            @endphp
+                        @foreach($program->users as $programCollaborator)
                             <tr>
                                 <td class="align-middle">
                                     <b>{{$programCollaborator->name}} @if ($programCollaborator->email == $user->email)
@@ -98,12 +88,6 @@ $programPermission = $user->allPrograms()->where('program_id', $program->program
                                     <td class="text-center align-middle">
                                         <input form="saveProgramCollabChanges{{$program->program_id}}"
                                                class="form-control fw-bold" type="text" readonly value="Owner">
-                                    </td>
-                                    <td colspan="2"></td>
-                                @elseif($effectivePermission == 1)
-                                    <td class="text-center">
-                                        <input form="saveCourseCollabChanges{{$program->program_id}}"
-                                               class="form-control fw-bold" type="text" readonly value="{{ucwords(Role::where('id', $pivot->role_id)->first()->role)}}">
                                     </td>
                                     <td colspan="2"></td>
                                 @else
