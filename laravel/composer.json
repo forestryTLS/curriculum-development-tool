@@ -71,6 +71,11 @@
         ],
         "post-update-cmd": [
             "@php artisan vendor:publish --tag=laravel-assets --ansi --force"
+        ],
+        "test": [
+            "php -r \"if(!file_exists('.env.testing')) throw new Exception('No .env.testing file found. Cannot run tests.');\"",
+            "php artisan migrate:fresh --seed --env=testing",
+            "php artisan test"
         ]
     }
 }
