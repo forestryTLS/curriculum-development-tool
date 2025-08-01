@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AboutController;
 use App\Http\Controllers\AdminEmailController;
+use App\Http\Controllers\AdminAssignRoleController;
 use App\Http\Controllers\AssessmentMethodController;
 use App\Http\Controllers\CourseController;
 use App\Http\Controllers\CourseProgramController;
@@ -31,6 +32,8 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\URL;
+use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Auth\AccountInformationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -62,6 +65,26 @@ Route::get('/about', [AboutController::class, 'index'])->name('about');
 
 Route::get('/faq', [FAQController::class, 'index'])->name('FAQ');
 Route::get('/terms', [TermsController::class, 'index'])->name('terms');
+
+
+Route::prefix('admin')->name('admin.')->group(function () {
+    Route::get('/assignRole', [AdminAssignRoleController::class, 'index'])->name('assignRole.index');
+    Route::post('/assignRole/assignNewRole', [AdminAssignRoleController::class, 'store'])->name('assignRole');
+    Route::get('/assignRole/getUser', [AdminAssignRoleController::class, 'getUserRoles'])->name('getUserRoles');
+    Route::delete("/assignRole/admin/{user}/{role}/deleteRole", [AdminAssignRoleController::class, 'deleteAdminRole'])->name('assignRole.deleteAdminRole');
+    Route::delete("/assignRole/department/{user}/{role}/{department}/deleteRole", [AdminAssignRoleController::class, 'deleteDepartmentHeadRole'])
+        ->name('assignRole.deleteDepartmentHeadRole');
+    Route::delete("/assignRole/department/{user}/{role}/deleteRole", [AdminAssignRoleController::class, 'deleteDepartmentHeadRole'])
+        ->name('assignRole.deleteDepartmentHeadRoleUnassignedDepartment');
+    Route::delete("/assignRole/program/{user}/{role}/{program}/deleteRole", [AdminAssignRoleController::class, 'deleteProgramDirectorRole'])
+        ->name('assignRole.deleteProgramDirectorRole');
+    Route::delete("/assignRole/program/{user}/{role}/deleteRole", [AdminAssignRoleController::class, 'deleteProgramDirectorRole'])
+        ->name('assignRole.deleteProgramDirectorRoleUnassignedProgram');
+
+
+
+});
+
 
 // route to view a syllabus
 Route::get('/syllabusGenerator/{syllabusId?}', [SyllabusController::class, 'index'])->name('syllabus');
@@ -117,7 +140,7 @@ Route::post('/courses/{course}/loReorder', [CourseController::class, 'loReorder'
 Route::post('/courses/{course}/tlaReorder', [CourseController::class, 'tlaReorder'])->name('courses.tlaReorder');
 Route::get('/courses/{course}/pdf', [CourseController::class, 'pdf'])->name('courses.pdf');
 
-// Route for spreadsheet download in course 
+// Route for spreadsheet download in course
 Route::get('/courses/{course}/dataSpreadsheet', [CourseController::class, 'dataSpreadsheet'])->name('courses.dataSpreadsheet');
 
 Route::delete('/courses/{course}/pdf', [CourseController::class, 'deletePDF'])->name('courses.delete.pdf');
@@ -249,16 +272,16 @@ Auth::routes();
 // register backpack auth routes manually
 Route::middleware('web')->prefix(config('backpack.base.route_prefix'))->group(function () {
     Route::auth();
-    Route::get('logout', [Auth\LoginController::class, 'logout']);
+    Route::get('logout', [LoginController::class, 'logout']);
 });
 
 // account information page and update method
 // *** Routes not working local, but work on testing/staging.. ***
-// Route::get('/accountInformation',[AccountInformationController::class, 'index'])->name('accountInformation');
-// Route::post('/accountInformation-update',[AccountInformationController::class, 'update'])->name('accountInformation.update');
-// *** These Routes work locally but not on staging ***
-Route::get('/accountInformation', [Auth\AccountInformationController::class, 'index'])->name('accountInformation');
-Route::post('/accountInformation-update', [Auth\AccountInformationController::class, 'update'])->name('accountInformation.update');
+Route::get('/accountInformation',[AccountInformationController::class, 'index'])->name('accountInformation');
+Route::post('/accountInformation-update',[AccountInformationController::class, 'update'])->name('accountInformation.update');
+// // *** These Routes work locally but not on staging ***
+// Route::get('/accountInformation', [Auth\AccountInformationController::class, 'index'])->name('accountInformation');
+// Route::post('/accountInformation-update', [Auth\AccountInformationController::class, 'update'])->name('accountInformation.update');
 
 Route::get('/clear-cache', function () {
     $exitCode = Artisan::call('config:cache');

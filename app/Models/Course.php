@@ -25,6 +25,19 @@ class Course extends Model
         return $this->belongsToMany(User::class, 'course_users', 'course_id', 'user_id')->withPivot('permission');
     }
 
+    public function usersWithElevatedRoles()
+    {
+        return $this->belongsToMany(User::class, 'course_user_role', 'course_id', 'user_id')->withPivot('role_id', 'program_id', 'department_id');
+    }
+
+    public function collaborators()
+    {
+        return $this->users
+            ->merge($this->usersWithElevatedRoles)
+            ->unique('id')
+            ->values();
+    }
+
     public function owners()
     {
         return $this->belongsToMany(User::class, 'course_users', 'course_id', 'user_id')->wherePivot('permission', 1);

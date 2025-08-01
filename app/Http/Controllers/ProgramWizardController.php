@@ -222,7 +222,9 @@ class ProgramWizardController extends Controller
         });
 
         // get all courses that belong to this user that don't yet belong to this program
-        $userCoursesNotInProgram = $user->courses()->whereNotIn('courses.course_id', $programCourseIds)->orderBy('course_code', 'asc')->orderBy('course_num', 'asc')->get();
+        $userCoursesNotInProgram = $user->allCourses()->filter(function ($item) use($programCourseIds){
+            return !in_array($item->course_id, $programCourseIds->all());
+        })->sortBy('course_code')->sortBy('course_num');
 
         $programCoursesUsers = [];
         foreach ($programCourses as $programCourse) {
@@ -1951,11 +1953,11 @@ class ProgramWizardController extends Controller
 
         if (count($programCourses) < 1) {
             $output .= '<div class="alert alert-warning wizard">
-                            <i class="bi bi-exclamation-circle-fill pr-2 fs-5"></i>There are no courses set for this program yet.                   
+                            <i class="bi bi-exclamation-circle-fill pr-2 fs-5"></i>There are no courses set for this program yet.
                         </div>';
         } elseif ($ploCount < 1) {
             $output .= '<div class="alert alert-warning wizard">
-                            <i class="bi bi-exclamation-circle-fill pr-2 fs-5"></i>There are no program learning outcomes for this program.                   
+                            <i class="bi bi-exclamation-circle-fill pr-2 fs-5"></i>There are no program learning outcomes for this program.
                         </div>';
         } else {
             $output .= '<table class="freq-table table table-bordered table-sm">

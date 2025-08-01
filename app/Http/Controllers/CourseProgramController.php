@@ -2,10 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Helpers\RoleAssignmentHelpers;
+use App\Models\Campus;
 use App\Models\Course;
 use App\Models\CourseProgram;
+use App\Models\CourseUser;
+use App\Models\Department;
+use App\Models\Faculty;
 use App\Models\Program;
+use App\Models\Role;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -13,6 +20,12 @@ use Illuminate\Support\Facades\Auth;
 class CourseProgramController extends Controller
 {
     //
+
+    private $roleAssignmentHelper;
+    public function __construct()
+    {
+        $this->roleAssignmentHelper = new RoleAssignmentHelpers();
+    }
 
     /**
      * Add courses to a program
@@ -64,6 +77,8 @@ class CourseProgramController extends Controller
             $user = User::find(Auth::id());
             $program->last_modified_user = $user->name;
             $program->save();
+            $this->addDirectorsToProgramCourses($program);
+            $this->addDepartmentHeadsToProgramCourses($program);
 
             $request->session()->flash('success', 'Successfully added '.strval(count($courseIds)).' course(s) to this program.');
         } else {
@@ -72,6 +87,48 @@ class CourseProgramController extends Controller
 
         return redirect()->route('programWizard.step3', $request->input('program_id'));
     }
+
+    /**
+     * Helper function to add all program directors to the courses of the program.
+     */
+
+    private function addDirectorsToProgramCourses($program)
+    {
+        $programDirectors = $program->directors()->get();
+        $coursesInProgram = $program->courses()->get();
+        $programDirectorRole = Role::where('role', 'program director')->first();
+
+        foreach($programDirectors as $director){
+            foreach($coursesInProgram as $course){
+                $this->roleAssignmentHelper->addElevatedRoleUserToCourse($director, $programDirectorRole, $course,
+                    $program->program_id, null);
+            }
+        }
+    }
+
+    /**
+     * Helper function to add all department heads to the courses of the program.
+     */
+    private function addDepartmentHeadsToProgramCourses($program){
+        $errorMessages = Collection::make();
+        $department = $this->roleAssignmentHelper->getDepartmentFromEntity($program);
+        if($department){
+            $departmentHeadRole = Role::where('role', 'department head')->first();
+            $departmentHeads = $department->heads()->get();
+            $coursesInProgram = $program->courses()->get();
+
+            foreach ($departmentHeads as $departmentHead) {
+                foreach($coursesInProgram as $course){
+                    $errorMessage = $this->roleAssignmentHelper->addElevatedRoleUserToCourse($departmentHead, $departmentHeadRole,
+                        $course, $program->program_id, $department->department_id);
+                    if ($errorMessage) {
+                        $errorMessages->add($errorMessage);
+                    }
+                }
+            }
+        }
+    }
+
 
     public function editCourseRequired(Request $request): RedirectResponse
     {
@@ -97,6 +154,10 @@ class CourseProgramController extends Controller
             $user = User::find(Auth::id());
             $program->last_modified_user = $user->name;
             $program->save();
+
+            $this->addDirectorsToProgramCourses($program);
+            $this->addDepartmentHeadsToProgramCourses($program);
+
 
             $request->session()->flash('success', 'Successfully updated: '.strval($course->course_title));
         } else {

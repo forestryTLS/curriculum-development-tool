@@ -40,7 +40,7 @@
                                                 @enderror
                                             </div>
                                         </div>
-                                        
+
                                     </div>
 
                                     <div class="modal-footer">
@@ -54,7 +54,7 @@
                 </div>
             </div>
         @endif
-        @if (!$isEditor && !$isViewer) 
+        @if (!$isEditor && !$isViewer)
             <div class="row">
                 <div class="col">
                         <!-- Edit button -->
@@ -71,7 +71,7 @@
                                                 <span aria-hidden="true">&times;</span>
                                             </button>
                                         </div>
-                                        
+
                                         <form method="POST" action="{{route('programs.update', $program->program_id)}}">
                                             @csrf
                                             {{method_field('POST')}}
@@ -95,7 +95,7 @@
 
                                                     <div class="col-md-8">
                                                         <select id='campus' class="custom-select" name="campus">
-                                                            
+
                                                         </select>
                                                         <input id='campus-text' class="form-control" name="campus" type="text" placeholder="(Optional) Enter the Campus" disabled hidden></input>
                                                         @error('faculty')
@@ -146,7 +146,7 @@
                                                     <div class="col-md-8">
                                                         <div class="form-check ">
                                                             <label class="form-check-label">
-                                                            @if ($program->level == "Undergraduate" || $program->level == "Bachelors") 
+                                                            @if ($program->level == "Undergraduate" || $program->level == "Bachelors")
                                                             <input type="radio" class="form-check-input" name="level" value="Bachelors" checked>
                                                                 Bachelors
                                                             @else
@@ -157,7 +157,7 @@
                                                         </div>
                                                         <div class="form-check">
                                                             <label class="form-check-label">
-                                                            @if ($program->level == "Masters") 
+                                                            @if ($program->level == "Masters")
                                                                 <input type="radio" class="form-check-input" name="level" value="Masters" checked>
                                                                 Masters
                                                             @else
@@ -179,7 +179,7 @@
                                                         </div>
                                                         <div class="form-check">
                                                             <label class="form-check-label">
-                                                                @if ($program->level == "Other") 
+                                                                @if ($program->level == "Other")
                                                                     <input type="radio" class="form-check-input" name="level" value="Other" checked>
                                                                     Other
                                                                 @else
@@ -210,7 +210,7 @@
                     <div class="col">
                         <!-- Assign Collaborator button  -->
                         <button type="button" class="btn btn-outline-primary btn-sm float-right" style="width:200px" data-bs-toggle="modal" data-bs-target="#addProgramCollaboratorsModal{{$program->program_id}}">Add Collaborators</button>
-                        <!-- Program Collaborators Modal -->  
+                        <!-- Program Collaborators Modal -->
                         @include('programs.programCollabs')
                     </div>
                 </div>
@@ -248,7 +248,7 @@
         </div>
 
     </div>
-    @if (! $isViewer) 
+    @if (! $isViewer)
     <!-- progress bar -->
     <div class="mt-5">
         <table class="table table-borderless text-center table-sm" style="table-layout: fixed; width: 100%">
@@ -334,31 +334,12 @@
 
     function fillInformation() {
 
-        if (!(campuses.every(e => {
-            if (e.campus === program.campus) {
-                return false;
-            } else {
-                return true;
-            }
-        }))) {
+        if (campuses.find(e => e.campus === program.campus)) {
             // search for faculty
-            if (!(faculties.every(e => {
-                if (e.faculty === program.faculty) {
-                    return false;
-                } else {
-                    return true;
-                }
-            }))) {
+            if (faculties.find(e => e.faculty === program.faculty)) {
                 appendFaculties()
-
                 // search for faculty
-                if (!(departments.every(e => {
-                    if (e.department === program.department) {
-                        return false;
-                    } else {
-                        return true;
-                    }
-                }))) {
+                if (departments.find(e => e.department === program.department)) {
                     appendDepartments();
                 } else {
                     // other department selected
@@ -405,7 +386,7 @@
         if ($('#campus').find(':selected').text() == 'Vancouver') {
             // Hide text / show select
             campusDefaultOption();
-            
+
             //Displays Vancouver Faculties
             // delete drop down items
             $('#faculty').empty();
@@ -482,7 +463,7 @@
 
         });
 
-        $('#department').change( function() { 
+        $('#department').change( function() {
             if ($('#department').find(':selected').val() !== 'Other') {
                 departmentDefaultOption();
             } else {
@@ -566,9 +547,9 @@
             var currentLength = event.target.value.length;
             var whiteSpace = event.target.value.split(/\n/).length;
             if((currentLength+(whiteSpace))>MAX_LENGTH)
-            { 
+            {
                 //Goes to MAX_LENGTH-(whiteSpace)+1 because it starts at 1
-                event.target.value = event.target.value.substr(0,MAX_LENGTH-(whiteSpace)+1);	        
+                event.target.value = event.target.value.substr(0,MAX_LENGTH-(whiteSpace)+1);
             }
         }
     });

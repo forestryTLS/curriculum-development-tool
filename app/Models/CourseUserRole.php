@@ -5,17 +5,15 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class ProgramUser extends Model
+class CourseUserRole extends Model
 {
     use HasFactory;
 
-    protected $table = 'program_users';
+    protected $table = 'course_user_role';
 
     protected $primary = 'id';
 
-    protected $guarded = ['permission', 'role_id'];
-
-    protected $fillable = ['user_id', 'program_id'];
+    protected $fillable = ['user_id', 'course_id', 'role_id', 'program_id', 'department_id'];
 
     public $incrementing = false;
 }

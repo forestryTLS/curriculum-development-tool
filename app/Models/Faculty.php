@@ -26,4 +26,9 @@ class Faculty extends Model
     {
         return $this->hasMany(Department::class, 'department_id', 'department_id');
     }
+
+    public function courseCodes()
+    {
+        return $this->hasMany(FacultyCourseCodes::class, 'faculty_id', 'faculty_id');
+    }
 }
