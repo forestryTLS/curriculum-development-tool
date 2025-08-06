@@ -331,7 +331,7 @@
                     @include('layouts.guide')
 
                         <div style="float:right;">
-                            <button style="border: none; background: none; outline: none;" data-toggle="modal" data-target="#createCourseModal">
+                            <button style="border: none; background: none; outline: none;" data-toggle="modal" data-target="#methodToCreateNewCourse">
                                 <i class="bi bi-plus-circle text-white"></i>
                             </button>
                         </div>
@@ -1426,6 +1426,57 @@
 </div>
 <!-- End Create Program Modal -->
 
+<!-- Choose Method to Create Course Modal -->
+<div class="modal fade" id="methodToCreateNewCourse" tabindex="-1" role="dialog" aria-labelledby="chooseMethodToCreateCourseLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Create New Course(s)</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body d-flex flex-column align-items-center">
+                <button id="openUploadCourseSyllabiFile" type="button" class="btn btn-primary mb-2 w-75 rounded-pill" data-toggle="modal" data-target="#uploadCourseSyllabi" data-dismiss="modal">Automatically Create with Course Syllabi</button>
+                <button type="button" class="btn btn-outline-primary w-75 rounded-pill" data-toggle="modal" data-target="#createCourseModal" data-dismiss="modal">Create Manually</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- End Choose Method to Create Course Modal -->
+
+<!-- Upload course Syllabi Modal -->
+<div class="modal fade" id="uploadCourseSyllabi" tabindex="-1" role="dialog" aria-labelledby="uploadCourseSyllabiLabel">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Upload Course(s) Syllabi</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="uploadCourseSyllabiForm" method="POST" action="{{route('courses.storeFromSyllabi') }}" enctype="multipart/form-data">
+                @csrf
+                <div class="modal-body">
+                    <div class="input-group">
+                        <input type="hidden" class="form-check-input" name="user_id" value={{Auth::id()}}>
+                        <input type="file" id="inputCourseSyllabiFiles" name="uploadedSyllabi[]" class="form-control"
+                               aria-label="Upload" required multiple accept=".pdf, .docx">
+                    </div>
+                    <ul id="uploadedCourseSyllabiList"></ul>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary col-2 btn-sm" data-dismiss="modal">Close</button>
+                    <button id="uploadSyllabiForCourseCreation" type="submit" class="btn btn-primary col-2 btn-sm" disabled>Upload</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<!-- End Upload course Syllabi Modal -->
+
+
+
 <!-- Create Course Modal -->
 <div class="modal fade" id="createCourseModal" tabindex="-1" role="dialog" aria-labelledby="createCourseModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg" role="document">
@@ -1738,6 +1789,27 @@
         $('#department-course').change( function() {
             departmentChangeOperations('#department-course', '#department-text-course');
         });
+
+        $('#inputCourseSyllabiFiles').change(function() {
+            const filesToBeUploaded = $(this)[0].files;
+            const $listOfSelectedFiles = $("#uploadedCourseSyllabiList");
+            $listOfSelectedFiles.empty();
+
+            if (filesToBeUploaded.length === 0) return;
+
+            $('#uploadSyllabiForCourseCreation').prop('disabled', false);
+
+            for (let i = 0; i < filesToBeUploaded.length; i++) {
+                const uploadedFile = filesToBeUploaded[i];
+                const fileName = uploadedFile.name;
+                const listItem = `
+                        <li class="d-flex justify-content-between">
+                          ${fileName}
+                        </li>`;
+                $listOfSelectedFiles.append(listItem);
+            }
+        });
+
     });
 
     function campusChangeOperations(campusFeildId, campusTextId, facultyFeildId, facultyTextId, departmentFeildId, departmentTextId) {

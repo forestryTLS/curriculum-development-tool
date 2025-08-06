@@ -388,6 +388,16 @@
                     </div>
                 </div>
 
+                @if($course->syllabusFile)
+                    <div class="row my-2">
+                        <div class="col">
+                            <a href="{{ route('courses.getSyllabiLink', $course->course_id) }}" target="_blank">
+                                <button type="button" style="width:200px" class="btn btn-primary btn-sm float-right"
+                                >View Syllabus File</button>
+                            </a>
+                        </div>
+                    </div>
+                @endif
             </div>
         @endif
 

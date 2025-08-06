@@ -9,12 +9,14 @@ use App\Mail\NotifyNewUserAndInstructorMail;
 use App\Models\AssessmentMethod;
 use App\Models\Campus;
 use App\Models\Course;
+use App\Models\CourseSyllabiFile;
 use App\Models\CourseUserRole;
 use App\Models\Department;
 use App\Models\Faculty;
 use App\Models\FacultyCourseCodes;
 use App\Models\ProgramUserRole;
 use App\Models\Role;
+use Illuminate\Support\Facades\App;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Color;
 use PhpOffice\PhpSpreadsheet\Style\Conditional;
@@ -582,6 +584,13 @@ class CourseController extends Controller
         $currentUserPermission = $currentUser->effectivePermissionForCourse($course->course_id);
         // if the current user own the course, then try to delete it
         if ($currentUserPermission == 1) {
+            if(CourseSyllabiFile::where('course_id', $course->course_id)->exists()){
+                $courseFile = CourseSyllabiFile::where('course_id', $course->course_id)->first();
+                if (Storage::exists($courseFile->file_path)) {
+                    Storage::delete($courseFile->file_path);
+                    $courseFile->delete();
+                }
+            }
             if ($course->delete()) {
                 $request->session()->flash('success', 'Course has been deleted');
             } else {
@@ -1999,6 +2008,92 @@ private function makeOutcomeMapSheetData(Spreadsheet $spreadsheet, int $courseId
         return $exception;
     }
 }
+
+    public function storeCourseWithSyllabi(Request $request)
+    {
+        $this->validate($request, [
+            'uploadedSyllabi' => 'required'
+        ]);
+
+        $errorMessages = Collection::make();
+
+        $files = $request->file('uploadedSyllabi');
+
+        if($request->hasFile('uploadedSyllabi'))
+        {
+            foreach($files as $file) {
+                if ($file->isValid()) {
+                    $path = $file->store('courseSyllabi');
+                    $courseFile = new CourseSyllabiFile();
+                    $courseFile->file_name = $file->getClientOriginalName();
+                    $courseFile->file_path = $path;
+                    $courseFile->save();
+
+                    // TO DO: CHANGE AFTER API CALL
+                    $course = new Course();
+                    $course->course_code = '123';
+                    $course->delivery_modality = 'O';
+                    $course->year = 2025;
+                    $course->semester = 'S1';
+                    $course->course_title = $file->getClientOriginalName();
+                    $course->assigned = 1;
+                    $course->type = 'unassigned';
+                    $course->save();
+
+                    $courseFile = CourseSyllabiFile::where(['file_name'=> $file->getClientOriginalName(),
+                        'file_path'=> $path])->first();
+                    $courseFile->course_id = $course->course_id;
+                    $courseFile->save();
+
+                    $user = User::find(Auth::id());
+                    $adminAddErrorMessages = $this->roleAssignmentHelper->addAllAdminsToEntity($course);
+
+                    //Add department heads and program directors of Faculty of Forestry owners of all courses in the faculty
+                    if(FacultyCourseCodes::where('course_code', $course->course_code)->exists()){
+
+                        $vancouverCampusId = Campus::where('campus', 'Vancouver')->first()->campus_id;
+                        $forestryFacultyId = Faculty::where(['campus_id' => $vancouverCampusId,
+                            'faculty' => 'Faculty of Forestry'])->first()->faculty_id;
+
+                        if (FacultyCourseCodes::where(['course_code' => $course->course_code,
+                            'faculty_id' => $forestryFacultyId])->exists()) {
+                            $this->addForestryDepartmentHeadsToCourse($course);
+                            $this->addForestryProgramDirectorsToCourse($course);
+                        }
+                    }
+
+                    $user = User::where('id', $request->input('user_id'))->first();
+                    $courseUser = new CourseUser;
+                    $courseUser->course_id = $course->course_id;
+                    $courseUser->user_id = $user->id;
+                    // assign the creator of the course the owner permission
+                    $courseUser->permission = 1;
+                    if ($courseUser->save()) {
+
+                    } else {
+                        $errorMessages->add('Error in creating course from ' . $file->getClientOriginalName());
+                    }
+                }else{
+                    $errorMessages->add($file->getClientOriginalName() . ' failed to upload.');
+                }
+            }
+        } else {
+            $errorMessages->add('No File was uploaded!');
+        }
+
+        return back()->with('errorMessages', $errorMessages);
+    }
+
+    public function getCourseSyllabiLink(Request $request, $course_id){
+        $courseFile = CourseSyllabiFile::where('course_id', $course_id)->first();
+        if($courseFile->file_path && App::environment(['local', 'testing'])){
+            $path = base_path() . '/storage/app/'.$courseFile->file_path;
+            return response()->file($path);
+        } else{
+            return url('/');
+        }
+
+    }
 
 
 }

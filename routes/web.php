@@ -127,6 +127,8 @@ Route::get('/programs/{program}/duplicate', [ProgramController::class, 'duplicat
 
 Route::resource('/courses', CourseController::class);
 Route::post('/courses', [CourseController::class, 'store'])->name('courses.store');
+Route::post('/courses/storeCourseFromSyllabi', [CourseController::class, 'storeCourseWithSyllabi'])->name('courses.storeFromSyllabi');
+Route::get('/courses/{course}/getSyllabiLink', [CourseController::class, 'getCourseSyllabiLink'])->name('courses.getSyllabiLink');
 
 Route::post('/courses/{course}/assign', [CourseUserController::class, 'store'])->name('courses.assign');
 Route::delete('/courses/{course}/unassign', [CourseUserController::class, 'destroy'])->name('courses.unassign');

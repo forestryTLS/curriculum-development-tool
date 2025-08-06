@@ -104,6 +104,11 @@ class Course extends Model
         return $this->belongsToMany(OptionalPriorities::class, 'course_optional_priorities', 'course_id', 'op_id');
     }
 
+    public function syllabusFile()
+    {
+        return $this->hasOne(CourseSyllabiFile::class, 'course_id', 'course_id');
+    }
+
     //these are for the tables of child records on the course crud controller
     public function getCLOtableAttribute()
     {
