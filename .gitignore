@@ -10,9 +10,9 @@ Homestead.json
 Homestead.yaml
 npm-debug.log
 yarn-error.log
-#laravel/database/seeders/UserSeeder.php
+laravel/database/seeders/UserSeeder.php
 /nbproject
-#laravel/resources/views/emails/
+laravel/resources/views/emails/
 laravel/public/*.xlsx
 laravel/storage/app/public
 laravel/storage/app/courseSyllabi
