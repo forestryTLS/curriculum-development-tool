@@ -1,14 +1,14 @@
 <p align="center">
     <a href="https://curriculum.ok.ubc.ca/" target="_blank">
-        <img src="public\img\UBC-logo-2018-crest-blue-rgb72-resized.png"> 
+        <img src="laravel\public\img\UBC-logo-2018-crest-blue-rgb72-resized.png"> 
         <strong style="color:#002145" ><h1  align="center">Curriculum MAP</h1></strong>
     </a>
 </p>
 
 
 <p align="center">
-    <a href="https://github.com/bohuie/curriculum/blob/master/LICENSE.md"><img src="public\img\readme\license-gpl-flatsvg.svg" alt="License"></a>
-    <a href="https://www.php.net/"><img src="public\img\readme\php-require.svg" alt="PHP Version Require"></a>
+    <a href="https://github.com/bohuie/curriculum/blob/master/LICENSE.md"><img src="laravel\public\img\readme\license-gpl-flatsvg.svg" alt="License"></a>
+    <a href="https://www.php.net/"><img src="laravel\public\img\readme\php-require.svg" alt="PHP Version Require"></a>
 </p>
 
 <em>This repository was created from the [Curriculum MAP](https://github.com/bohuie/curriculum/tree/master) repository, which is owned and maintained by UBC Okanagan.</em>
