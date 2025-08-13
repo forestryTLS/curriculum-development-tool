@@ -16,7 +16,7 @@ class Course extends Model
 
     protected $primaryKey = 'course_id';
 
-    protected $fillable = ['course_code', 'course_num', 'course_title', 'status', 'assigned', 'type', 'year', 'semester', 'section', 'delivery_modality', 'standard_category_id', 'scale_category_id', 'AMtable', 'CLOtable', 'LAtable'];
+    protected $fillable = ['course_code', 'course_num', 'course_title', 'status', 'assigned', 'type', 'year', 'semester', 'section', 'delivery_modality', 'standard_category_id', 'scale_category_id', 'AMtable', 'CLOtable', 'LAtable', 'campus', 'faculty', 'department'];
 
     protected $guarded = ['course_id'];
 
@@ -107,6 +107,11 @@ class Course extends Model
     public function syllabusFile()
     {
         return $this->hasOne(CourseSyllabiFile::class, 'course_id', 'course_id');
+    }
+
+    public function courseDescription()
+    {
+        return $this->hasOne(CourseDescription::class, 'course_id', 'course_id');
     }
 
     //these are for the tables of child records on the course crud controller

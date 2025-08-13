@@ -36,25 +36,28 @@
                                         <!--Sub-Categories For Courses-->
                                         <ol class="ol-inner" style="list-style-type: none;">
                                             <li class="li">
-                                                <a class="clo-guide">Course Learning Outcomes (Step 1)</a>
+                                                <a class="description-guide">Course Description (Step 1)</a>
                                             </li>
                                             <li class="li">
-                                                <a class="sam-guide">Student Assessment Methods (Step 2)</a>
+                                                <a class="clo-guide">Course Learning Outcomes (Step 2)</a>
                                             </li>
                                             <li class="li">
-                                                <a class="tla-guide">Teaching and Learning Activities (Step 3)</a>
+                                                <a class="sam-guide">Student Assessment Methods (Step 3)</a>
                                             </li>
                                             <li class="li">
-                                                <a class="courseAlignment-guide">Course Alignment (Step 4)</a>
+                                                <a class="tla-guide">Teaching and Learning Activities (Step 4)</a>
                                             </li>
                                             <li class="li">
-                                                <a class="programOutcomeMapping-guide">Program Outcome Mapping (Step 5)</a>
+                                                <a class="courseAlignment-guide">Course Alignment (Step 5)</a>
                                             </li>
                                             <li class="li">
-                                                <a class="standards-guide">Standards and Strategic Priorities (Step 6)</a>
+                                                <a class="programOutcomeMapping-guide">Program Outcome Mapping (Step 6)</a>
                                             </li>
                                             <li class="li">
-                                                <a class="coursesSummary-guide">Course Summary (Step 7)</a>
+                                                <a class="standards-guide">Standards and Strategic Priorities (Step 7)</a>
+                                            </li>
+                                            <li class="li">
+                                                <a class="coursesSummary-guide">Course Summary (Step 8)</a>
                                             </li>
                                         </ol>
                                     </li>
@@ -111,6 +114,7 @@
         $("#guideModal .standards-guide").removeClass('selected-attribute');
         $("#guideModal .coursesSummary-guide").removeClass('selected-attribute');
         $("#guideModal .syllabi-guide").removeClass('selected-attribute');
+        $("#guideModal .description-guide").removeClass('selected-attribute');
         // add attributes
         $("#guideModal .programs-guide").addClass('selected-attribute');
         // Reset Scroll to top
@@ -152,6 +156,7 @@
         $("#guideModal .standards-guide").removeClass('selected-attribute');
         $("#guideModal .coursesSummary-guide").removeClass('selected-attribute');
         $("#guideModal .syllabi-guide").removeClass('selected-attribute');
+        $("#guideModal .description-guide").removeClass('selected-attribute');
         // add attribute
         $("#guideModal .plo-guide").addClass('selected-attribute');
         // Reset Scroll to top
@@ -204,6 +209,7 @@
         $("#guideModal .standards-guide").removeClass('selected-attribute');
         $("#guideModal .coursesSummary-guide").removeClass('selected-attribute');
         $("#guideModal .syllabi-guide").removeClass('selected-attribute');
+        $("#guideModal .description-guide").removeClass('selected-attribute');
         // add attribute
         $("#guideModal .ms-guide").addClass('selected-attribute');
         // Reset Scroll to top
@@ -254,6 +260,7 @@
         $("#guideModal .standards-guide").removeClass('selected-attribute');
         $("#guideModal .coursesSummary-guide").removeClass('selected-attribute');
         $("#guideModal .syllabi-guide").removeClass('selected-attribute');
+        $("#guideModal .description-guide").removeClass('selected-attribute');
         // add attribute
         $("#guideModal .programCourses-guide").addClass('selected-attribute');
         // Reset Scroll to top
@@ -308,6 +315,7 @@
         $("#guideModal .standards-guide").removeClass('selected-attribute');
         $("#guideModal .coursesSummary-guide").removeClass('selected-attribute');
         $("#guideModal .syllabi-guide").removeClass('selected-attribute');
+        $("#guideModal .description-guide").removeClass('selected-attribute');
         // add attribute
         $("#guideModal .programOverview-guide").addClass('selected-attribute');
         // Reset Scroll to top
@@ -343,6 +351,7 @@
         $("#guideModal .standards-guide").removeClass('selected-attribute');
         $("#guideModal .coursesSummary-guide").removeClass('selected-attribute');
         $("#guideModal .syllabi-guide").removeClass('selected-attribute');
+        $("#guideModal .description-guide").removeClass('selected-attribute');
         // add attribute
         $("#guideModal .courses-guide").addClass('selected-attribute');
         // Reset Scroll to top
@@ -368,6 +377,37 @@
         `);
     }
 
+    function setDescription() {
+        $("#guideModal .programs-guide").removeClass('selected-attribute');
+        $("#guideModal .plo-guide").removeClass('selected-attribute');
+        $("#guideModal .ms-guide").removeClass('selected-attribute');
+        $("#guideModal .programCourses-guide").removeClass('selected-attribute');
+        $("#guideModal .programOverview-guide").removeClass('selected-attribute');
+        $("#guideModal .courses-guide").removeClass('selected-attribute');
+        $("#guideModal .clo-guide").removeClass('selected-attribute');
+        $("#guideModal .sam-guide").removeClass('selected-attribute');
+        $("#guideModal .tla-guide").removeClass('selected-attribute');
+        $("#guideModal .courseAlignment-guide").removeClass('selected-attribute');
+        $("#guideModal .programOutcomeMapping-guide").removeClass('selected-attribute');
+        $("#guideModal .standards-guide").removeClass('selected-attribute');
+        $("#guideModal .coursesSummary-guide").removeClass('selected-attribute');
+        $("#guideModal .syllabi-guide").removeClass('selected-attribute');
+        $("#guideModal .description-guide").removeClass('selected-attribute');
+        // add attribute
+        $("#guideModal .description-guide").addClass('selected-attribute');
+
+        $('.update-content').scrollTop(0);
+
+        // Header
+        $("#guideModal .modal-title").text('Course Description Guide');
+        // Body
+        $("#guideModal .update-content").html(`
+            <h2 class="mb-4 head"><u>Course Description (Step 3)</u></h2>
+            <br>
+            <p class="help-p my-3 center" style="font-size:18px;">This page is under construction.</p>
+        `);
+    }
+
     function setCLO() {
         // remove attributes
         $("#guideModal .programs-guide").removeClass('selected-attribute');
@@ -384,6 +424,7 @@
         $("#guideModal .standards-guide").removeClass('selected-attribute');
         $("#guideModal .coursesSummary-guide").removeClass('selected-attribute');
         $("#guideModal .syllabi-guide").removeClass('selected-attribute');
+        $("#guideModal .description-guide").removeClass('selected-attribute');
         // add attribute
         $("#guideModal .clo-guide").addClass('selected-attribute');
         // Reset Scroll to top
@@ -393,7 +434,7 @@
         $("#guideModal .modal-title").text('Course Learning Outcomes Guide');
         // Body
         $("#guideModal .update-content").html(`
-            <h2 class="mb-4 head"><u>Course Learning Outcomes (Step 1)</u></h2>
+            <h2 class="mb-4 head"><u>Course Learning Outcomes (Step 2)</u></h2>
             <br>
             <p class="help-p my-3 center" style="font-size:18px;">Course Learning outcomes allow you to describe the outcomes that students can expect to take away from completing the course, further instructions can be found <a target=”_blank” href='https://ctl.ok.ubc.ca/teaching-effectively/course-design/'>here</a>.</p>
             <br>
@@ -429,6 +470,7 @@
         $("#guideModal .standards-guide").removeClass('selected-attribute');
         $("#guideModal .coursesSummary-guide").removeClass('selected-attribute');
         $("#guideModal .syllabi-guide").removeClass('selected-attribute');
+        $("#guideModal .description-guide").removeClass('selected-attribute');
         // add attribute
         $("#guideModal .sam-guide").addClass('selected-attribute');
         // Reset Scroll to top
@@ -438,7 +480,7 @@
         $("#guideModal .modal-title").text('Student Assessment Methods Guide');
         // Body
         $("#guideModal .update-content").html(`
-            <h2 class="mb-4 head"><u>Student Assessment Methods Guide (Step 2)</u></h2>
+            <h2 class="mb-4 head"><u>Student Assessment Methods Guide (Step 3)</u></h2>
             <br>
             <p class="help-p my-3 center" style="font-size:18px;">Student Assessment Methods provide a way to list the methods that students' understanding of course concepts and material will be evaluated and measured.</p>
             <br>
@@ -475,6 +517,7 @@
         $("#guideModal .standards-guide").removeClass('selected-attribute');
         $("#guideModal .coursesSummary-guide").removeClass('selected-attribute');
         $("#guideModal .syllabi-guide").removeClass('selected-attribute');
+        $("#guideModal .description-guide").removeClass('selected-attribute');
         // add attribute
         $("#guideModal .tla-guide").addClass('selected-attribute');
         // Reset Scroll to top
@@ -484,7 +527,7 @@
         $("#guideModal .modal-title").text('Teaching and Learning Activities Guide');
         // Body
         $("#guideModal .update-content").html(`
-            <h2 class="mb-4 head"><u>Teaching and Learning Activities (Step 3)</u></h2>
+            <h2 class="mb-4 head"><u>Teaching and Learning Activities (Step 4)</u></h2>
             <br>
             <p class="help-p my-3 center" style="font-size:18px;">Teaching and Learning Activities are used to describe the methods the course will be taught.</p>
             <br>
@@ -524,6 +567,7 @@
         $("#guideModal .standards-guide").removeClass('selected-attribute');
         $("#guideModal .coursesSummary-guide").removeClass('selected-attribute');
         $("#guideModal .syllabi-guide").removeClass('selected-attribute');
+        $("#guideModal .description-guide").removeClass('selected-attribute');
         // add attribute
         $("#guideModal .courseAlignment-guide").addClass('selected-attribute');
         // Reset Scroll to top
@@ -533,7 +577,7 @@
         $("#guideModal .modal-title").text('Course Alignment Guide');
         // Body
         $("#guideModal .update-content").html(`
-            <h2 class="mb-4 head"><u>Course Alignment (Step 4)</u></h2>
+            <h2 class="mb-4 head"><u>Course Alignment (Step 5)</u></h2>
             <br>
             <p class="help-p my-3 center" style="font-size:18px;">This step requires course instructors to align their Student Assessment Methods, and their Teaching and Learning Activities to their Course Learning Outcomes. An example of aligning a course is shown below.</p>
             <img class="img center my-3" src="{{asset('/img/guide/CourseAlignment.gif')}}" onclick="onClick(this)">
@@ -562,6 +606,7 @@
         $("#guideModal .standards-guide").removeClass('selected-attribute');
         $("#guideModal .coursesSummary-guide").removeClass('selected-attribute');
         $("#guideModal .syllabi-guide").removeClass('selected-attribute');
+        $("#guideModal .description-guide").removeClass('selected-attribute');
         // add attribute
         $("#guideModal .programOutcomeMapping-guide").addClass('selected-attribute');
         // Reset Scroll to top
@@ -571,7 +616,7 @@
         $("#guideModal .modal-title").text('Program Outcome Mapping Guide');
         // Body
         $("#guideModal .update-content").html(`
-            <h2 class="mb-4 head"><u>Program Outcome Mapping (Step 5)</u></h2>
+            <h2 class="mb-4 head"><u>Program Outcome Mapping (Step 6)</u></h2>
             <br>
             <p class="help-p my-3 center" style="font-size:18px;">This step requires that your course has been added to a program, otherwise you will not see any programs to map your course to. See the <a class="link" onclick="setProgram()">Program guide</a> if you would like to create a program.</p>
             <br>
@@ -615,6 +660,7 @@
         $("#guideModal .standards-guide").removeClass('selected-attribute');
         $("#guideModal .coursesSummary-guide").removeClass('selected-attribute');
         $("#guideModal .syllabi-guide").removeClass('selected-attribute');
+        $("#guideModal .description-guide").removeClass('selected-attribute');
         // add attribute
         $("#guideModal .standards-guide").addClass('selected-attribute');
         // Reset Scroll to top
@@ -624,7 +670,7 @@
         $("#guideModal .modal-title").text('Standards and Strategic Priorities Guide');
         // Body
         $("#guideModal .update-content").html(`
-            <h2 class="mb-4 head"><u>Standards and Strategic Priorities (Step 6)</u></h2>
+            <h2 class="mb-4 head"><u>Standards and Strategic Priorities (Step 7)</u></h2>
             <br>
             <h2 class="text-center mb-4">How to Map your Course to Standards</h2>
             <p class="help-p my-3 center" style="font-size:18px;">The standards tab is selected by default when you open the page.</p>
@@ -676,6 +722,7 @@
         $("#guideModal .standards-guide").removeClass('selected-attribute');
         $("#guideModal .coursesSummary-guide").removeClass('selected-attribute');
         $("#guideModal .syllabi-guide").removeClass('selected-attribute');
+        $("#guideModal .description-guide").removeClass('selected-attribute');
         // add attribute
         $("#guideModal .coursesSummary-guide").addClass('selected-attribute');
         // Reset Scroll to top
@@ -685,7 +732,7 @@
         $("#guideModal .modal-title").text('Course Summary Guide');
         // Body
         $("#guideModal .update-content").html(`
-            <h2 class="mb-4 head"><u>Course Summary (Step 7)</u></h2>
+            <h2 class="mb-4 head"><u>Course Summary (Step 8)</u></h2>
             <br>
             <p class="help-p my-3" style="font-size:18px;">The course overview provides a comprehensive view of all of the information regarding the course, as well as detailed charts from the information provided in the previous steps. You must fill in the previous steps in order to see some of the fields for the course overview.</p>
             <p class="help-p my-3" style="font-size:18px;">The course overview can be downloaded as a PDF copy.</p>
@@ -711,6 +758,7 @@
         $("#guideModal .standards-guide").removeClass('selected-attribute');
         $("#guideModal .coursesSummary-guide").removeClass('selected-attribute');
         $("#guideModal .syllabi-guide").removeClass('selected-attribute');
+        $("#guideModal .description-guide").removeClass('selected-attribute');
         // add attribute
         $("#guideModal .syllabi-guide").addClass('selected-attribute');
         // Reset Scroll to top
@@ -726,7 +774,7 @@
         `);
     }
 
-    // calls for on click methods (nav bar) 
+    // calls for on click methods (nav bar)
     // Programs
     $('.programs-guide').on('click', setProgram);
     $('.plo-guide').on('click', setPLO);
@@ -736,6 +784,7 @@
     // Courses
     $('.courses-guide').on('click', setCourses);
     $('.clo-guide').on('click', setCLO);
+    $('.description-guide').on('click', setDescription);
     $('.sam-guide').on('click', setSAM);
     $('.tla-guide').on('click', setTLA);
     $('.courseAlignment-guide').on('click', setCourseAlignment);
@@ -744,7 +793,7 @@
     $('.coursesSummary-guide').on('click', setCoursesSummary);
     // Syllabi
     $('.syllabi-guide').on('click', setSyllabi);
-    
+
     // Calls from Dashboard
     $('#programHelp').on('click', setProgram);
     $('#coursesHelp').on('click', setCourses);
@@ -784,7 +833,7 @@
         font-size: 18px;
     }
     .update-content{
-        max-height:714px; 
+        max-height:714px;
         overflow-y: scroll;
         background-color: #fafafa;
     }
@@ -797,7 +846,7 @@
     .selected-attribute{
         border-bottom: solid 2px #0055b7;
     }
-    
+
     .modal-zoom{
         z-index: 1061;
     }

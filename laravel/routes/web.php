@@ -250,6 +250,10 @@ Route::get('/courseWizard/{course}/step4', [CourseWizardController::class, 'step
 Route::get('/courseWizard/{course}/step5', [CourseWizardController::class, 'step5'])->name('courseWizard.step5');
 Route::get('/courseWizard/{course}/step6', [CourseWizardController::class, 'step6'])->name('courseWizard.step6');
 Route::get('/courseWizard/{course}/step7', [CourseWizardController::class, 'step7'])->name('courseWizard.step7');
+Route::get('/courseWizard/{course}/step8', [CourseWizardController::class, 'step8'])->name('courseWizard.step8');
+
+
+Route::post('/courseDescription/{course}/store', [\App\Http\Controllers\CourseDescriptionController::class, 'store'])->name('courseDescription.store');
 
 // Save optional PLOs
 Route::post('/optionals', [OptionalPriorities::class, 'store'])->name('storeOptionalPLOs');
