@@ -88,12 +88,12 @@ class ProcessCourseSyllabiFile implements ShouldQueue
         $user = User::where('id', $this->userId)->first();
         $adminAddErrorMessages = $this->roleAssignmentHelper->addAllAdminsToEntity($course);
 
-//        //Add department heads and program directors of Faculty of Forestry owners of all courses in the faculty
-//        if(FacultyCourseCodes::where('course_code', $course->course_code)->exists()){
-//            $facultyId = FacultyCourseCodes::where('course_code', $course->course_code)->first()->faculty_id;
-//            $this->roleAssignmentHelper->addFacultyDepartmentHeadsToCourse($course, $facultyId);
-//            $this->roleAssignmentHelper->addFacultyProgramDirectorsToCourse($course, $facultyId);
-//        }
+        //Add department heads and program directors of Faculty of Forestry owners of all courses in the faculty
+        if(FacultyCourseCodes::where('course_code', $course->course_code)->exists()){
+            $facultyId = FacultyCourseCodes::where('course_code', $course->course_code)->first()->faculty_id;
+            $this->roleAssignmentHelper->addFacultyDepartmentHeadsToCourse($course, $facultyId);
+            $this->roleAssignmentHelper->addFacultyProgramDirectorsToCourse($course, $facultyId);
+        }
 
         $courseUser = new CourseUser;
         $courseUser->course_id = $course->course_id;

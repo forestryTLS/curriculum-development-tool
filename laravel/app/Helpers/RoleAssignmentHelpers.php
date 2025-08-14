@@ -143,6 +143,8 @@ class RoleAssignmentHelpers
                 })->orWhere(function ($q) use ($campusName, $facultyName) {
                     $q->where('campus', $campusName)
                         ->where('faculty', $facultyName);
+                })->orWhere(function ($q) use ($campusName, $facultyName) {
+                    $q->where('campus', 'Other')->whereNull('faculty')->whereNull('department');
                 });
             })->get();
 
@@ -180,6 +182,54 @@ class RoleAssignmentHelpers
             }
         }
 
+        return $errorMessages;
+    }
+
+    /**
+     * Helper function to add all department heads with access to all faculty courses to the given course.
+     */
+    public function  addFacultyDepartmentHeadsToCourse($course, $facultyId)
+    {
+        $errorMessages = Collection::make();
+        $departmentsInFaculty = Department::where('faculty_id', $facultyId)->get();
+        $departmentHeadRole = Role::where('role', 'department head')->first();
+        foreach ($departmentsInFaculty as $department) {
+            $departmentHeads = $department->heads()->where('has_access_to_all_courses_in_faculty', true)->get();
+            foreach ($departmentHeads as $head) {
+                $errorMessage = $this->addElevatedRoleUserToCourse($head,$departmentHeadRole,
+                    $course, null, $department->department_id);
+                if($errorMessage != null) {
+                    $errorMessages->add($errorMessage);
+                }
+            }
+        }
+        return $errorMessages;
+    }
+
+    /**
+     * Helper function to add all program directors with all faculty course access to given course.
+     */
+    public function addFacultyProgramDirectorsToCourse($course, $facultyId){
+        $errorMessages = Collection::make();
+        $faculty = Faculty::where('faculty_id', $facultyId)->first();
+        if(!$faculty){
+            $errorMessages->add("Course Faculty doesn't exist");
+            return $errorMessages;
+        }
+        $programs = Program::where(['campus' => $faculty->campus->campus,
+            'faculty' => $faculty->faculty])->get();
+        $programDirectorRole = Role::where('role', 'program director')->first();
+
+        foreach ($programs as $program) {
+            $programDirectors = $program->directors()->wherePivot('has_access_to_all_courses_in_faculty', true)->get();
+            foreach ($programDirectors as $director) {
+                $errorMessage =$this->addElevatedRoleUserToCourse($director,$programDirectorRole,
+                    $course, $program->program_id, null);
+                if($errorMessage != null) {
+                    $errorMessages->add($errorMessage);
+                }
+            }
+        }
         return $errorMessages;
     }
 }

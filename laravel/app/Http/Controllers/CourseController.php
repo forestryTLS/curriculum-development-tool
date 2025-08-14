@@ -181,15 +181,15 @@ class CourseController extends Controller
                 $campusId = Campus::where('campus', $course->campus)->first()->campus_id;
                 $facultyId = Faculty::where(['faculty'=> $course->faculty,
                     'campus_id' => $campusId])->first()->faculty_id;
-                $errorMessages = $errorMessages->merge($this->addFacultyDepartmentHeadsToCourse($course, $facultyId));
-                $errorMessages = $errorMessages->merge($this->addFacultyProgramDirectorsToCourse($course, $facultyId));
+                $errorMessages = $errorMessages->merge($this->roleAssignmentHelper->addFacultyDepartmentHeadsToCourse($course, $facultyId));
+                $errorMessages = $errorMessages->merge($this->roleAssignmentHelper->addFacultyProgramDirectorsToCourse($course, $facultyId));
                 if($course->department) {
                     $errorMessages = $errorMessages->merge($this->addAllDepartmentHeadsToCourse($course));
                 }
             } elseif(FacultyCourseCodes::where('course_code', $course->course_code)->exists()){
                 $facultyId = FacultyCourseCodes::where('course_code', $course->course_code)->first()->faculty_id;
-                $errorMessages = $errorMessages->merge($this->addFacultyDepartmentHeadsToCourse($course, $facultyId));
-                $errorMessages = $errorMessages->merge($this->addFacultyProgramDirectorsToCourse($course, $facultyId));
+                $errorMessages = $errorMessages->merge($this->roleAssignmentHelper->addFacultyDepartmentHeadsToCourse($course, $facultyId));
+                $errorMessages = $errorMessages->merge($this->roleAssignmentHelper->addFacultyProgramDirectorsToCourse($course, $facultyId));
             }
 
             $courseUser = new CourseUser;
@@ -239,15 +239,15 @@ class CourseController extends Controller
                 $campusId = Campus::where('campus', $course->campus)->first()->campus_id;
                 $facultyId = Faculty::where(['faculty'=> $course->faculty,
                     'campus_id' => $campusId])->first()->faculty_id;
-                $errorMessages = $errorMessages->merge($this->addFacultyDepartmentHeadsToCourse($course, $facultyId));
-                $errorMessages = $errorMessages->merge($this->addFacultyProgramDirectorsToCourse($course, $facultyId));
+                $errorMessages = $errorMessages->merge($this->roleAssignmentHelper->addFacultyDepartmentHeadsToCourse($course, $facultyId));
+                $errorMessages = $errorMessages->merge($this->roleAssignmentHelper->addFacultyProgramDirectorsToCourse($course, $facultyId));
                 if($course->department) {
                     $errorMessages = $errorMessages->merge($this->addAllDepartmentHeadsToCourse($course));
                 }
             } elseif(FacultyCourseCodes::where('course_code', $course->course_code)->exists()){
                 $facultyId = FacultyCourseCodes::where('course_code', $course->course_code)->first()->faculty_id;
-                $errorMessages = $errorMessages->merge($this->addFacultyDepartmentHeadsToCourse($course, $facultyId));
-                $errorMessages = $errorMessages->merge($this->addFacultyProgramDirectorsToCourse($course, $facultyId));
+                $errorMessages = $errorMessages->merge($this->roleAssignmentHelper->addFacultyDepartmentHeadsToCourse($course, $facultyId));
+                $errorMessages = $errorMessages->merge($this->roleAssignmentHelper->addFacultyProgramDirectorsToCourse($course, $facultyId));
             }
 
             $user = User::where('id', $request->input('user_id'))->first();
@@ -300,54 +300,6 @@ class CourseController extends Controller
                     $errorMessages->add($errorMessage);
                 }
 
-            }
-        }
-        return $errorMessages;
-    }
-
-    /**
-     * Helper function to add all department heads with access to all faculty courses to the given course.
-     */
-    private function  addFacultyDepartmentHeadsToCourse($course, $facultyId)
-    {
-        $errorMessages = Collection::make();
-        $departmentsInFaculty = Department::where('faculty_id', $facultyId)->get();
-        $departmentHeadRole = Role::where('role', 'department head')->first();
-        foreach ($departmentsInFaculty as $department) {
-            $departmentHeads = $department->heads()->where('has_access_to_all_courses_in_faculty', true)->get();
-            foreach ($departmentHeads as $head) {
-                $errorMessage = $this->roleAssignmentHelper->addElevatedRoleUserToCourse($head,$departmentHeadRole,
-                    $course, null, $department->department_id);
-                if($errorMessage != null) {
-                    $errorMessages->add($errorMessage);
-                }
-            }
-        }
-        return $errorMessages;
-    }
-
-    /**
-     * Helper function to add all program directors with all faculty course access to given course.
-     */
-    private function addFacultyProgramDirectorsToCourse($course, $facultyId){
-        $errorMessages = Collection::make();
-        $faculty = Faculty::where('faculty_id', $facultyId)->first();
-        if(!$faculty){
-            $errorMessages->add("Course Faculty doesn't exist");
-            return $errorMessages;
-        }
-        $programs = Program::where(['campus' => $faculty->campus->campus,
-            'faculty' => $faculty->faculty])->get();
-        $programDirectorRole = Role::where('role', 'program director')->first();
-
-        foreach ($programs as $program) {
-            $programDirectors = $program->directors()->wherePivot('has_access_to_all_courses_in_faculty', true)->get();
-            foreach ($programDirectors as $director) {
-                $errorMessage =$this->roleAssignmentHelper->addElevatedRoleUserToCourse($director,$programDirectorRole,
-                    $course, $program->program_id, null);
-                if($errorMessage != null) {
-                    $errorMessages->add($errorMessage);
-                }
             }
         }
         return $errorMessages;
@@ -503,8 +455,8 @@ class CourseController extends Controller
                 $this->removeCourseAccessForOldDepartmentHead($course);
                 $this->removeCourseAccessForProgramDirectorsWithAllFacultyCourseAccess($course);
 
-                $this->addFacultyDepartmentHeadsToCourse($course, $newFacultyId);
-                $this->addFacultyProgramDirectorsToCourse($course, $newFacultyId);
+                $this->roleAssignmentHelper->addFacultyDepartmentHeadsToCourse($course, $newFacultyId);
+                $this->roleAssignmentHelper->addFacultyProgramDirectorsToCourse($course, $newFacultyId);
                 if($course->campus && $course->faculty && $course->department){
                     $this->addAllDepartmentHeadsToCourse($course);
 
@@ -1225,15 +1177,15 @@ class CourseController extends Controller
             $campusId = Campus::where('campus', $course->campus)->first()->campus_id;
             $facultyId = Faculty::where(['faculty'=> $course->faculty,
                 'campus_id' => $campusId])->first()->faculty_id;
-            $this->addFacultyDepartmentHeadsToCourse($course, $facultyId);
-            $this->addFacultyProgramDirectorsToCourse($course, $facultyId);
+            $this->roleAssignmentHelper->addFacultyDepartmentHeadsToCourse($course, $facultyId);
+            $this->roleAssignmentHelper->addFacultyProgramDirectorsToCourse($course, $facultyId);
             if($course->department) {
                 $this->addAllDepartmentHeadsToCourse($course);
             }
         } elseif(FacultyCourseCodes::where('course_code', $course->course_code)->exists()){
             $facultyId = FacultyCourseCodes::where('course_code', $course->course_code)->first()->faculty_id;
-            $this->addFacultyDepartmentHeadsToCourse($course, $facultyId);
-            $this->addFacultyProgramDirectorsToCourse($course, $facultyId);
+            $this->roleAssignmentHelper->addFacultyDepartmentHeadsToCourse($course, $facultyId);
+            $this->roleAssignmentHelper->addFacultyProgramDirectorsToCourse($course, $facultyId);
         }
 
         $user = User::find(Auth::id());
