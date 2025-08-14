@@ -17,7 +17,7 @@ class CourseSyllabiFile extends Model
 
     protected $fillable = ['file_name', 'file_path'];
 
-    public $incrementing = false;
+    public $incrementing = true;
 
     public function course(){
         return $this->belongsTo(Course::class);

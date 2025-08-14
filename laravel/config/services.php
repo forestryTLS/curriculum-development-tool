@@ -31,4 +31,8 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'python_api' => [
+        'base_url' => env('PYTHON_API_URL'),
+    ],
+
 ];

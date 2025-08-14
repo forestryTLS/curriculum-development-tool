@@ -3,12 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Helpers\RoleAssignmentHelpers;
+use App\Jobs\ProcessCourseSyllabiFile;
 use App\Mail\NotifyInstructorForMappingMail;
 use App\Mail\NotifyNewCourseInstructorMail;
 use App\Mail\NotifyNewUserAndInstructorMail;
 use App\Models\AssessmentMethod;
 use App\Models\Campus;
 use App\Models\Course;
+use App\Models\CourseDescription;
 use App\Models\CourseSyllabiFile;
 use App\Models\CourseUserRole;
 use App\Models\Department;
@@ -54,6 +56,8 @@ use Illuminate\View\View;
 use PDF;
 use Throwable;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\Http;
+
 
 
 class CourseController extends Controller
@@ -2029,51 +2033,11 @@ private function makeOutcomeMapSheetData(Spreadsheet $spreadsheet, int $courseId
                     $courseFile->file_path = $path;
                     $courseFile->save();
 
-                    // TO DO: CHANGE AFTER API CALL
-                    $course = new Course();
-                    $course->course_code = '123';
-                    $course->delivery_modality = 'O';
-                    $course->year = 2025;
-                    $course->semester = 'S1';
-                    $course->course_title = $file->getClientOriginalName();
-                    $course->assigned = 1;
-                    $course->type = 'unassigned';
-                    $course->save();
+                    $courseFileId = $courseFile->id;
+                    $userId = $request->input('user_id');
+                    ProcessCourseSyllabiFile::dispatch($courseFileId, $userId);
 
-                    $courseFile = CourseSyllabiFile::where(['file_name'=> $file->getClientOriginalName(),
-                        'file_path'=> $path])->first();
-                    $courseFile->course_id = $course->course_id;
-                    $courseFile->save();
-
-                    $user = User::find(Auth::id());
-                    $adminAddErrorMessages = $this->roleAssignmentHelper->addAllAdminsToEntity($course);
-
-                    //Add department heads and program directors of Faculty of Forestry owners of all courses in the faculty
-                    if(FacultyCourseCodes::where('course_code', $course->course_code)->exists()){
-
-                        $vancouverCampusId = Campus::where('campus', 'Vancouver')->first()->campus_id;
-                        $forestryFacultyId = Faculty::where(['campus_id' => $vancouverCampusId,
-                            'faculty' => 'Faculty of Forestry'])->first()->faculty_id;
-
-                        if (FacultyCourseCodes::where(['course_code' => $course->course_code,
-                            'faculty_id' => $forestryFacultyId])->exists()) {
-                            $this->addForestryDepartmentHeadsToCourse($course);
-                            $this->addForestryProgramDirectorsToCourse($course);
-                        }
-                    }
-
-                    $user = User::where('id', $request->input('user_id'))->first();
-                    $courseUser = new CourseUser;
-                    $courseUser->course_id = $course->course_id;
-                    $courseUser->user_id = $user->id;
-                    // assign the creator of the course the owner permission
-                    $courseUser->permission = 1;
-                    if ($courseUser->save()) {
-
-                    } else {
-                        $errorMessages->add('Error in creating course from ' . $file->getClientOriginalName());
-                    }
-                }else{
+                } else{
                     $errorMessages->add($file->getClientOriginalName() . ' failed to upload.');
                 }
             }
