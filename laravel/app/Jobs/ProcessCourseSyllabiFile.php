@@ -3,11 +3,13 @@
 namespace App\Jobs;
 
 use App\Helpers\RoleAssignmentHelpers;
+use App\Models\AssessmentMethod;
 use App\Models\Course;
 use App\Models\CourseDescription;
 use App\Models\CourseSyllabiFile;
 use App\Models\CourseUser;
 use App\Models\FacultyCourseCodes;
+use App\Models\LearningOutcome;
 use App\Models\User;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -46,10 +48,17 @@ class ProcessCourseSyllabiFile implements ShouldQueue
         $courseFile = CourseSyllabiFile::where('id', $this->courseFileId)->first();
 
 
-        $response = HTTP::post($baseUrl . '/create_course_from_syllabi', [
-            'file_path' => storage_path('app') . "/" . $courseFile->file_path,
-            'client_original_filename' => $courseFile->file_name
-        ]);
+        try{
+            $response = HTTP::post($baseUrl . '/create_course_from_syllabi', [
+                'file_path' => storage_path('app') . "/" . $courseFile->file_path,
+                'client_original_filename' => $courseFile->file_name
+            ]);
+        } catch (\Exception $e) {
+            // handle any other exception
+            Log::error('Error in parsing file ' . $e->getMessage());
+            return;
+
+        }
 
         if($response->failed()){
             Log::error('Error in creating course from ' . $courseFile->file_name . ': ' . $response->body());
@@ -84,6 +93,25 @@ class ProcessCourseSyllabiFile implements ShouldQueue
             'file_path'=> $courseFile->file_path])->first();
         $courseFile->course_id = $course->course_id;
         $courseFile->save();
+
+        $learningOutcomes = $courseObject->goals;
+
+        foreach($learningOutcomes as $lo){
+            $learningOutcome = new LearningOutcome();
+            $learningOutcome->l_outcome = $lo;
+            $learningOutcome->course_id = $course->course_id;
+            $learningOutcome->save();
+        }
+
+        $assessmentMethods = $courseObject->assessments;
+
+        foreach($assessmentMethods as $am){
+            $assessmentMethod = new AssessmentMethod();
+            $assessmentMethod->a_method = $am[0];
+            $assessmentMethod->weight = $am[1];
+            $assessmentMethod->course_id = $course->course_id;
+            $assessmentMethod->save();
+        }
 
         $user = User::where('id', $this->userId)->first();
         $adminAddErrorMessages = $this->roleAssignmentHelper->addAllAdminsToEntity($course);
