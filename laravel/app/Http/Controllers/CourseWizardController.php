@@ -99,7 +99,14 @@ class CourseWizardController extends Controller
         // returns a collection of standard_categories, used in the create course modal
         $standard_categories = DB::table('standard_categories')->get();
 
-        return view('courses.wizard.step1')->with('l_outcomes', $l_outcomes)->with('course', $course)->with('faculties', $faculties)
+        if($course->courseDescription) {
+            $description = $course->courseDescription->description;
+        } else {
+            $description = "";
+        }
+        
+
+        return view('courses.wizard.step1')->with('l_outcomes', $l_outcomes)->with('course', $course)->with('courseDescription', $description)->with('faculties', $faculties)
             ->with('departments', $departments)->with('campuses', $campuses)->with('courseUsers', $courseUsers)->with('user', $user)->with('oAct', $oAct)->with('oAss', $oAss)->with('outcomeMapsCount', $outcomeMapsCount)
             ->with('isEditor', $isEditor)->with('isViewer', $isViewer)->with('standard_categories', $standard_categories)->with('standardsOutcomeMapCount', $standardsOutcomeMapCount)
             ->with('expectedStandardOutcomeMapCount', $expectedStandardOutcomeMapCount)->with('expectedProgramOutcomeMapCount', $expectedProgramOutcomeMapCount)->with('hasNonAlignedCLO', $hasNonAlignedCLO);
@@ -172,7 +179,13 @@ class CourseWizardController extends Controller
         // returns a collection of standard_categories, used in the create course modal
         $standard_categories = DB::table('standard_categories')->get();
 
-        return view('courses.wizard.step2')->with('a_methods', $a_methods)->with('course', $course)->with('faculties', $faculties)->with('departments', $departments)->with('campuses', $campuses)
+        if($course->courseDescription) {
+            $description = $course->courseDescription->description;
+        } else {
+            $description = "";
+        }
+
+        return view('courses.wizard.step2')->with('a_methods', $a_methods)->with('course', $course)->with('courseDescription', $description)->with('faculties', $faculties)->with('departments', $departments)->with('campuses', $campuses)
             ->with('totalWeight', $totalWeight)->with('courseUsers', $courseUsers)->with('user', $user)->with('custom_methods', $custom_methods)->with('oAct', $oAct)->with('oAss', $oAss)->with('outcomeMapsCount', $outcomeMapsCount)
             ->with('isEditor', $isEditor)->with('isViewer', $isViewer)->with('standardsOutcomeMapCount', $standardsOutcomeMapCount)->with('standard_categories', $standard_categories)
             ->with('expectedStandardOutcomeMapCount', $expectedStandardOutcomeMapCount)->with('expectedProgramOutcomeMapCount', $expectedProgramOutcomeMapCount)->with('hasNonAlignedCLO', $hasNonAlignedCLO);
@@ -242,7 +255,13 @@ class CourseWizardController extends Controller
         // returns a collection of standard_categories, used in the create course modal
         $standard_categories = DB::table('standard_categories')->get();
 
-        return view('courses.wizard.step3')->with('l_activities', $l_activities)->with('course', $course)->with('faculties', $faculties)->with('departments', $departments)->with('campuses', $campuses)
+        if($course->courseDescription) {
+            $description = $course->courseDescription->description;
+        } else {
+            $description = "";
+        }
+
+        return view('courses.wizard.step3')->with('l_activities', $l_activities)->with('course', $course)->with('courseDescription', $description)->with('faculties', $faculties)->with('departments', $departments)->with('campuses', $campuses)
             ->with('courseUsers', $courseUsers)->with('user', $user)->with('custom_activities', $custom_activities)->with('oAct', $oAct)->with('oAss', $oAss)->with('outcomeMapsCount', $outcomeMapsCount)
             ->with('isEditor', $isEditor)->with('isViewer', $isViewer)->with('standardsOutcomeMapCount', $standardsOutcomeMapCount)->with('standard_categories', $standard_categories)
             ->with('expectedStandardOutcomeMapCount', $expectedStandardOutcomeMapCount)->with('expectedProgramOutcomeMapCount', $expectedProgramOutcomeMapCount)->with('hasNonAlignedCLO', $hasNonAlignedCLO);
@@ -311,7 +330,13 @@ class CourseWizardController extends Controller
         // returns a collection of standard_categories, used in the create course modal
         $standard_categories = DB::table('standard_categories')->get();
 
-        return view('courses.wizard.step4')->with('l_outcomes', $l_outcomes)->with('course', $course)->with('faculties', $faculties)->with('departments', $departments)->with('campuses', $campuses)
+        if($course->courseDescription) {
+            $description = $course->courseDescription->description;
+        } else {
+            $description = "";
+        }
+
+        return view('courses.wizard.step4')->with('l_outcomes', $l_outcomes)->with('course', $course)->with('courseDescription', $description)->with('faculties', $faculties)->with('departments', $departments)->with('campuses', $campuses)
             ->with('l_activities', $l_activities)->with('a_methods', $a_methods)->with('courseUsers', $courseUsers)->with('user', $user)->with('oAct', $oAct)->with('oAss', $oAss)->with('outcomeMapsCount', $outcomeMapsCount)
             ->with('isEditor', $isEditor)->with('isViewer', $isViewer)->with('standardsOutcomeMapCount', $standardsOutcomeMapCount)->with('standard_categories', $standard_categories)
             ->with('expectedStandardOutcomeMapCount', $expectedStandardOutcomeMapCount)->with('expectedProgramOutcomeMapCount', $expectedProgramOutcomeMapCount)->with('hasNonAlignedCLO', $hasNonAlignedCLO);
@@ -400,7 +425,13 @@ class CourseWizardController extends Controller
             }
         }
 
-        return view('courses.wizard.step5')->with('course', $course)->with('faculties', $faculties)->with('departments', $departments)->with('campuses', $campuses)
+        if($course->courseDescription) {
+            $description = $course->courseDescription->description;
+        } else {
+            $description = "";
+        }
+
+        return view('courses.wizard.step5')->with('course', $course)->with('courseDescription', $description)->with('faculties', $faculties)->with('departments', $departments)->with('campuses', $campuses)
             ->with('user', $user)->with('oAct', $oAct)->with('oAss', $oAss)->with('outcomeMapsCount', $outcomeMapsCount)
             ->with('isEditor', $isEditor)->with('isViewer', $isViewer)->with('courseUsers', $courseUsers)->with('standardsOutcomeMapCount', $standardsOutcomeMapCount)
             ->with('outcomeMapsCountPerProgram', $outcomeMapsCountPerProgram)->with('outcomeMapsCountPerProgramCLO', $outcomeMapsCountPerProgramCLO)->with('standard_categories', $standard_categories)
@@ -479,7 +510,13 @@ class CourseWizardController extends Controller
         // get all optional priority subdescriptions
         $opSubDesc = OptionalPrioritiesSubdescription::all();
 
-        return view('courses.wizard.step6')->with('l_outcomes', $l_outcomes)->with('course', $course)->with('faculties', $faculties)->with('departments', $departments)->with('campuses', $campuses)
+        if($course->courseDescription) {
+            $description = $course->courseDescription->description;
+        } else {
+            $description = "";
+        }
+
+        return view('courses.wizard.step6')->with('l_outcomes', $l_outcomes)->with('course', $course)->with('courseDescription', $description)->with('faculties', $faculties)->with('departments', $departments)->with('campuses', $campuses)
             ->with('mappingScales', $mappingScales)->with('courseUsers', $courseUsers)->with('user', $user)->with('oAct', $oAct)->with('oAss', $oAss)->with('outcomeMapsCount', $outcomeMapsCount)
             ->with('standard_outcomes', $standard_outcomes)->with('isEditor', $isEditor)->with('isViewer', $isViewer)->with('courseUsers', $courseUsers)
             ->with('optionalPriorityCategories', $optionalPriorityCategories)->with('opStored', $opStored)->with('standardsOutcomeMapCount', $standardsOutcomeMapCount)
@@ -615,7 +652,12 @@ class CourseWizardController extends Controller
         foreach ($optionalPriorities as $optionalPriority) {
             $optionalSubcategories[$optionalPriority->subcat_id] = $optionalPriority->optionalPrioritySubcategory;
         }
-        $description = $course->courseDescription?->description;
+
+        if($course->courseDescription) {
+            $description = $course->courseDescription->description;
+        } else {
+            $description = "";
+        }
 
         return view('courses.wizard.step7')->with('courseDescription', $description)->with('program', $tempProgram)->with('course', $course)->with('faculties', $faculties)->with('departments', $departments)->with('campuses', $campuses)
             ->with('outcomeActivities', $outcomeActivities)->with('outcomeAssessments', $outcomeAssessments)->with('user', $user)->with('oAct', $oActCount)
@@ -685,7 +727,12 @@ class CourseWizardController extends Controller
         $course = Course::where('course_id', $course_id)->first();
         // returns a collection of standard_categories, used in the create course modal
         $standard_categories = DB::table('standard_categories')->get();
-        $description = $course->courseDescription?->description;
+
+        if($course->courseDescription) {
+            $description = $course->courseDescription->description;
+        } else {
+            $description = "";
+        }
 
         return view('courses.wizard.step8')->with('courseDescription', $description)->with('l_outcomes', $l_outcomes)->with('course', $course)->with('faculties', $faculties)
             ->with('departments', $departments)->with('campuses', $campuses)->with('courseUsers', $courseUsers)->with('user', $user)->with('oAct', $oAct)->with('oAss', $oAss)->with('outcomeMapsCount', $outcomeMapsCount)

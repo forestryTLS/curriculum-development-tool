@@ -1458,6 +1458,10 @@
             <form id="uploadCourseSyllabiForm" method="POST" action="{{route('courses.storeFromSyllabi') }}" enctype="multipart/form-data">
                 @csrf
                 <div class="modal-body">
+
+                    <div id="uploadCourseSyllabiMessageDiv" class="alert alert-info">
+                    </div>
+
                     <div class="input-group">
                         <input type="hidden" class="form-check-input" name="user_id" value={{Auth::id()}}>
                         <input type="file" id="inputCourseSyllabiFiles" name="uploadedSyllabi[]" class="form-control"
@@ -1790,24 +1794,53 @@
             departmentChangeOperations('#department-course', '#department-text-course');
         });
 
-        $('#inputCourseSyllabiFiles').change(function() {
+        // Reset upload modal state when opening
+        $('#openUploadCourseSyllabiFile').on('click', function () {
+            $('#uploadCourseSyllabiMessageDiv')
+            .removeClass("alert-danger")
+            .addClass("alert-info")
+            .html(`Each file size should be less than <strong>{{ ini_get('upload_max_filesize') }}B</strong>.`);
+            $('#uploadedCourseSyllabiList').empty();
+            $('#inputCourseSyllabiFiles').val('');
+            $('#uploadSyllabiForCourseCreation').prop('disabled', true);
+        });
+
+        // Handle file selection and validation
+        $('#inputCourseSyllabiFiles').on('change', function () {
+            const maxSize = 2 * 1024 * 1024; // 2MB
             const filesToBeUploaded = $(this)[0].files;
-            const $listOfSelectedFiles = $("#uploadedCourseSyllabiList");
-            $listOfSelectedFiles.empty();
+            const listOfSelectedFiles = $('#uploadedCourseSyllabiList');
+            let valid = true;
 
-            if (filesToBeUploaded.length === 0) return;
+            listOfSelectedFiles.empty();
+            $('#uploadCourseSyllabiMessageDiv')
+            .removeClass("alert-danger")
+            .addClass("alert-info")
+            .html(`Each file size should be less than <strong>{{ ini_get('upload_max_filesize') }}B</strong>.`);
 
-            $('#uploadSyllabiForCourseCreation').prop('disabled', false);
+            if (filesToBeUploaded.length === 0) {
+                $('#uploadSyllabiForCourseCreation').prop('disabled', true);
+                return;
+            }
 
             for (let i = 0; i < filesToBeUploaded.length; i++) {
                 const uploadedFile = filesToBeUploaded[i];
+                if (uploadedFile.size > maxSize) valid = false;
                 const fileName = uploadedFile.name;
                 const listItem = `
                         <li class="d-flex justify-content-between">
                           ${fileName}
                         </li>`;
-                $listOfSelectedFiles.append(listItem);
+                listOfSelectedFiles.append(listItem);
             }
+
+            if (!valid) {
+            $('#uploadCourseSyllabiMessageDiv')
+                .removeClass("alert-info")
+                .addClass("alert-danger")
+                .html("At least one uploaded file exceeds the allowed size ({{ ini_get('upload_max_filesize') }}B).");
+            }
+            $('#uploadSyllabiForCourseCreation').prop('disabled', !valid);
         });
 
     });

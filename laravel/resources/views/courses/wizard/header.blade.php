@@ -409,7 +409,7 @@
                 <tbody>
                     <tr>
 
-                        <td><a class="btn @if (Route::current()->getName() == 'courseWizard.step8') btn-primary @else @if (strlen($course->courseDescription) < 1) btn-secondary @else btn-success @endif @endif" href="{{route('courseWizard.step8', $course->course_id)}}" style="width: 30px; height: 30px; padding: 6px 0px; border-radius: 15px; text-align: center; font-size: 12px; line-height: 1.42857;">
+                        <td><a class="btn @if (Route::current()->getName() == 'courseWizard.step8') btn-primary @else @if (strlen($courseDescription) < 1) btn-secondary @else btn-success @endif @endif" href="{{route('courseWizard.step8', $course->course_id)}}" style="width: 30px; height: 30px; padding: 6px 0px; border-radius: 15px; text-align: center; font-size: 12px; line-height: 1.42857;">
                                 <b>1</b> </a></td>
                         <td><a class="btn @if (Route::current()->getName() == 'courseWizard.step1') btn-primary @else @if ($course->learningOutcomes->count() < 1) btn-secondary @else btn-success @endif @endif" href="{{route('courseWizard.step1', $course->course_id)}}" style="width: 30px; height: 30px; padding: 6px 0px; border-radius: 15px; text-align: center; font-size: 12px; line-height: 1.42857;">
                                 <b>2</b> </a></td>

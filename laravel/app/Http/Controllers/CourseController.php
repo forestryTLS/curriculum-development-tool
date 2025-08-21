@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Helpers\RoleAssignmentHelpers;
 use App\Jobs\ProcessCourseSyllabiFile;
-use App\Mail\NotifyInstructorForMappingMail;
+use App\Mail\CourseCreationFromUploadedFilesNotification;
 use App\Mail\NotifyNewCourseInstructorMail;
 use App\Mail\NotifyNewUserAndInstructorMail;
 use App\Models\AssessmentMethod;
@@ -19,6 +19,7 @@ use App\Models\FacultyCourseCodes;
 use App\Models\ProgramUserRole;
 use App\Models\Role;
 use Illuminate\Support\Facades\App;
+use Illuminate\Support\Facades\Bus;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Color;
 use PhpOffice\PhpSpreadsheet\Style\Conditional;
@@ -57,6 +58,7 @@ use PDF;
 use Throwable;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Http;
+
 
 
 
@@ -262,7 +264,7 @@ class CourseController extends Controller
                 $request->session()->flash('error', 'There was an error adding the course');
             }
 
-            return redirect()->route('courseWizard.step1', $course->course_id)->with('errorMessages', $errorMessages);
+            return redirect()->route('courseWizard.step8', $course->course_id)->with('errorMessages', $errorMessages);
         }
 
     }
@@ -1031,7 +1033,7 @@ class CourseController extends Controller
         // disables button on the front end to allow user to notify Instructor more then once
         CourseProgram::where('course_id', $course_id)->where('program_id', $request->input('program_id'))->update(['map_status' => 1]);
 
-        Mail::to($course_owner->email)->send(new NotifyInstructorForMappingMail($program->program, $program_owner->name, $course->course_code, $course->course_num, $course->course_title, $required));
+        Mail::to($course_owner->email)->send(new CourseCreationFromUploadedFilesNotification($program->program, $program_owner->name, $course->course_code, $course->course_num, $course->course_title, $required));
         if (! count(Mail::failures()) > 0) {
             $request->session()->flash('success', $course_owner->name.' has been asked to map their course to your program');
         } else {
@@ -1977,6 +1979,8 @@ private function makeOutcomeMapSheetData(Spreadsheet $spreadsheet, int $courseId
 
         if($request->hasFile('uploadedSyllabi'))
         {
+            $fileProcessJobs = [];
+
             foreach($files as $file) {
                 if ($file->isValid()) {
                     $path = $file->store('courseSyllabi');
@@ -1987,12 +1991,24 @@ private function makeOutcomeMapSheetData(Spreadsheet $spreadsheet, int $courseId
 
                     $courseFileId = $courseFile->id;
                     $userId = $request->input('user_id');
-                    ProcessCourseSyllabiFile::dispatch($courseFileId, $userId);
+                    $fileProcessJobs[] = new ProcessCourseSyllabiFile($courseFileId, $userId);
 
                 } else{
                     $errorMessages->add($file->getClientOriginalName() . ' failed to upload.');
                 }
             }
+
+            $user = User::find(Auth::id());
+
+            Bus::batch($fileProcessJobs)->finally(function ($batch) use ($user) {
+                    $total  = $batch->totalJobs;
+                    $unsuccessfulCreations = $batch->failedJobs;
+                    $successfulCreations = $total - $unsuccessfulCreations;
+
+                    // Send email to user
+                    Mail::to($user->email)->send(new CourseCreationFromUploadedFilesNotification($successfulCreations, $unsuccessfulCreations, $user->name));
+                })->dispatch();
+
         } else {
             $errorMessages->add('No File was uploaded!');
         }
