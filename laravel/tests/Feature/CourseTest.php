@@ -54,7 +54,7 @@ class CourseTest extends TestCase
 
         $course = Course::where('course_title', 'Intro to Unit Testing')->orderBy('course_id', 'DESC')->first();
 
-        $response->assertRedirect('/courseWizard/'.($course->course_id).'/step1');
+        $response->assertRedirect('/courseWizard/'.($course->course_id).'/step8');
 
         $this->assertDatabaseHas('courses', [
             'course_title' => 'Intro to Unit Testing',

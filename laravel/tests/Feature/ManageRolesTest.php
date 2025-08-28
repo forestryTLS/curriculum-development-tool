@@ -50,7 +50,7 @@ class ManageRolesTest extends TestCase
 
         $course = Course::where('course_title', 'Intro to Unit Testing')->orderBy('course_id', 'DESC')->first();
 
-        $response->assertRedirect('/courseWizard/'.($course->course_id).'/step1');
+        $response->assertRedirect('/courseWizard/'.($course->course_id).'/step8');
 
         $response = $this->actingAs($adminUser)->post(route('programs.store'), [
             'program' => 'Bachelor of Testing',
@@ -143,7 +143,7 @@ class ManageRolesTest extends TestCase
 
         $course = Course::where('course_title', 'Test Course')->orderBy('course_id', 'DESC')->first();
 
-        $response->assertRedirect('/courseWizard/'.($course->course_id).'/step1');
+        $response->assertRedirect('/courseWizard/'.($course->course_id).'/step8');
 
 
         $this->assertDatabaseHas('course_user_role', [
@@ -219,7 +219,7 @@ class ManageRolesTest extends TestCase
         $course = Course::where('course_title', 'Forestry Testing Course')->orderBy('course_id', 'DESC')->first();
 
 
-        $response->assertRedirect('/courseWizard/'.($course->course_id).'/step1');
+        $response->assertRedirect('/courseWizard/'.($course->course_id).'/step8');
 
         $programDirectorRoleId = Role::where('role', 'program director')->first()->id;
 
