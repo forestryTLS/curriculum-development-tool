@@ -53,12 +53,13 @@ def get_course_from_text_file(filePath: str, originalFileName: str) -> dict:
     course["title"] = get_course_title(doc, course["code"], str(course["number"]), doc_without_header)
     term_of_offering = find_term_of_offering(doc, originalFileName)
     if term_of_offering is not None:
-        course["term"] = get_encoded_term_of_offering(term_of_offering[0])
-        
+        course["term"] = get_encoded_term_of_offering(term_of_offering[0])        
         # If year is not found or is not a valid integer, default to current year
         try:
             course["year"] = int(term_of_offering[1])
         except ValueError:
+            course["year"] = datetime.now().year
+        except TypeError:
             course["year"] = datetime.now().year
     else:
         course["term"] = get_encoded_term_of_offering(term_of_offering)
@@ -160,6 +161,8 @@ def get_course_number(course: str| None) -> int:
         try:
             return int(match.group(1))
         except ValueError:
+            return 999
+        except TypeError:
             return 999
     return 999
 
@@ -703,6 +706,8 @@ def get_level_of_study(courseNumber: int) -> str:
         return "Graduate"
     except ValueError:
         return "Undergraduate"
+    except TypeError:
+        return "Undergraduate"
 
 
 def remove_stopwords(line: str) -> str:
@@ -919,7 +924,7 @@ def clean_assessment_and_weights(allMatches: list[tuple[str, str]])->list[tuple[
         remove_new_lines.append((label.strip(), percent))
     return remove_new_lines
 
-def get_assessment_weight_from_table(tables: pymupdf.TableFinder) -> list[tuple[str, str]] | None:
+def get_assessment_weight_from_table(tables: pymupdf.table.TableFinder) -> list[tuple[str, str]] | None:
     """Returns assessment methods along with their corresponding weightage, given the tables of the course syllabus"""
     
     assessment_name_col_heading = {"item", "assessment", "graded activities", "component", "activity", "assignment",
@@ -1053,5 +1058,7 @@ def encode_assessment_and_weight(assessment_and_weights: list[tuple[str, str]]) 
                 encodedWeight = float(match.group()) if "." in match.group() else int(match.group())
                 encodedAssessmentNWeight.append((assessmentName, encodedWeight))
             except ValueError:
+                continue
+            except TypeError:
                 continue
     return encodedAssessmentNWeight
