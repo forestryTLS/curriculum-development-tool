@@ -57,23 +57,24 @@ class ProcessCourseSyllabiFile implements ShouldQueue
         } catch (\Exception $e) {
             // handle any other exception
             Log::error('Error in parsing file ' . $e->getMessage());
-            return;
+            throw $e;
 
         }
 
         if($response->failed()){
             Log::error('Error in creating course from ' . $courseFile->file_name . ': ' . $response->body());
-            return;
+            throw new \Exception('Error in creating course from ' . $courseFile->file_name);
         }
 
         // Decode the response to get the course object
-        $courseObject = json_decode($response->body());
+        $response = json_decode($response->body());
 
-        if($courseObject->status !='success'){
-            Log::error('Error in creating course from ' . $courseFile->file_name . ': ' . $courseObject->message);
-            return;
+        if($response->status !='success'){
+            Log::error('Error in creating course from ' . $courseFile->file_name . ': ' . $response->message);
+            throw new \Exception('Error in creating course from ' . $courseFile->file_name);
         }
         // TO DO: CHANGE AFTER API CALL
+        $courseObject = $response->data;
         $course = new Course();
         $course->course_code = $courseObject->code;
         $course->course_num = $courseObject->number;
@@ -132,7 +133,7 @@ class ProcessCourseSyllabiFile implements ShouldQueue
         if ($courseUser->save()) {
 
         } else {
-            Log::error('Error in creating course from ' . $courseFile->file_name);
+            Log::error('Error in creating course user for ' . $courseFile->file_name);
         }
     }
 }

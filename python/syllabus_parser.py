@@ -27,24 +27,24 @@ learning_goals_starting_words = ('demonstrate', 'develop', 'conduct', 'describe'
 
 only_bullet_pattern = re.compile(r"^([(]?\d+(\.\d+)*[.)]?|[•\-–*¢●]|\([a-zA-Z]\))\s*")
 
-course = {
-    "code": "",
-    "number": 0,
-    "title": "",
-    "term": "",
-    "year": 0,
-    "level": "",
-    "description": "",
-    "goals": [],
-    "assessments": [],
-}
 
-
-def get_course_from_text_file(filePath, originalFileName):
+def get_course_from_text_file(filePath: str, originalFileName: str) -> dict:
     try:
         doc = pymupdf.open(filePath)
     except Exception as e:
         raise Exception(f"Error opening file {filePath}: {str(e)}")
+    
+    course = {
+            "code": "",
+            "number": 0,
+            "title": "",
+            "term": "",
+            "year": 0,
+            "level": "",
+            "description": "",
+            "goals": [],
+            "assessments": [],
+    }
     
     doc_without_header = remove_header_and_footer(doc)
     code_and_number = find_course_code_and_number(doc, originalFileName)
@@ -54,6 +54,8 @@ def get_course_from_text_file(filePath, originalFileName):
     term_of_offering = find_term_of_offering(doc, originalFileName)
     if term_of_offering is not None:
         course["term"] = get_encoded_term_of_offering(term_of_offering[0])
+        
+        # If year is not found or is not a valid integer, default to current year
         try:
             course["year"] = int(term_of_offering[1])
         except ValueError:
@@ -65,11 +67,11 @@ def get_course_from_text_file(filePath, originalFileName):
     course["description"] = get_course_description(doc_without_header)
     course["goals"] = get_learning_goals(doc_without_header)
     ass_and_weights = get_assessment_methods_and_weight(doc)
-    course["assessments"] = encode_ass_and_weight(ass_and_weights)
+    course["assessments"] = encode_assessment_and_weight(ass_and_weights)
     return course
 
 
-def get_course_code_from_file_name(fileName):
+def get_course_code_from_file_name(fileName: str) -> str:
     # partsOfPath = filePath.split("\\")
     partsOfPath = fileName.split("/")
     fileName = partsOfPath[len(partsOfPath) - 1]
@@ -88,8 +90,8 @@ def get_course_code_from_file_name(fileName):
 #     return tables
 
 
-def find_course_code_and_number(doc, originalFileName):
-    """Find the course code and number, given the path of file for the course syllabus and doc of the syllabus"""
+def find_course_code_and_number(doc: pymupdf.Document, originalFileName: str) -> str| None:
+    """Find the course code and number, given the name of file for the course syllabus and doc of the syllabus"""
     allCodesInFile = {}
     
     courseCodeFromFileName = get_course_code_from_file_name(originalFileName)
@@ -137,7 +139,7 @@ def find_course_code_and_number(doc, originalFileName):
     if len(coursesWithMaxOccurance) == 1:
         return coursesWithMaxOccurance[0]
     else:
-        # Find course that appears first in the text
+        # More than 1 course has no. of occrances = maxOccurance therefore, find course that appears first in the text in terms of position in the document
         courseCodeThatAppearsFirst = ""
         minPos = float("inf")
         for course in coursesWithMaxOccurance:
@@ -145,10 +147,9 @@ def find_course_code_and_number(doc, originalFileName):
                 courseCodeThatAppearsFirst = course
                 minPos = allCodesInFile[course]["pos"]
         return courseCodeThatAppearsFirst
-    return
 
 
-def get_course_number(course):
+def get_course_number(course: str| None) -> int:
     """Returns the course number, given string of course code and number
         If no course number found, returns 999"""
     # course = find_course_code_and_number(filePath)
@@ -163,7 +164,7 @@ def get_course_number(course):
     return 999
 
 
-def get_course_code(course):
+def get_course_code(course: str| None) -> str:
     """Returns the course code, given string of course code and number
         If no course code found, returns empty TEST"""
     # course = find_course_code_and_number(filePath)
@@ -183,20 +184,28 @@ def get_course_code(course):
             return "TEST"
 
 
-def find_table_get_title(page):
+def find_table_get_title(page: pymupdf.Page) -> str | None:
     """Returns course title if found in a table, given the page of the syllabus"""
     title_col_heading = {"course title"}
     tables = page.find_tables()
     if tables:
         for table in tables.tables:
             # print(table.header.names)
-            ass_table = table.extract()
+            ass_table = table.extract()   # ass_table: List[List[str]]
             # print(ass_table)
+            
+            # Filter out any sublists (rows) from ass_table where all items are None or empty strings, i.e. the row is empty
             cleaned_table = [sublist for sublist in ass_table if any(item not in (None, '') for item in sublist)]
+            
+            # From each sublist in cleaned_table, remove any items that are None or empty strings
             cleaned_nested_table = [[item for item in sublist if item not in (None, '')]
                                     for sublist in cleaned_table]
+            
+            # Find the first (index, value) in the first row of cleaned_nested_table (as the first row would contain headings of columns of the table) where the value is not None and its lowercase form appears in title_col_heading.
+            # If no such value is found, return None.
             name_match = next(((i, val) for i, val in enumerate(cleaned_nested_table[0]) if
                                val is not None and val.lower() in title_col_heading), None)
+            
             if name_match:
                 index_name_column = name_match[0]
                 # print(index_name_column)
@@ -207,7 +216,7 @@ def find_table_get_title(page):
                     return None
 
 
-def get_course_title(doc, code, number, doc_without_header):
+def get_course_title(doc: pymupdf.Document, code: str, number: str, doc_without_header: list[str])-> str:
     """Returns the course title, given doc of the syllabus, course code and course number """
 
     courseCode = code + " " + number
@@ -240,7 +249,10 @@ def get_course_title(doc, code, number, doc_without_header):
     
     for page_text in doc_without_header:
         lines = page_text.split('\n')
+        
+        # Get the first non-empty line that is not just a number and strip any leading/trailing whitespace, or set to an empty string if no such line exists
         firstLine = next((line for line in lines if line.strip() and not line.strip().isnumeric()), "").strip()
+        
         if len(firstLine) < 1:
             #Fallback to course code and number if no title found
             firstLine = courseCode
@@ -251,7 +263,7 @@ def get_course_title(doc, code, number, doc_without_header):
 
     maxOccurance = max(allTitlesInFile.values())
 
-    coursesWithMaxOccurance = []
+    coursesWithMaxOccurance = [] # list of titles with maximum occurances, excluding those with 'code', 'section' or 'number' in them
     for key, value in allTitlesInFile.items():
         count = 0
         for word in ("code", "section", "number"):
@@ -267,13 +279,15 @@ def get_course_title(doc, code, number, doc_without_header):
 
     if len(coursesWithMaxOccurance) >= 1:
         title = coursesWithMaxOccurance[0]
+        # filter out titles that are just course code and number
         replacements = [code, number, '\n']
         for item in replacements:
             title = title.replace(item, "")
         title = title.translate(str.maketrans('', '', string.punctuation))
         if title.lower().strip() in ("course code number", "course code"):
-            return code + " " + number
+            return courseCode
         title = title.strip()
+        # Remove leading dash if present in cases where titles are of the form "CODE NUMBER - TITLE"
         if title.startswith("–"):
             title = title[1:]
         if title == "":
@@ -282,7 +296,7 @@ def get_course_title(doc, code, number, doc_without_header):
     return firstLine
 
 
-def get_term_and_year_from_regex(year, match):
+def get_term_and_year_from_regex(year: str|None, match: re.Match) -> tuple[str, str|None] | str:
     """Returns the term and year, given the regex match and year if found in the match"""
     term_patterns = [
         (r'(fall|w1|winter[\s_]?term[\s_]?1|term[\s_]?1)', "Winter Term 1"),
@@ -300,7 +314,7 @@ def get_term_and_year_from_regex(year, match):
 
 
 
-def find_term_of_offering(doc,filePath):
+def find_term_of_offering(doc: pymupdf.Document, filePath: str)-> tuple[str, str| None] | None:
     """Finds the term of offering and year, given the doc of the syllabus and file path"""
     
     term_regex = re.compile(
@@ -324,6 +338,7 @@ def find_term_of_offering(doc,filePath):
         'December': ['December', 'Dec']
     }
 
+    # Compile regex patterns for each month variant and store them in a dictionary with full month names as keys
     month_regexes = {
         month: re.compile(r'\b(?:' + '|'.join(variants) + r')\b')
         for month, variants in month_variants.items()
@@ -348,7 +363,8 @@ def find_term_of_offering(doc,filePath):
     # Check in the file
     for page in doc:
         listOfText = page.get_text("text")
-
+        
+        # Check for term and year pattern in the text of the page
         match = term_regex.search(listOfText)
         if match:
             year = re.search(r'(20\d{2})', match.group(1), re.IGNORECASE)
@@ -358,12 +374,14 @@ def find_term_of_offering(doc,filePath):
             else:
                 term_found = get_term_and_year_from_regex(None, match)
 
+        # Count occurrences of each month in the text of the page for determining term
         for month, regex in month_regexes.items():
             if month in month_counts:
                 month_counts[month] += len(regex.findall(listOfText))
             else:
                 month_counts[month] = len(regex.findall(listOfText))
 
+        # Count occurrences of each year in the text of the page for determining year
         years = re.findall(r'(20\d{2})', listOfText)
         for year in years:
             if year in year_counts:
@@ -379,6 +397,7 @@ def find_term_of_offering(doc,filePath):
             monthWithMaxOccurance = key
             break
 
+    # Check for year in filename, if not found, use the year with maximum occurances in the text        
     yearMatch = re.search(r'(20\d{2})', fileName)
     if yearMatch:
         final_year = yearMatch.group(1)
@@ -393,7 +412,7 @@ def find_term_of_offering(doc,filePath):
                 if value == yearMaxOccurance and final_year is None:
                     final_year = key
                     break
-
+                    
     if term_found and final_year:
         return (term_found, final_year)
 
@@ -403,6 +422,9 @@ def find_term_of_offering(doc,filePath):
             yearMaxOccurance = max(year_counts.values())
         else:
             yearMaxOccurance = None
+            
+        # If the year with maximum occurances is the final_year and the next year is not present in the text, then decrement the final_year by 1 since a course offered in Jan-April 2024 is likely to be
+        # part of Winter Term 2 of the academic year 2023
         if final_year in year_counts.keys() and year_counts[final_year] == yearMaxOccurance and maxOccurance > 0 and \
                 (str(int(final_year) + 1) not in year_counts.keys()):
             final_year = str(int(final_year) - 1)
@@ -417,9 +439,11 @@ def find_term_of_offering(doc,filePath):
         return None
 
 
-def get_encoded_term_of_offering(term):
-    """Returns the encoded term of offering for mapping tool, given the term of offering"""
-    termWithCode = {"Winter Term 2": "W2", "Winter Term 1": "W1", "Summer Term 1": "S1", "Summer Term 2": "S2"} 
+def get_encoded_term_of_offering(term: str| None) -> str:
+    """Returns the encoded term of offering for mapping tool, given the term of offering, otherwise returns the term based on current month"""
+    
+    termWithCode = {"Winter Term 2": "W2", "Winter Term 1": "W1", "Summer Term 1": "S1", "Summer Term 2": "S2"}
+    
     if term in termWithCode:
         return termWithCode[term]
     else:
@@ -434,7 +458,7 @@ def get_encoded_term_of_offering(term):
             return "S2"
     
 
-def normalize_header_footer(text):
+def normalize_header_footer(text: str) -> str:
     """Normalize only if text looks like a page number/footer."""
     patterns = [
         r'Page\s+\d+',              # "Page 12"
@@ -450,9 +474,9 @@ def normalize_header_footer(text):
             return re.sub(r'\d+', '<NUM>', text)
     return text
 
-def remove_header_and_footer(filePath):
-    """Identifies and removes header and footer from the text document"""
-    doc = pymupdf.open(filePath)
+def remove_header_and_footer(doc: pymupdf.Document)-> list[str]:
+    """Identifies and removes header and footer from the text document. The top 10% and bottom 10% of each page are considered for header and footer detection."""
+    
     top_texts = defaultdict(int)
     bottom_texts = defaultdict(int)
 
@@ -488,15 +512,14 @@ def remove_header_and_footer(filePath):
     for page in pages:
         page_text = []
         for block in page:
-            if block[0] not in header_candidates and block[0] not in footer_candidates and \
-                    block[1] not in header_candidates and block[1] not in footer_candidates:
+            if block[1] not in header_candidates and block[1] not in footer_candidates:
                 page_text.append(block[0])
         cleaned_pages.append("\n".join(page_text))
 
     return cleaned_pages
 
 
-def get_bullet_type(line):
+def get_bullet_type(line: str) -> str | None:
     """Identifies and returns the type of bullet in a line"""
     match = re.match(only_bullet_pattern, line)
     if match:
@@ -504,7 +527,7 @@ def get_bullet_type(line):
     return None
 
 
-def is_bullet_patterns_matching(pattern1, pattern2):
+def is_bullet_patterns_matching(pattern1: str| None, pattern2: str| None)-> bool:
     """Returns True if the two given bullet patterns are of the same type, otherwise False"""
     match1 = re.match(only_bullet_pattern, pattern1)
     match2 = re.match(only_bullet_pattern, pattern2)
@@ -514,12 +537,15 @@ def is_bullet_patterns_matching(pattern1, pattern2):
 
     bullet1 = match1.group(1)
     bullet2 = match2.group(1)
+    
+    digit_bullet_pattern = re.compile(r"[(]?\d+(\.\d+)*[.)]?")
+    possible_bullets = "•-–*¢●"
 
-    if re.match(r"[(]?\d+(?:\.\d+)*[.)]?", bullet1) and re.match(r"[(]?\d+(?:\.\d+)*[.)]?", bullet2):
+    if re.match(digit_bullet_pattern, bullet1) and re.match(digit_bullet_pattern, bullet2):
         return bullet1.count('.') == bullet2.count('.')
-    elif bullet1 in "•-–*¢●" and bullet2 in "•-–*¢●":
+    elif bullet1 in possible_bullets and bullet2 in possible_bullets:
         return bullet1 == bullet2
-    elif "(" in bullet1 and "(" in bullet2:
+    elif "(" in bullet1 and "(" in bullet2: # checking if both are of the form (a) or (1)
         mid1 = ""
         mid2 = ""
         if len(bullet1) >= 2:
@@ -537,7 +563,7 @@ def is_only_bullet(currItem):
     return bool(re.fullmatch(only_bullet_pattern, currItem))
 
 
-def is_learning_goals_complete(line, goals, currentItem, bullet_pattern, currIndex, lines, objective_pattern):
+def is_learning_goals_complete(line: str, goals: list[str], currentItem: str, bullet_pattern: re.Pattern[str], currIndex: int, lines: list[str], objective_pattern: str):
     """Returns true if learning goals section is complete, otherwise False
     
     parameters:
@@ -548,6 +574,15 @@ def is_learning_goals_complete(line, goals, currentItem, bullet_pattern, currInd
         currIndex: index of current line in the list of lines
         lines: list of all lines in the document
         objective_pattern: pattern of bullet used in learning goals section
+    
+    The learning goals section is considered complete if:
+    - the current line is in uppercase or title case or is empty, and
+    - there are at least 2 learning goals found so far, or the current learning goal being processed has more than 5 characters, and
+    - the current line does not contain a bullet, and
+    - the current line does not start with any of the common starting words for learning goals, and
+    - the next line (if exists) does not start with any of the common starting words for learning goals, and    
+    - the next line (if exists) does not contain bullet and the next line's bullet pattern does not match the objective_pattern i.e. the bullet pattern of the learning goals 
+    
     """
     return (line.isupper() or line.istitle() or line == "") and (len(goals) > 1 or (currentItem and len(currentItem) > 5)) \
            and not bullet_pattern.match(line) and not line.strip().lower().startswith(learning_goals_starting_words) \
@@ -556,7 +591,7 @@ def is_learning_goals_complete(line, goals, currentItem, bullet_pattern, currInd
                                                        is_bullet_patterns_matching(objective_pattern, get_bullet_type(lines[currIndex + 1])))))
 
 
-def get_learning_goals(doc):
+def get_learning_goals(doc: list[str]) -> list[str]:
     """Returns a list of learning goals, given the doc of syllabus without header and footer"""
     
     goals = []
@@ -573,7 +608,11 @@ def get_learning_goals(doc):
                          "learning outcomes/ objectives", "after completing this course you will be able to:",
                          "learning objectives and outcomes:", "learning outcomes: wood mechanics",
                          "course learning outcomes:", "academic objectives:"}
-    prefixes = ("", "be able to", "will be able to", "be", "students will be able to")
+    
+    # Prefixes with which learning goals may start, helpful when there are no bullets
+    prefixes = ("", "be able to", "will be able to", "be", "students will be able to")    
+    
+    # Characters that if a learning goal ends with, then it marks the end of that learning goal. Helpful when there are no bullets
     ending_chars = (";")
 
     bullet_pattern = re.compile(r"""^((?!\d+/\d+)([(]?\d+(\.\d+)*[.)]?)|[•\-–*¢●]|\([a-zA-Z]\))\s*.*""", re.VERBOSE)
@@ -618,16 +657,14 @@ def get_learning_goals(doc):
                     if is_bullet_patterns_matching(objective_pattern, get_bullet_type(line)):
                         currentItem = line
                         patternFound = True
-                    elif len(goals) < 2 and (len(goals) > 0 and is_only_bullet(goals[0]) and \
-                                             not is_bullet_patterns_matching(objective_pattern, get_bullet_type(line))):
+                    elif len(goals) < 2 and (len(goals) > 0 and is_only_bullet(goals[0]) and not is_bullet_patterns_matching(objective_pattern, get_bullet_type(line))):
                         objective_pattern = get_bullet_type(line)
                     else:
                         break
                 elif patternFound and line:
                     currentItem = currentItem + " " + line
-                elif any(clean_line.split()[:len((f"{prefix} {word}").strip().split())] == (
-                        f"{prefix} {word}").strip().lower().split() for prefix in prefixes
-                         for word in learning_goals_starting_words):
+                elif any(clean_line.split()[:len((f"{prefix} {word}").strip().split())] == (f"{prefix} {word}").strip().lower().split() for prefix in prefixes
+                         for word in learning_goals_starting_words): # If cleaned line starts with any of the combinations of prefixes and learning_goals_starting_words, then it is a learning goal
                     if currentItem:
                         goals.append(currentItem)
                     currentItem = line
@@ -644,7 +681,7 @@ def get_learning_goals(doc):
         goals.append(currentItem.strip())
         currentItem = ""
 
-    finalGoals = [only_bullet_pattern.sub("", goal) for goal in goals]
+    finalGoals = [only_bullet_pattern.sub("", goal) for goal in goals] # Remove any leading bullets from the learning goals
 
     # Comment this out if you don't want to see the learning goals printed
     # for goal in finalGoals:
@@ -653,25 +690,32 @@ def get_learning_goals(doc):
     return finalGoals
 
 
-def get_level_of_study(courseNumber):
-    """Returns course level of study undergraduate or graduate, given course number"""
+def get_level_of_study(courseNumber: int) -> str:
+    """Returns course level of study undergraduate or graduate, given course number. Course withe course numbers in range [100, 499] are undergraduate courses, otherwise graduate.
+        By default the level is undergraduate"""
+    
     # courseNumber = get_course_number(filePath)
-    numInt = int(courseNumber)
-    if numInt < 500:
+    
+    try:
+        numInt = int(courseNumber)
+        if numInt < 500:
+            return "Undergraduate"
+        return "Graduate"
+    except ValueError:
         return "Undergraduate"
-    return "Graduate"
 
 
-def remove_stopwords(line):
+def remove_stopwords(line: str) -> str:
     stop_words = set(stopwords.words('english'))
     words = re.findall(r'\b\w+\b', line)
     filtered_words = [word for word in words if word.lower() not in stop_words]
     return ' '.join(filtered_words)
 
 
-def is_heading(line, onlyUpper, containsBullet, bulletPattern):
+def is_heading(line: str, onlyUpper: bool, containsBullet: bool, bulletPattern: str) -> bool:
     """Returns true if a line is a heading, otherwise False"""
 
+    # These following headings are generally a part of course description and should not be considered as headings for the purpose of stopping extraction of course description
     part_of_description_headings = {"rationale", "objectives", "target audience", "objective",
                                     "prerequisite:", "description:"}
 
@@ -680,12 +724,15 @@ def is_heading(line, onlyUpper, containsBullet, bulletPattern):
     if line.lower() in part_of_description_headings or removed_punctuation.lower() in \
             part_of_description_headings:
         return False
-    if re.match(r'[A-Z]{4}[ ]?\d{3}', line):
+    if re.match(r'[A-Z]{4}[ ]?\d{3}', line): # To avoid lines that are just course codes
         return False
 
-    headings = {"academic objectives", "learning outcomes"}
-    only_bullet_pattern = re.compile(r"^(\d+(\.\d+)*[.)]?|[•\-–*¢●]|\([a-zA-Z]\))\s*")
+    # General headings that follow the course description section, and at which point the extraction of course description should stop
+    headings = {"academic objectives", "learning outcomes"} # Can add more if needed
+    
+    #only_bullet_pattern = re.compile(r"^(\d+(\.\d+)*[.)]?|[•\-–*¢●]|\([a-zA-Z]\))\s*")
 
+    # Check if given line starts with a bullet if containsBullet is True, and if the bullet pattern of given line matches bulletPattern, then this is a heading for next section 
     if containsBullet and re.search(only_bullet_pattern, line):
         bullet = get_bullet_type(line)
         if is_bullet_patterns_matching(bullet, bulletPattern):
@@ -704,8 +751,9 @@ def is_heading(line, onlyUpper, containsBullet, bulletPattern):
     return False
 
 
-def get_course_description(doc):
+def get_course_description(doc: list[str]) -> str:
     """Returns the text for the course description section, given the doc of syllabus without header and footer"""
+    
     # doc = remove_header_and_footer(filePath)
     description = ""
     headingFound = False
@@ -717,13 +765,14 @@ def get_course_description(doc):
     headingLine = ""
 
     bullet_pattern = re.compile(r"^(\d+(\.\d+)*[.)]?|[•\-–*¢●]|\([a-zA-Z]\))\s*.*")
-    only_bullet_pattern = re.compile(r"^(\d+(\.\d+)*[.)]?|[•\-–*¢●]|\([a-zA-Z]\))\s*")
+    # only_bullet_pattern = re.compile(r"^(\d+(\.\d+)*[.)]?|[•\-–*¢●]|\([a-zA-Z]\))\s*")
 
     expected_headings = {"course description", "course overview", "course structure", "why does this course matter?",
                          "course summary:", "course overview, content and objectives",
                          "course description – the big questions", "course description:", "course background",
                          "short description:", "course format:", "overview:", "course objective:", "course summary",
                          "course information:", "description"}
+    
     for page in doc:
         if terminateFunction:
             break
@@ -733,6 +782,7 @@ def get_course_description(doc):
         while i < len(lines):
             line = lines[i].strip()
 
+            # Checks if line starts with a bullet if heading not found yet, and removes the bullet for further processing and sets containsBullet to True to help in heading detection
             if not headingFound and bullet_pattern.match(line):
                 if re.search(only_bullet_pattern, line):
                     bulletType = get_bullet_type(line)
@@ -741,9 +791,10 @@ def get_course_description(doc):
 
             removed_punctuation = line.replace(":", "")
 
-            if not headingFound and (
-                    line.lower() in expected_headings or removed_punctuation.lower() in expected_headings):
+            if not headingFound and (line.lower() in expected_headings or removed_punctuation.lower() in expected_headings):
                 headingFound = True
+                
+                # Check if the heading is in all uppercase to help in heading detection
                 if line.isupper():
                     onlyUpperHeading = True
                 i = i + 1
@@ -756,10 +807,9 @@ def get_course_description(doc):
             if headingFound:
                 if is_heading(line, onlyUpperHeading, containsBullet, bulletType):
                     headingFound = False
-                    if len(description) > 15:  # Threshold for description
+                    if len(description) > 15:  # Threshold for minimum length of description section
                         terminateFunction = True
                         break
-
 
                 else:
                     description = description + " \n" + line
@@ -771,18 +821,20 @@ def get_course_description(doc):
     return cleaned_desc
 
 
-def clean_and_validate_ass_weight_match(matches):
+def clean_and_validate_assessment_weight_match(matches: list[tuple[str, str]]) -> list[tuple[str, str]]:
     """Returns True if number of components in and percentages in the given list of matches is same, removes components
     which are all in caps assuming that are headings"""
+    
     comps = []
     percs = []
     if len(matches) == 1:
         for comp_text, perc_text in matches:  # unpack each tuple inside the loop
+            
             comps.extend([c for c in comp_text.split('\n') if not c.isupper()])
             percs.extend(perc_text.split('\n'))
     else:
         for comp_text, perc_text in matches:  # unpack each tuple inside the loop
-            comps.extend([comp_text.split('\n')[-1]])
+            comps.extend([comp_text.split('\n')[-1]]) # only take the last line of component text assuming that is the actual component
             percs.extend(perc_text.split('\n'))
 
     # Check if number of components equals number of percentages
@@ -792,12 +844,23 @@ def clean_and_validate_ass_weight_match(matches):
         return False
 
 
-def get_ass_and_weight_separated_in_different_lines(lowerListOfText):
+def get_assessment_and_weight_separated_in_different_lines(lowerListOfText: str) -> list[tuple[str, str]]:
+    '''Returns list of tuples of assessment methods and their corresponding weightage, given the text of the syllabus where components and percentages are in different lines
+    This is to identify cases where components and percentages are in different lines but in the same section of the syllabus like below:
+    Components
+    Assignment 1
+    Assignment 2
+    Midterm
+    Percentage
+    10%
+    10%
+    30%
+    '''
     lines = [line.strip() for line in lowerListOfText.split('\n') if line.strip() != '']
     # Find indexes of the headings "component" and "percentage"
     try:
-        comp_idx = next(i for i, line in enumerate(lines) if line.lower() in ("component", "components"))
-        perc_idx = next(i for i, line in enumerate(lines) if line.lower() in ("percentage", "points/marks"))
+        comp_idx = next(i for i, line in enumerate(lines) if line.lower() in ("component", "components")) # find index of first occurrence of "component" or "components"
+        perc_idx = next(i for i, line in enumerate(lines) if line.lower() in ("percentage", "points/marks")) # find index of first occurrence of "percentage" or "points/marks"
     except StopIteration:
         return []
 
@@ -818,7 +881,7 @@ def get_ass_and_weight_separated_in_different_lines(lowerListOfText):
     return ass_and_weight
 
 
-def clean_ass_and_weights(allMatches):
+def clean_assessment_and_weights(allMatches: list[tuple[str, str]])->list[tuple[str, str]]:
     """ Returns cleaned list of assessment and weight, involves removing unessential portions identified by cerain keywords,
     presence of letter grades, new lines"""
     
@@ -828,145 +891,167 @@ def clean_ass_and_weights(allMatches):
                         "your", "than", "pass"}
     grades = {"A", "A-", "B", "B-", "C", "C-", "D", "F (Fail)", "F"}
 
+    # Filter to only include elements of allMatches where no keyword from exclude_keywords appears in the assessment name. 
+    # If \n is present in the assessment name then check for keywords only in the last line after \n
     filtered = [item for item in allMatches if
-                not any(
-                    keyword in (item[0].split('\n')[-1].lower().split() if '\n' in item[0] else item[0].lower().split())
+                not any(keyword in (item[0].split('\n')[-1].lower().split() if '\n' in item[0] else item[0].lower().split())
                     for keyword in exclude_keywords)]
+    
+    # Also remove any entries that are equal to 100 in weight
     filtered = [item for item in filtered if item[1] != 100 and item[1] != "100"]
+    
     remove_new_lines = []
     for label, percent in filtered:
-        if label in grades:
+        if label in grades: # Some syllabi contain tables with letter grades and their corresponding percentage weight, which should be excluded
             continue
-        if len(label.strip()) < 3:
+        if len(label.strip()) < 3: # Exclude labels that are too short to be meaningful
             continue
-        if '\n' in label:
+        if '\n' in label: 
             if label.count('\n') == 1:
+                # If only one new line is present, then check if the portion before new line is in uppercase, if yes then remove it
                 before, after = label.split('\n', 1)
                 if before.strip().isupper():
                     label = after.strip()
-            else:
-                split_lines = label.split("\n")
+            else: 
+                # If multiple new lines are present, then keep only the portion after the last new line
+                split_lines = label.split("\n") 
                 label = split_lines[len(split_lines) - 1].strip()
         remove_new_lines.append((label.strip(), percent))
     return remove_new_lines
 
-def get_assessment_weight_from_table(tables):
+def get_assessment_weight_from_table(tables: pymupdf.TableFinder) -> list[tuple[str, str]] | None:
     """Returns assessment methods along with their corresponding weightage, given the tables of the course syllabus"""
     
-    ass_name_col_heading = {"item", "assessment", "graded activities", "component", "activity", "assignment",
+    assessment_name_col_heading = {"item", "assessment", "graded activities", "component", "activity", "assignment",
                             "category", "components", "module", "type", "grading component", "evaluations",
                             "learning assessment", "grade component", "graded activities/assignments",
                             "winter term I", "winter term II", "exams and problem sets"}
-    ass_mark_col_heading = {"mark", "percentage", "marks", "weight (%)", "weight", "% of final grade",
+    assessment_mark_col_heading = {"mark", "percentage", "marks", "weight (%)", "weight", "% of final grade",
                             "total weight", "percentage of final grade", "assignment weight", "%", "weighting",
                             "pts (/100)", "percent of final grade", "% final mark", "percent of grade", "grade weight"}
     
     for table in tables.tables:
-        ass_table = table.extract()
-        cleaned_table = [sublist for sublist in ass_table if any(item not in (None, '') for item in sublist)]
+        assessment_table = table.extract() #assessment_table is of type list 
+        
+        #Clean the table by removing empty rows i.e. rows where all elements are None or empty strings
+        cleaned_table = [sublist for sublist in assessment_table if any(item not in (None, '') for item in sublist)]
+        
+        # Further clean each row by removing None or empty string elements
         cleaned_nested_table = [[item for item in sublist if item not in (None, '')]
                                 for sublist in cleaned_table]
+        
+        # Identify the index of the assessment column
         name_match = next(((i, val) for i, val in enumerate(cleaned_nested_table[0]) if
-                                   val is not None and val.lower() in ass_name_col_heading), None)
+                                   val is not None and val.lower() in assessment_name_col_heading), None)
+        
+        # Identify the index of the mark/weight column
         mark_match = next(((i, val) for i, val in enumerate(cleaned_nested_table[0]) if
-                                   val is not None and val.lower() in ass_mark_col_heading), None)
+                                   val is not None and val.lower() in assessment_mark_col_heading), None)
+        
         if name_match and mark_match:
             index_name_column = name_match[0]
             index_mark_column = mark_match[0]
-            ass_table = cleaned_nested_table
-            ass_and_weight = []
-            for i in range(1, len(ass_table)):
-                #print("From Inside Loop", ass_and_weight)
+            assessment_table = cleaned_nested_table
+            assessment_and_weight = []
+            for i in range(1, len(assessment_table)):
+                #print("From Inside Loop", assessment_and_weight)
                 try:
-                    if (re.search('\d', ass_table[i][index_mark_column])):
-                            ass_and_weight.append(
-                                    (ass_table[i][index_name_column], ass_table[i][index_mark_column]))
+                    if (re.search('\d', assessment_table[i][index_mark_column])):
+                            assessment_and_weight.append((assessment_table[i][index_name_column], assessment_table[i][index_mark_column]))
                 except:
                     continue
 
-            if len(ass_and_weight) > 0:
+            if len(assessment_and_weight) > 0:
                 final_list = []
-                for tup in ass_and_weight:
-                    if "\n" in tup[0] or tup[1]:
+                for tup in assessment_and_weight:
+                    if "\n" in tup[0] or tup[1]: # If either assessment name or weight contains new line, split them and create pairs because they are likely to be separate assessments, otherwise keep the tuple as is
                         col1 = tup[0].split('\n')
                         col2 = tup[1].split('\n')
-                        final_list.extend(zip(col1, col2))
+                        final_list.extend(zip(col1, col2)) 
                     else:
                         final_list.append(tup)
 
-                ass_and_weight = final_list
+                assessment_and_weight = final_list
                 exclude_keywords = {"100"}
-                filtered = [item for item in ass_and_weight if
-                                    not any(keyword in item[1].lower() for keyword in exclude_keywords)]
+                
+                # Remove any entries that contain exclude keywords in assessment name or are equal to 100 in weight
+                filtered = [item for item in assessment_and_weight if not any(keyword in item[1].lower() for keyword in exclude_keywords)]
                 filtered = [item for item in filtered if item[1] != 100 and item[1] != "100"]
+
                 return filtered
     return None
 
 
 
-def get_assessment_methods_and_weight(doc):
+def get_assessment_methods_and_weight(doc: pymupdf.Document) -> list[tuple[str, str]]:
     """Returns assessment methods along with their corresponding weightage, given the path of file for the course syllabus"""
     # doc = pymupdf.open(filePath)
     
-    ass_and_weight = []
+    assessment_and_weight = []
     for page in doc:
         listOfText = page.get_text("text")
         # print(listOfText)
+        
+        # Find assessment and weight from tables first and return if found
         tables = page.find_tables()
         if tables:
-            ass_weight_from_tables = get_assessment_weight_from_table(tables)
-            if ass_weight_from_tables:
-                return ass_weight_from_tables
+            assessment_weight_from_tables = get_assessment_weight_from_table(tables)
+            if assessment_weight_from_tables:
+                return assessment_weight_from_tables
 
-        lines = listOfText.split('\n')
-        regex = re.compile(
-            r'(?P<label>[A-Z][\w\s\[\]\-/–():.&@%*=]*?)[:.…\s]*?(\d+(?:\.\d+)?)\s*(?:%|points|pts)(?=\s|$)')
-        regexWithBrackets = re.compile(r'^(?P<label>[A-Z][\w\s\[\]\-/–():.&%]*?)\s*\(\s*(?P<value>\d+)%\s*\)\s*$',
-                                       re.MULTILINE)
-        allMatches = re.findall(regex, listOfText)
+        # lines = listOfText.split('\n')
+        regex = re.compile(r'(?P<label>[A-Z][\w\s\[\]\-/–():.&@%*=]*?)[:.…\s]*?(\d+(?:\.\d+)?)\s*(?:%|points|pts)(?=\s|$)') # Matches patterns like "Midterm: 30%" or "Final Exam - 40 points"
+        regexWithBrackets = re.compile(r'^(?P<label>[A-Z][\w\s\[\]\-/–():.&%]*?)\s*\(\s*(?P<value>\d+)%\s*\)\s*$', re.MULTILINE) # Matches patterns like "Midterm (30%)" or "Final Exam (40%)"
+        allMatches = re.findall(regex, listOfText) 
         allMatchesWithBrackets = re.findall(regexWithBrackets, listOfText)
         results = []
+        
+        
         if len(allMatches) > 0:
-            is_sum_100 = sum(float(points) for ass, points in allMatches) >= 100
+            is_sum_100 = sum(float(points) for assessment, points in allMatches) >= 100
             if is_sum_100 and len(allMatches) > 1:
-                cleaned_ass = clean_ass_and_weights(allMatches)
-                if sum(float(points) for ass, points in cleaned_ass) >= 100:
-                    return cleaned_ass
+                cleaned_assessment = clean_assessment_and_weights(allMatches)
+                if sum(float(points) for assessment, points in cleaned_assessment) >= 100:
+                    return cleaned_assessment
                 else:
-                    ass_and_weight.extend(cleaned_ass)
+                    assessment_and_weight.extend(cleaned_assessment)
                     continue
 
-            if clean_and_validate_ass_weight_match(allMatches):
-                allMatches = clean_ass_and_weights(allMatches)
-                ass_and_weight.extend(allMatches)
+            if clean_and_validate_assessment_weight_match(allMatches):
+                allMatches = clean_assessment_and_weights(allMatches)
+                assessment_and_weight.extend(allMatches)
 
         if len(allMatchesWithBrackets) > 0:
-            is_sum_100 = sum(float(points) for ass, points in allMatchesWithBrackets) >= 100
+            is_sum_100 = sum(float(points) for assessment, points in allMatchesWithBrackets) >= 100
             if is_sum_100 and len(allMatchesWithBrackets) > 1:
-                cleaned_ass = clean_ass_and_weights(allMatchesWithBrackets)
-                if sum(float(points) for ass, points in cleaned_ass) >= 100:
-                    return cleaned_ass
+                cleaned_assessment = clean_assessment_and_weights(allMatchesWithBrackets)
+                if sum(float(points) for assessment, points in cleaned_assessment) >= 100:
+                    return cleaned_assessment
                 else:
-                    ass_and_weight.extend(cleaned_ass)
+                    assessment_and_weight.extend(cleaned_assessment)
                     continue
 
             # print(listOfText)
-            if clean_and_validate_ass_weight_match(allMatchesWithBrackets):
-                ass_and_weight.extend(allMatchesWithBrackets)
+            if clean_and_validate_assessment_weight_match(allMatchesWithBrackets):
+                assessment_and_weight.extend(allMatchesWithBrackets)
 
         lowerListOfText = listOfText.lower()
-        if len(ass_and_weight) == 0 and 'component' in lowerListOfText and 'percentage' in lowerListOfText:
-            ass_and_weight = get_ass_and_weight_separated_in_different_lines(lowerListOfText)
+        if len(assessment_and_weight) == 0 and 'component' in lowerListOfText and 'percentage' in lowerListOfText:
+            assessment_and_weight = get_assessment_and_weight_separated_in_different_lines(lowerListOfText)
             break
-    cleaned_ass = clean_ass_and_weights(ass_and_weight)
-    return cleaned_ass
+    cleaned_assessment = clean_assessment_and_weights(assessment_and_weight)
+    return cleaned_assessment
 
-def encode_ass_and_weight(ass_and_weights):
+def encode_assessment_and_weight(assessment_and_weights: list[tuple[str, str]]) -> list[tuple[str, int | float]]:
     """ Returns encoded assessments and weight lsit, where weights are either integer or float """
-    encodedAssNWeight = []
-    for assName, weight in ass_and_weights:
+    
+    encodedAssessmentNWeight = []
+    for assessmentName, weight in assessment_and_weights:
         match = re.search(r"\d+\.?\d*", weight)
         if match:
-            encodedWeight = float(match.group()) if "." in match.group() else int(match.group())
-            encodedAssNWeight.append((assName, encodedWeight))
-    return encodedAssNWeight
+            try:
+                encodedWeight = float(match.group()) if "." in match.group() else int(match.group())
+                encodedAssessmentNWeight.append((assessmentName, encodedWeight))
+            except ValueError:
+                continue
+    return encodedAssessmentNWeight

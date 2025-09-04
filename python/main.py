@@ -14,10 +14,9 @@ async def create_course_from_syllabi(request: CourseSyllabiFile):
     try:
         # print("Received request to create course from syllabi file")
         result = syllabus_parser.get_course_from_text_file(request.file_path, request.client_original_filename)
-        result["status"] = "success"
-        result["message"] = "Course parsed successfully"
+        response = {"status": "success", "data": result, "message": "Course created successfully"}
         # print("Result from syllabus_parser:", result)
-        return result
+        return response
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
