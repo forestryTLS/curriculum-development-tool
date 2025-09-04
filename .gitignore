@@ -16,4 +16,7 @@ laravel/resources/views/emails/
 laravel/public/*.xlsx
 laravel/storage/app/public
 laravel/storage/app/courseSyllabi
+python/my_v_env/
+python/.env
+python/*/__pycache__/
 python/__pycache__/
