@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Helpers\RoleAssignmentHelpers;
 use App\Jobs\ProcessCourseSyllabiFile;
 use App\Mail\CourseCreationFromUploadedFilesNotification;
+use App\Mail\NotifyInstructorForMappingMail;
 use App\Mail\NotifyNewCourseInstructorMail;
 use App\Mail\NotifyNewUserAndInstructorMail;
 use App\Models\AssessmentMethod;
@@ -1033,7 +1034,7 @@ class CourseController extends Controller
         // disables button on the front end to allow user to notify Instructor more then once
         CourseProgram::where('course_id', $course_id)->where('program_id', $request->input('program_id'))->update(['map_status' => 1]);
 
-        Mail::to($course_owner->email)->send(new CourseCreationFromUploadedFilesNotification($program->program, $program_owner->name, $course->course_code, $course->course_num, $course->course_title, $required));
+        Mail::to($course_owner->email)->send(new NotifyInstructorForMappingMail($program->program, $program_owner->name, $course->course_code, $course->course_num, $course->course_title, $required));
         if (! count(Mail::failures()) > 0) {
             $request->session()->flash('success', $course_owner->name.' has been asked to map their course to your program');
         } else {
@@ -2019,7 +2020,7 @@ private function makeOutcomeMapSheetData(Spreadsheet $spreadsheet, int $courseId
     public function getCourseSyllabiLink(Request $request, $course_id){
         $courseFile = CourseSyllabiFile::where('course_id', $course_id)->first();
         if($courseFile?->file_path) {
-            $path = storage_path() . "/" . $courseFile->file_path;
+            $path = storage_path() . "/app/" . $courseFile->file_path;
             return response()->file($path);
         } else {
             return redirect()->route('courseWizard.step8', ['course' => $course_id]);
