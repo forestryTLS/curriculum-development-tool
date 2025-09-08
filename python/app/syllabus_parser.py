@@ -73,6 +73,8 @@ def get_course_from_text_file(filePath: str, originalFileName: str) -> dict:
 
 
 def get_course_code_from_file_name(fileName: str) -> str:
+    """Returns the code for the from thye file name if exists, otherwise return empty string"""
+    
     # partsOfPath = filePath.split("\\")
     partsOfPath = fileName.split("/")
     fileName = partsOfPath[len(partsOfPath) - 1]
@@ -711,6 +713,8 @@ def get_level_of_study(courseNumber: int) -> str:
 
 
 def remove_stopwords(line: str) -> str:
+    """Removes stopwords from the given line and returns the line without stopwords"""
+    
     stop_words = set(stopwords.words('english'))
     words = re.findall(r'\b\w+\b', line)
     filtered_words = [word for word in words if word.lower() not in stop_words]
