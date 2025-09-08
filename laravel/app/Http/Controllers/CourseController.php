@@ -2018,11 +2018,11 @@ private function makeOutcomeMapSheetData(Spreadsheet $spreadsheet, int $courseId
 
     public function getCourseSyllabiLink(Request $request, $course_id){
         $courseFile = CourseSyllabiFile::where('course_id', $course_id)->first();
-        if($courseFile->file_path && App::environment(['local', 'testing'])){
-            $path = base_path() . '/storage/app/'.$courseFile->file_path;
+        if($courseFile?->file_path) {
+            $path = storage_path() . "/" . $courseFile->file_path;
             return response()->file($path);
-        } else{
-            return url('/');
+        } else {
+            return redirect()->route('courseWizard.step8', ['course' => $course_id]);
         }
 
     }
