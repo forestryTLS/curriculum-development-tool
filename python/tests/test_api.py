@@ -35,8 +35,8 @@ def test_invalid_file_path_create_course_from_syllabi():
     assert response.status_code == 200
     json_response = response.json()
     assert json_response["status"] == "error"
-    assert "no such file" in json_response["message"]
-    
+    assert "An error occurred while processing the request." == json_response["message"]
+        
 def test_invalid_file_type_create_course_from_syllabi():
     body = {
         "file_path": "tests/data/badFileExample.pdf",
@@ -47,4 +47,4 @@ def test_invalid_file_type_create_course_from_syllabi():
     assert response.status_code == 200
     json_response = response.json()
     assert json_response["status"] == "error"
-    assert "Failed to open file" in json_response["message"]
+    assert "An error occurred while processing the request." == json_response["message"]

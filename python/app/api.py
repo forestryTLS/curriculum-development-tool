@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.models import CourseSyllabiFile
 import app.syllabus_parser as syllabus_parser
+from app.utils.logging_config import logger  
 
 app = FastAPI(
     title="Curriculum Development Tool Python API",
@@ -28,4 +29,5 @@ async def create_course_from_syllabi(request: CourseSyllabiFile):
         # print("Result from syllabus_parser:", result)
         return response
     except Exception as e:
-        return {"status": "error", "message": str(e)}
+        logger.error(f"Error in create_course_from_syllabi: {e}")
+        return {"status": "error", "message": "An error occurred while processing the request."}
