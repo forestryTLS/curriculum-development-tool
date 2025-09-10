@@ -1,8 +1,11 @@
 import logging
 from pythonjsonlogger import jsonlogger
+import os
 
 
 logger = logging.getLogger(__name__)
+
+os.makedirs("./logs", exist_ok=True)
 
 fileHandler = logging.FileHandler("./logs/app.log")
 
