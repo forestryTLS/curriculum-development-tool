@@ -67,8 +67,8 @@ def get_course_from_text_file(filePath: str, originalFileName: str) -> dict:
     course["level"] = get_level_of_study(course["number"])
     course["description"] = get_course_description(doc_without_header)
     course["goals"] = get_learning_goals(doc_without_header)
-    ass_and_weights = get_assessment_methods_and_weight(doc)
-    course["assessments"] = encode_assessment_and_weight(ass_and_weights)
+    assessments_and_weights = get_assessment_methods_and_weight(doc)
+    course["assessments"] = encode_assessment_and_weight(assessments_and_weights)
     return course
 
 
@@ -196,11 +196,11 @@ def find_table_get_title(page: pymupdf.Page) -> str | None:
     if tables:
         for table in tables.tables:
             # print(table.header.names)
-            ass_table = table.extract()   # ass_table: List[List[str]]
-            # print(ass_table)
+            title_table = table.extract()   # title_table: List[List[str]]
+            # print(title_table)
             
-            # Filter out any sublists (rows) from ass_table where all items are None or empty strings, i.e. the row is empty
-            cleaned_table = [sublist for sublist in ass_table if any(item not in (None, '') for item in sublist)]
+            # Filter out any sublists (rows) from title_table where all items are None or empty strings, i.e. the row is empty
+            cleaned_table = [sublist for sublist in title_table if any(item not in (None, '') for item in sublist)]
             
             # From each sublist in cleaned_table, remove any items that are None or empty strings
             cleaned_nested_table = [[item for item in sublist if item not in (None, '')]
@@ -214,7 +214,7 @@ def find_table_get_title(page: pymupdf.Page) -> str | None:
             if name_match:
                 index_name_column = name_match[0]
                 # print(index_name_column)
-                # print(ass_table)
+                # print(title_table)
                 try:
                     return cleaned_nested_table[1][index_name_column]
                 except:
@@ -886,8 +886,8 @@ def get_assessment_and_weight_separated_in_different_lines(lowerListOfText: str)
             break  # stop when pattern doesn't match
 
     # Pair components with percentages (zip, truncate to shorter length)
-    ass_and_weight = list(zip(components, percentages))
-    return ass_and_weight
+    assessment_and_weight = list(zip(components, percentages))
+    return assessment_and_weight
 
 
 def clean_assessment_and_weights(allMatches: list[tuple[str, str]])->list[tuple[str, str]]:
