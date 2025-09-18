@@ -18,5 +18,6 @@ laravel/storage/app/public
 laravel/storage/app/courseSyllabi
 python/my_v_env/
 python/.env
-python/*/__pycache__/
-python/__pycache__/
+__pycache__/
+python/logs/
+.DS_Store/

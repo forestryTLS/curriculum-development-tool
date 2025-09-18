@@ -1,10 +1,9 @@
 import app.syllabus_parser as sp
-import os
 from pathlib import Path
 
+BASE_DIR = Path(__file__).parent
 
 def test_syllabi_word_template_with_tabular_assessments():
-    BASE_DIR = Path(__file__).parent
     file_path = BASE_DIR /"data"/"syllabi"/"TEST101_2025W1_Word_Tabular_Assessments.docx"
     file_name = "TEST101_2025W1_Word_Tabular_Assessments.docx"
     course_instance = sp.get_course_from_text_file(file_path, file_name)
@@ -28,7 +27,6 @@ def test_syllabi_word_template_with_tabular_assessments():
                                               ('Test Individual final Exam', 30)] # Tests the clean_assessment_and_weights function to remove multiple "\n" in assessment names
 
 def test_syllabi_word_template_with_assessments_with_brackets():
-    BASE_DIR = Path(__file__).parent
     file_path = BASE_DIR /"data"/"syllabi"/"TEST101_2025W1_Word_Assessments_with_brackets.docx"
     file_name = "TEST101_2025W1_Word_Assessments_with_brackets.docx"
     course_instance = sp.get_course_from_text_file(file_path, file_name)
@@ -53,7 +51,6 @@ def test_syllabi_word_template_with_assessments_with_brackets():
 
 
 def test_syllabi_pdf_template_with_tabular_assessments():
-    BASE_DIR = Path(__file__).parent
     file_path = BASE_DIR /"data"/"syllabi"/"TEST101_2025W1_PDF_Tabular_Assessments.pdf"
     file_name = "TEST101_2025W1_PDF_Tabular_Assessments.pdf"
     course_instance = sp.get_course_from_text_file(file_path, file_name)
@@ -77,7 +74,6 @@ def test_syllabi_pdf_template_with_tabular_assessments():
 
 
 def test_syllabi_pdf_template_CLOs_without_bullets():
-    BASE_DIR = Path(__file__).parent
     file_path = BASE_DIR /"data"/"syllabi"/"TEST101_2025W1_PDF_Without_Bullet_CLOs.pdf"
     file_name = "TEST101_2025W1_PDF_Without_Bullet_CLOs.pdf"
     course_instance = sp.get_course_from_text_file(file_path, file_name)
@@ -101,7 +97,6 @@ def test_syllabi_pdf_template_CLOs_without_bullets():
     
 
 def test_syllabi_pdf_template_without_course_title_table():
-    BASE_DIR = Path(__file__).parent
     file_path = BASE_DIR /"data"/"syllabi"/"TEST101_2025W1_Without_Course_Title_table.pdf"
     file_name = "TEST101_2025W1_Without_Course_Title_table.pdf"
     course_instance = sp.get_course_from_text_file(file_path, file_name)
@@ -124,7 +119,6 @@ def test_syllabi_pdf_template_without_course_title_table():
                                               ('Test Individual final Exam', 30)]
     
 def test_syllabi_file_name_without_course_code_number_and_term():
-    BASE_DIR = Path(__file__).parent
     file_path = BASE_DIR /"data"/"syllabi"/"FileNameWithoutCode&Term.pdf"
     file_name = "FileNameWithoutCode&Term.pdf"
     course_instance = sp.get_course_from_text_file(file_path, file_name)
@@ -148,7 +142,6 @@ def test_syllabi_file_name_without_course_code_number_and_term():
 
 
 def test_syllabi_file_name_without_course_code_number_term_and_multiple_codes_in_file():
-    BASE_DIR = Path(__file__).parent
     file_path = BASE_DIR /"data"/"syllabi"/"FilenameWithoutCode&MultipleCodeInFile.pdf"
     file_name = "FilenameWithoutCode&MultipleCodeInFile.pdf"
     course_instance = sp.get_course_from_text_file(file_path, file_name)
@@ -172,7 +165,6 @@ def test_syllabi_file_name_without_course_code_number_term_and_multiple_codes_in
     
     
 def test_syllabi_different_layout():
-    BASE_DIR = Path(__file__).parent
     file_path = BASE_DIR /"data"/"syllabi"/"DifferentLayoutSyllabus.pdf"
     file_name = "DifferentLayoutSyllabus.pdf"
     course_instance = sp.get_course_from_text_file(file_path, file_name)
@@ -196,7 +188,6 @@ def test_syllabi_different_layout():
     
     
 def test_syllabi_different_layout_assessments_percentage_seperated():
-    BASE_DIR = Path(__file__).parent
     file_path = BASE_DIR /"data"/"syllabi"/"DifferentLayoutSyllabusWithComponentsPrecentageSeperated.pdf"
     file_name = "DifferentLayoutSyllabusWithComponentsPrecentageSeperated.pdf"
     course_instance = sp.get_course_from_text_file(file_path, file_name)
@@ -220,7 +211,6 @@ def test_syllabi_different_layout_assessments_percentage_seperated():
     
 
 def test_syllabi_description_with_additional_section():
-    BASE_DIR = Path(__file__).parent
     file_path = BASE_DIR /"data"/"syllabi"/"TEST101_Syllabus_Description_With_Additional_Section.pdf"
     file_name = "TEST101_Syllabus_Description_With_Additional_Section.pdf"
     course_instance = sp.get_course_from_text_file(file_path, file_name)
@@ -244,7 +234,6 @@ def test_syllabi_description_with_additional_section():
 
 
 def test_syllabi_CLOs_with_prefixed():
-    BASE_DIR = Path(__file__).parent
     file_path = BASE_DIR /"data"/"syllabi"/"TEST101_2025W1_CLOs_with_prefixes.pdf"
     file_name = "TEST101_2025W1_CLOs_with_prefixes.pdf"
     course_instance = sp.get_course_from_text_file(file_path, file_name)

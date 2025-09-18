@@ -1,6 +1,5 @@
 import logging
 from pythonjsonlogger import jsonlogger
-import os
 from pathlib import Path
 
 
@@ -11,7 +10,7 @@ base_dir = current_file.parents[2]
 logs_dir = base_dir / "logs"
 logs_dir.mkdir(parents=True, exist_ok=True)
 
-fileHandler = logging.FileHandler(os.path.join(logs_dir, "app.log"))
+fileHandler = logging.FileHandler(logs_dir / "app.log")
 
 jsonFmt = jsonlogger.JsonFormatter(
     "%(name)s %(asctime)s %(levelname)s %(filename)s %(lineno)s %(process)d %(message)s",
