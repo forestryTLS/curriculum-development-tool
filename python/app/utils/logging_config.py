@@ -8,8 +8,8 @@ logger = logging.getLogger(__name__)
 
 current_file = Path(__file__).resolve()
 base_dir = current_file.parents[2]
-logs_dir = os.path.join(base_dir, "logs")
-os.makedirs(logs_dir, exist_ok=True)
+logs_dir = base_dir / "logs"
+logs_dir.mkdir(parents=True, exist_ok=True)
 
 fileHandler = logging.FileHandler(os.path.join(logs_dir, "app.log"))
 
