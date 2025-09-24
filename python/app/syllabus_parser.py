@@ -23,7 +23,7 @@ learning_goals_starting_words = ('demonstrate', 'develop', 'conduct', 'describe'
                       "manage large", "derive", "solve", "illustrate", "assess", "critically evaluate", "display",
                       "participate in inter-governmental", "follow the developments", "use simpler procedures",
                       "give specific examples", "given particular", "for each of these", "relate these concepts",
-                      "thoughtfully reflect on", "clearly and concisely communicate")
+                      "thoughtfully reflect on", "clearly and concisely communicate", "summarize", "choose")
 
 only_bullet_pattern = re.compile(r"^([(]?\d+(\.\d+)*[.)]?|[•\-–*¢●]|\([a-zA-Z]\))\s*")
 
