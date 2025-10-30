@@ -48,7 +48,7 @@
                         @include('layouts.guide')
 
                         <div style="float:right;">
-                            <button style="border: none; background: none; outline: none;" data-toggle="modal" data-target="#createProgramModal" onclick="verification()">
+                            <button style="border: none; background: none; outline: none;" data-toggle="modal" data-target="#createProgramModal">
                                 <i class="bi bi-plus-circle text-white"></i>
                             </button>
                         </div>

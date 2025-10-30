@@ -1,8 +1,8 @@
-// Fonts
-@import url('https://fonts.googleapis.com/css?family=Open+Sans');
-
 // Variables
-@import 'variables';
+@use 'variables';
 
 // Bootstrap
-@import '~bootstrap/scss/bootstrap';
+@use 'bootstrap/scss/bootstrap';
+
+// Fonts
+@import url('https://fonts.googleapis.com/css?family=Open+Sans');
