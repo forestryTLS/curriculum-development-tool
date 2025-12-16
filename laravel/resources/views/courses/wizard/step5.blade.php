@@ -104,8 +104,13 @@
                                                                 </div>
                                                             </div>
                                                             @if ($courseProgram->programLearningOutcomes->count() > 0)
+
+{{--                                                                <div id="mappingOptions" class="d-flex justify-content-center gap-2">--}}
+{{--                                                                    <button type="button" class="btn btn-sm btn-primary col-3 py-2" id="ManualMapButton">Create Manually</button>--}}
+{{--                                                                    <button type="button" class="btn btn-sm btn-primary col-3 py-2">AI Suggestions</button>--}}
+{{--                                                                </div>--}}
                                                                 <!-- list of course learning outcome accordions with mapping form -->
-                                                                <div class="cloAccordions mb-4">
+                                                                <div id= "ManualMapBody" class="cloAccordions mb-4" >
                                                                     @foreach($l_outcomes as $index => $courseLearningOutcome)
                                                                         <div class="accordion" id="accordionGroup{{$courseProgram->program_id}}-{{$courseLearningOutcome->l_outcome_id}}">
                                                                             <div class="accordion-item mb-2">
@@ -176,7 +181,7 @@
                                                                                                                                     <td>
                                                                                                                                         <div class="form-check">
 {{--                                                                                                                                            <input class="form-check-input position-static" type="checkbox" name="map[{{$courseLearningOutcome->l_outcome_id}}][{{$plo->pl_outcome_id}}][]" value="0" @if(isset($courseLearningOutcome->programLearningOutcomes->find($plo->pl_outcome_id)->pivot)) @if($courseLearningOutcome->programLearningOutcomes->find($plo->pl_outcome_id)->pivot->map_scale_id == 0) checked=checked @endif @else checked @endif >--}}
-                                                                                                                                            <input class="form-check-input position-static" type="checkbox" name="map[{{$courseLearningOutcome->l_outcome_id}}][{{$plo->pl_outcome_id}}][]" value="{{$programMappingScaleLevel->map_scale_id}}" @if(in_array(0, $plMappings)) checked=checked @endif>
+                                                                                                                                            <input class="form-check-input position-static" type="checkbox" name="map[{{$courseLearningOutcome->l_outcome_id}}][{{$plo->pl_outcome_id}}][]" value="0" @if(in_array(0, $plMappings)) checked=checked @elseif(count($plMappings) > 0) disabled @endif>
                                                                                                                                         </div>
                                                                                                                                     </td>
                                                                                                                                 </tr>
@@ -213,7 +218,7 @@
                                                                                                                                 <td>
                                                                                                                                     <div class="form-check">
 {{--                                                                                                                                        <input class="form-check-input position-static" type="checkbox" name="map[{{$courseLearningOutcome->l_outcome_id}}][{{$plo->pl_outcome_id}}][]" value="0" @if(isset($courseLearningOutcome->programLearningOutcomes->find($plo->pl_outcome_id)->pivot)) @if($courseLearningOutcome->programLearningOutcomes->find($plo->pl_outcome_id)->pivot->map_scale_id == 0) checked=checked @endif @else checked @endif >--}}
-                                                                                                                                        <input class="form-check-input position-static" type="checkbox" name="map[{{$courseLearningOutcome->l_outcome_id}}][{{$plo->pl_outcome_id}}][]" value="{{$programMappingScaleLevel->map_scale_id}}" @if(in_array(0, $plMappings)) checked=checked @endif>
+                                                                                                                                        <input class="form-check-input position-static" type="checkbox" name="map[{{$courseLearningOutcome->l_outcome_id}}][{{$plo->pl_outcome_id}}][]" value="0" @if(in_array(0, $plMappings)) checked=checked @elseif(count($plMappings) > 0) disabled @endif>
                                                                                                                                     </div>
                                                                                                                                 </td>
                                                                                                                             </tr>
@@ -246,7 +251,7 @@
                                                                                                                                 <td>
                                                                                                                                     <div class="form-check">
 {{--                                                                                                                                        <input class="form-check-input position-static" type="checkbox" name="map[{{$courseLearningOutcome->l_outcome_id}}][{{$pl_outcome->pl_outcome_id}}][]" value="0" @if(isset($courseLearningOutcome->programLearningOutcomes->find($pl_outcome->pl_outcome_id)->pivot)) @if($courseLearningOutcome->programLearningOutcomes->find($pl_outcome->pl_outcome_id)->pivot->map_scale_id == 0) checked=checked @endif @else checked @endif >--}}
-                                                                                                                                        <input class="form-check-input position-static" type="checkbox" name="map[{{$courseLearningOutcome->l_outcome_id}}][{{$pl_outcome->pl_outcome_id}}][]" value="{{$programMappingScaleLevel->map_scale_id}}" @if(in_array(0, $plMappings)) checked=checked @endif>
+                                                                                                                                        <input class="form-check-input position-static" type="checkbox" name="map[{{$courseLearningOutcome->l_outcome_id}}][{{$pl_outcome->pl_outcome_id}}][]" value="0" @if(in_array(0, $plMappings)) checked=checked @elseif(count($plMappings) > 0) disabled @endif>
                                                                                                                                     </div>
                                                                                                                                 </td>
                                                                                                                             </tr>
@@ -334,6 +339,10 @@
             add();
         });
 
+        $('#ManualMapButton').click(function (){
+            showManualMapDiv();
+        })
+
         // $("form").submit(function (e) {
         //     // prevent duplicate form submissions
         //     e.preventDefault();
@@ -406,6 +415,11 @@
             naBox.disabled = false;
         }
     });
+
+    function showManualMapDiv() {
+        document.getElementById("ManualMapBody").style.display = "block";
+        document.getElementById("mappingOptions").style.display = "none";
+    }
 
     function add() {
         var length = $('#highOpportunityTable tr').length;
