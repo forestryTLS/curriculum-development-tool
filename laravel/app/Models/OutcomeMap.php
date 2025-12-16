@@ -9,7 +9,7 @@ class OutcomeMap extends Pivot
 {
     use HasFactory;
 
-    protected $primaryKey = ['l_outcome_id', 'pl_outcome_id'];
+    protected $primaryKey = ['l_outcome_id', 'pl_outcome_id', 'map_scale_id'];
 
     protected $table = 'outcome_maps';
 

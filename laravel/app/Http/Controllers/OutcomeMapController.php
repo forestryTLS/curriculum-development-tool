@@ -49,14 +49,20 @@ class OutcomeMapController extends Controller
 
         $outcomeMap = $request->input('map');
 
-        // dd($outcomeMap);
+//        dd($outcomeMap);
 
         foreach ($outcomeMap as $cloId => $ploToScaleIds) {
-            foreach (array_keys($ploToScaleIds) as $ploId) {
-                DB::table('outcome_maps')->updateOrInsert(
-                    ['pl_outcome_id' => $ploId, 'l_outcome_id' => $cloId],
-                    ['map_scale_id' => $outcomeMap[$cloId][$ploId]]
-                );
+            foreach ($ploToScaleIds as $ploId => $scaleIds) {
+                DB::table('outcome_maps')
+                        ->where('l_outcome_id', $cloId)
+                        ->where('pl_outcome_id', $ploId)
+                        ->delete();
+                foreach ($scaleIds as $mapScaleId) {
+                    DB::table('outcome_maps')->insert(
+                        ['pl_outcome_id' => $ploId, 'l_outcome_id' => $cloId,
+                        'map_scale_id' => $mapScaleId]
+                    );
+                }
             }
         }
         // update courses 'updated_at' field
