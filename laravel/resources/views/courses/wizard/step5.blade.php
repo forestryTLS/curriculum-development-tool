@@ -58,6 +58,35 @@
 
                                     @foreach($course->programs as $index => $courseProgram)
 
+                                        <div class="modal fade" id="AiSuggestionConfirmation{{$course->course_id}}{{$courseProgram->program_id}}" tabindex="-1" role="dialog" aria-labelledby="AiSuggestionConfirmation" aria-hidden="true">
+                                            <div class="modal-dialog modal-lg" role="document">
+                                                <div class="modal-content">
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title" id="exampleModalLabel"><strong>AI Suggestion</strong></h5>
+                                                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                                            <span aria-hidden="true">&times;</span>
+                                                        </button>
+                                                    </div>
+
+                                                    <form action="" method="GET">
+                                                        @csrf
+                                                        {{method_field('GET')}}
+
+                                                        <div class="modal-body">
+
+                                                            <p>Are you sure you want to proceed? AI Suggestions can only generated once.</p>
+
+                                                        </div>
+
+                                                        <div class="modal-footer">
+                                                            <button style="width:60px" type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">No</button>
+                                                            <button style="width:80px" type="submit" class="btn btn-success btn-sm">Yes</button>
+                                                        </div>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+
                                         <!-- Program accordion -->
                                         <div class="accordion" id="programAccordion{{$courseProgram->program_id}}">
                                             <div class="accordion-item mb-2">
@@ -78,7 +107,7 @@
                                                     <span id="buttonAISuggestion[{{$course->course_id}}][{{$courseProgram->program_id}}]"
                                                           class="btn btn-sm btn-primary d-flex me-3 col-2 justify-content-center"
                                                           role="button"
-                                                          onclick="handleAISuggestion({{$course->course_id}}, {{$courseProgram->program_id}});">
+                                                          data-toggle="modal" data-target="#AiSuggestionConfirmation{{$course->course_id}}{{$courseProgram->program_id}}">
                                                             <img src="{{ asset('img/AISuggestionWhite.png') }}" alt="icon" style="height: 1em; width: auto;" class="me-1">
                                                             AI Suggestion
                                                         </span>
@@ -124,7 +153,9 @@
 
                                                                 <div id="mappingOptions-{{$course->course_id}}-{{$courseProgram->program_id}}" class="justify-content-center gap-2 @if($courseProgram->pivot->manual_map_status) d-none @else d-flex @endif">
                                                                     <button id="buttonManualMap[{{$course->course_id}}][{{$courseProgram->program_id}}]" type="button" class="btn btn-sm btn-primary col-3 py-2" onclick="showManualMapDiv({{$course->course_id}}, {{$courseProgram->program_id}})">Create Manually</button>
-                                                                    <button id="buttonAISuggestion[{{$course->course_id}}][{{$courseProgram->program_id}}]" type="button" class="btn btn-sm btn-primary col-3 py-2"><img src="{{asset('img/AISuggestionWhite.png')}}" alt="icon" style="height: 1.5em; width: auto;" class="me-2">AI Suggestions</button>
+                                                                    <button id="buttonAISuggestion[{{$course->course_id}}][{{$courseProgram->program_id}}]" type="button" class="btn btn-sm btn-primary col-3 py-2"
+                                                                            data-toggle="modal" data-target="#AiSuggestionConfirmation{{$course->course_id}}{{$courseProgram->program_id}}">
+                                                                        <img src="{{asset('img/AISuggestionWhite.png')}}" alt="icon" style="height: 1.5em; width: auto;" class="me-2">AI Suggestions</button>
                                                                 </div>
                                                                 <!-- list of course learning outcome accordions with mapping form -->
                                                                 <div id= "ManualMapBody-{{$course->course_id}}-{{$courseProgram->program_id}}" class="cloAccordions mb-4" @if(!$courseProgram->pivot->manual_map_status) style="display: none;" @endif>
