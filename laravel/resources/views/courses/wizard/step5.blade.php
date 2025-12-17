@@ -67,22 +67,13 @@
                                                             <span aria-hidden="true">&times;</span>
                                                         </button>
                                                     </div>
-
-                                                    <form action="" method="GET">
-                                                        @csrf
-                                                        {{method_field('GET')}}
-
                                                         <div class="modal-body">
-
                                                             <p>Are you sure you want to proceed? AI Suggestions can only generated once.</p>
-
                                                         </div>
-
                                                         <div class="modal-footer">
                                                             <button style="width:60px" type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">No</button>
-                                                            <button style="width:80px" type="submit" class="btn btn-success btn-sm">Yes</button>
+                                                            <button style="width:80px" type="button" class="btn btn-success btn-sm">Yes</button>
                                                         </div>
-                                                    </form>
                                                 </div>
                                             </div>
                                         </div>
