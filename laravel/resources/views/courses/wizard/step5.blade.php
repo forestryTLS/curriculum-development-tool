@@ -105,12 +105,12 @@
                                                             </div>
                                                             @if ($courseProgram->programLearningOutcomes->count() > 0)
 
-{{--                                                                <div id="mappingOptions" class="d-flex justify-content-center gap-2">--}}
-{{--                                                                    <button type="button" class="btn btn-sm btn-primary col-3 py-2" id="ManualMapButton">Create Manually</button>--}}
-{{--                                                                    <button type="button" class="btn btn-sm btn-primary col-3 py-2">AI Suggestions</button>--}}
-{{--                                                                </div>--}}
+                                                                <div id="mappingOptions-{{$course->course_id}}-{{$courseProgram->program_id}}" class="justify-content-center gap-2 @if($courseProgram->pivot->manual_map_status) d-none @else d-flex @endif">
+                                                                    <button id="buttonManualMap[{{$course->course_id}}][{{$courseProgram->program_id}}]" type="button" class="btn btn-sm btn-primary col-3 py-2" onclick="showManualMapDiv({{$course->course_id}}, {{$courseProgram->program_id}})">Create Manually</button>
+                                                                    <button id="buttonAISuggestion[{{$course->course_id}}][{{$courseProgram->program_id}}]" type="button" class="btn btn-sm btn-primary col-3 py-2"><img src="{{asset('img/AISuggestionWhite.png')}}" alt="icon" style="height: 1.5em; width: auto;" class="me-2">AI Suggestions</button>
+                                                                </div>
                                                                 <!-- list of course learning outcome accordions with mapping form -->
-                                                                <div id= "ManualMapBody" class="cloAccordions mb-4" >
+                                                                <div id= "ManualMapBody-{{$course->course_id}}-{{$courseProgram->program_id}}" class="cloAccordions mb-4" @if(!$courseProgram->pivot->manual_map_status) style="display: none;" @endif>
                                                                     @foreach($l_outcomes as $index => $courseLearningOutcome)
                                                                         <div class="accordion" id="accordionGroup{{$courseProgram->program_id}}-{{$courseLearningOutcome->l_outcome_id}}">
                                                                             <div class="accordion-item mb-2">
@@ -339,10 +339,6 @@
             add();
         });
 
-        $('#ManualMapButton').click(function (){
-            showManualMapDiv();
-        })
-
         // $("form").submit(function (e) {
         //     // prevent duplicate form submissions
         //     e.preventDefault();
@@ -416,9 +412,20 @@
         }
     });
 
-    function showManualMapDiv() {
-        document.getElementById("ManualMapBody").style.display = "block";
-        document.getElementById("mappingOptions").style.display = "none";
+    function showManualMapDiv(course_id, program_id) {
+        const div = document.getElementById(`mappingOptions-${course_id}-${program_id}`);
+        div.classList.add('d-none');
+        div.classList.remove('d-flex');
+
+        document.getElementById(`ManualMapBody-${course_id}-${program_id}`).style.display = "block";
+
+        fetch(`${program_id}/manualMap`, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json'
+            }
+        });
     }
 
     function add() {

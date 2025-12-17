@@ -166,4 +166,22 @@ class CourseProgramController extends Controller
 
         return redirect()->route('programWizard.step3', $request->input('program_id'));
     }
+
+    public function updateManualMapStatus(Request $request, $courseId, $programId)
+    {
+        $courseProgram = CourseProgram::where(['course_id' => $courseId, 'program_id' => $programId])->first();
+
+        // Mark mapping as hidden
+        $courseProgram->manual_map_status = !$courseProgram->manual_map_status;
+        $courseProgram->save();
+    }
+
+    public function updateAiSuggestionStatus(Request $request, $courseId, $programId)
+    {
+        $courseProgram = CourseProgram::where(['course_id' => $courseId, 'program_id' => $programId])->first();
+
+        // Mark mapping as hidden
+        $courseProgram->ai_suggestion_status = !$courseProgram->ai_suggestion_status;
+        $courseProgram->save();
+    }
 }

@@ -70,7 +70,7 @@ class Course extends Model
 
     public function programs()
     {
-        return $this->belongsToMany(Program::class, 'course_programs', 'course_id', 'program_id');
+        return $this->belongsToMany(Program::class, 'course_programs', 'course_id', 'program_id')->withPivot('manual_map_status', 'ai_suggestion_status');
     }
 
     public function standards()
