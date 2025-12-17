@@ -62,10 +62,27 @@
                                         <div class="accordion" id="programAccordion{{$courseProgram->program_id}}">
                                             <div class="accordion-item mb-2">
                                                 <!-- Program accordion header -->
-                                                <h2 class="accordion-header fs-2" id="programAccordionHeader{{$courseProgram->program_id}}">
-                                                    <button class="accordion-button collapsed program white-arrow" type="button" data-bs-toggle="collapse" data-bs-target="#collapseProgramAccordion{{$courseProgram->program_id}}" aria-expanded="false" aria-controls="collapseProgramAccordion{{$courseProgram->program_id}}">
+                                                <h2 class="accordion-header fs-2 d-flex align-items-center justify-content-between" id="programAccordionHeader{{$courseProgram->program_id}}"
+                                                    style="background-color: #002145;">
+                                                    <button class="accordion-button collapsed program white-arrow flex-grow-1 d-flex align-items-center"
+                                                            type="button"
+                                                            data-bs-toggle="collapse"
+                                                            data-bs-target="#collapseProgramAccordion{{$courseProgram->program_id}}"
+                                                            aria-expanded="false"
+                                                            aria-controls="collapseProgramAccordion{{$courseProgram->program_id}}">
                                                         <b>{{$index + 1}}</b>. {{$courseProgram->program}}
                                                     </button>
+
+                                                    <!-- AI Suggestion button -->
+                                                    @if(!$courseProgram->pivot->ai_suggestion_status and $courseProgram->pivot->manual_map_status)
+                                                    <span id="buttonAISuggestion[{{$course->course_id}}][{{$courseProgram->program_id}}]"
+                                                          class="btn btn-sm btn-primary d-flex me-3 col-2 justify-content-center"
+                                                          role="button"
+                                                          onclick="handleAISuggestion({{$course->course_id}}, {{$courseProgram->program_id}});">
+                                                            <img src="{{ asset('img/AISuggestionWhite.png') }}" alt="icon" style="height: 1em; width: auto;" class="me-1">
+                                                            AI Suggestion
+                                                        </span>
+                                                    @endif
                                                 </h2>
                                                 <!-- Program Accordion body -->
                                                 <div id="collapseProgramAccordion{{$courseProgram->program_id}}" class="accordion-collapse collapse" aria-labelledby="programAccordionHeader{{$courseProgram->program_id}}" data-bs-parent="programAccordion{{$courseProgram->program_id}}">
@@ -175,6 +192,9 @@
                                                                                                                                             <div class="form-check">
 {{--                                                                                                                                                <input  class="form-check-input position-static" type="checkbox" name="map[{{$courseLearningOutcome->l_outcome_id}}][{{$plo->pl_outcome_id}}][]" value="{{$programMappingScaleLevel->map_scale_id}}" @if(isset($courseLearningOutcome->programLearningOutcomes->find($plo->pl_outcome_id)->pivot)) @if($courseLearningOutcome->programLearningOutcomes->find($plo->pl_outcome_id)->pivot->map_scale_id == $programMappingScaleLevel->map_scale_id) checked=checked @endif @endif>--}}
                                                                                                                                                 <input class="form-check-input position-static" type="checkbox" name="map[{{$courseLearningOutcome->l_outcome_id}}][{{$plo->pl_outcome_id}}][]" value="{{$programMappingScaleLevel->map_scale_id}}" @if(in_array($programMappingScaleLevel->map_scale_id, $plMappings)) checked=checked @endif>
+                                                                                                                                                @if($courseLearningOutcome->aiSuggestedOutcomeMap()->where('l_outcome_id', $courseLearningOutcome->l_outcome_id)->where('pl_outcome_id', $plo->pl_outcome_id)->where('map_scale_id', $programMappingScaleLevel->map_scale_id)->exists())
+                                                                                                                                                    <img src="{{ asset('img/AISuggestionPurple.png') }}" alt="icon" style="height: 1.5em; width: auto;">
+                                                                                                                                                @endif
                                                                                                                                             </div>
                                                                                                                                         </td>
                                                                                                                                     @endforeach
@@ -182,6 +202,9 @@
                                                                                                                                         <div class="form-check">
 {{--                                                                                                                                            <input class="form-check-input position-static" type="checkbox" name="map[{{$courseLearningOutcome->l_outcome_id}}][{{$plo->pl_outcome_id}}][]" value="0" @if(isset($courseLearningOutcome->programLearningOutcomes->find($plo->pl_outcome_id)->pivot)) @if($courseLearningOutcome->programLearningOutcomes->find($plo->pl_outcome_id)->pivot->map_scale_id == 0) checked=checked @endif @else checked @endif >--}}
                                                                                                                                             <input class="form-check-input position-static" type="checkbox" name="map[{{$courseLearningOutcome->l_outcome_id}}][{{$plo->pl_outcome_id}}][]" value="0" @if(in_array(0, $plMappings)) checked=checked @elseif(count($plMappings) > 0) disabled @endif>
+                                                                                                                                            @if($courseLearningOutcome->aiSuggestedOutcomeMap()->where('l_outcome_id', $courseLearningOutcome->l_outcome_id)->where('pl_outcome_id', $plo->pl_outcome_id)->where('map_scale_id', 0)->exists())
+                                                                                                                                                <img src="{{ asset('img/AISuggestionPurple.png') }}" alt="icon" style="height: 1.5em; width: auto;">
+                                                                                                                                            @endif
                                                                                                                                         </div>
                                                                                                                                     </td>
                                                                                                                                 </tr>
@@ -211,7 +234,9 @@
                                                                                                                                         <div class="form-check">
 {{--                                                                                                                                            <input class="form-check-input position-static" type="checkbox" name="map[{{$courseLearningOutcome->l_outcome_id}}][{{$plo->pl_outcome_id}}][]" value="{{$programMappingScaleLevel->map_scale_id}}" @if(isset($courseLearningOutcome->programLearningOutcomes->find($plo->pl_outcome_id)->pivot)) @if($courseLearningOutcome->programLearningOutcomes->find($plo->pl_outcome_id)->pivot->map_scale_id == $programMappingScaleLevel->map_scale_id) checked=checked @endif @endif>--}}
                                                                                                                                             <input class="form-check-input position-static" type="checkbox" name="map[{{$courseLearningOutcome->l_outcome_id}}][{{$plo->pl_outcome_id}}][]" value="{{$programMappingScaleLevel->map_scale_id}}" @if(in_array($programMappingScaleLevel->map_scale_id, $plMappings)) checked=checked @endif>
-
+                                                                                                                                            @if($courseLearningOutcome->aiSuggestedOutcomeMap()->where('l_outcome_id', $courseLearningOutcome->l_outcome_id)->where('pl_outcome_id', $plo->pl_outcome_id)->where('map_scale_id', $programMappingScaleLevel->map_scale_id)->exists())
+                                                                                                                                                <img src="{{ asset('img/AISuggestionPurple.png') }}" alt="icon" style="height: 1.5em; width: auto;">
+                                                                                                                                            @endif
                                                                                                                                         </div>
                                                                                                                                     </td>
                                                                                                                                 @endforeach
@@ -219,6 +244,9 @@
                                                                                                                                     <div class="form-check">
 {{--                                                                                                                                        <input class="form-check-input position-static" type="checkbox" name="map[{{$courseLearningOutcome->l_outcome_id}}][{{$plo->pl_outcome_id}}][]" value="0" @if(isset($courseLearningOutcome->programLearningOutcomes->find($plo->pl_outcome_id)->pivot)) @if($courseLearningOutcome->programLearningOutcomes->find($plo->pl_outcome_id)->pivot->map_scale_id == 0) checked=checked @endif @else checked @endif >--}}
                                                                                                                                         <input class="form-check-input position-static" type="checkbox" name="map[{{$courseLearningOutcome->l_outcome_id}}][{{$plo->pl_outcome_id}}][]" value="0" @if(in_array(0, $plMappings)) checked=checked @elseif(count($plMappings) > 0) disabled @endif>
+                                                                                                                                        @if($courseLearningOutcome->aiSuggestedOutcomeMap()->where('l_outcome_id', $courseLearningOutcome->l_outcome_id)->where('pl_outcome_id', $plo->pl_outcome_id)->where('map_scale_id', 0)->exists())
+                                                                                                                                            <img src="{{ asset('img/AISuggestionPurple.png') }}" alt="icon" style="height: 1.5em; width: auto;">
+                                                                                                                                        @endif
                                                                                                                                     </div>
                                                                                                                                 </td>
                                                                                                                             </tr>
@@ -244,7 +272,9 @@
                                                                                                                                         <div class="form-check">
 {{--                                                                                                                                        <input class="form-check-input position-static" type="checkbox" name="map[{{$courseLearningOutcome->l_outcome_id}}][{{$pl_outcome->pl_outcome_id}}][]" value="{{$programMappingScaleLevel->map_scale_id}}" @if(isset($courseLearningOutcome->programLearningOutcomes->find($pl_outcome->pl_outcome_id)->pivot)) @if($courseLearningOutcome->programLearningOutcomes->find($pl_outcome->pl_outcome_id)->pivot->map_scale_id == $programMappingScaleLevel->map_scale_id) checked=checked @endif @endif>--}}
                                                                                                                                             <input class="form-check-input position-static" type="checkbox" name="map[{{$courseLearningOutcome->l_outcome_id}}][{{$pl_outcome->pl_outcome_id}}][]" value="{{$programMappingScaleLevel->map_scale_id}}" @if(in_array($programMappingScaleLevel->map_scale_id, $plMappings)) checked=checked @endif>
-
+                                                                                                                                            @if($courseLearningOutcome->aiSuggestedOutcomeMap()->where('l_outcome_id', $courseLearningOutcome->l_outcome_id)->where('pl_outcome_id', $pl_outcome->pl_outcome_id)->where('map_scale_id', $programMappingScaleLevel->map_scale_id)->exists())
+                                                                                                                                                <img src="{{ asset('img/AISuggestionPurple.png') }}" alt="icon" style="height: 1.5em; width: auto;">
+                                                                                                                                            @endif
                                                                                                                                         </div>
                                                                                                                                     </td>
                                                                                                                                 @endforeach
@@ -252,6 +282,9 @@
                                                                                                                                     <div class="form-check">
 {{--                                                                                                                                        <input class="form-check-input position-static" type="checkbox" name="map[{{$courseLearningOutcome->l_outcome_id}}][{{$pl_outcome->pl_outcome_id}}][]" value="0" @if(isset($courseLearningOutcome->programLearningOutcomes->find($pl_outcome->pl_outcome_id)->pivot)) @if($courseLearningOutcome->programLearningOutcomes->find($pl_outcome->pl_outcome_id)->pivot->map_scale_id == 0) checked=checked @endif @else checked @endif >--}}
                                                                                                                                         <input class="form-check-input position-static" type="checkbox" name="map[{{$courseLearningOutcome->l_outcome_id}}][{{$pl_outcome->pl_outcome_id}}][]" value="0" @if(in_array(0, $plMappings)) checked=checked @elseif(count($plMappings) > 0) disabled @endif>
+                                                                                                                                        @if($courseLearningOutcome->aiSuggestedOutcomeMap()->where('l_outcome_id', $courseLearningOutcome->l_outcome_id)->where('pl_outcome_id', $pl_outcome->pl_outcome_id)->where('map_scale_id', 0)->exists())
+                                                                                                                                            <img src="{{ asset('img/AISuggestionPurple.png') }}" alt="icon" style="height: 1.5em; width: auto;" >
+                                                                                                                                        @endif
                                                                                                                                     </div>
                                                                                                                                 </td>
                                                                                                                             </tr>
