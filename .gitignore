@@ -21,3 +21,4 @@ python/.env
 __pycache__/
 python/logs/
 .DS_Store/
+experiments/llm-evaluation/venv
