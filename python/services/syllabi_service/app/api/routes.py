@@ -1,9 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.config import settings
-from app.models import CourseSyllabiFile
-import app.syllabus_parser as syllabus_parser
-from app.utils.logging_config import logger  
+from app.core.config import settings
+from app.core.logging_config import logger
+from app.schema.courseSyllabi import CourseSyllabiFile
+from app.services import syllabus_parser  
 
 app = FastAPI(
     title="Curriculum Development Tool Python API",

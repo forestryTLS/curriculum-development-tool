@@ -1,4 +1,6 @@
-import app.syllabus_parser as sp
+from datetime import date
+
+import app.services.syllabus_parser as sp
 from pathlib import Path
 
 BASE_DIR = Path(__file__).parent
@@ -125,7 +127,7 @@ def test_syllabi_file_name_without_course_code_number_and_term():
     assert course_instance['code'] == 'TEST'
     assert course_instance['number'] == 101
     assert course_instance['term'] == 'W2'
-    assert course_instance['year'] == 2025
+    assert course_instance['year'] == date.today().year
     assert course_instance['title'] == 'COURSE SYLLABUS' #Course code is removed from the title
     assert course_instance['level'] == 'Undergraduate'
     assert course_instance['description'] == 'This course provides a comprehensive introduction to [subject area], focusing on the key \nconcepts, issues, and practices that shape the field. Students will explore the historical \nbackground, current trends, and future directions of [subject area], engaging with a variety of \nperspectives and resources. The course blends lectures, discussions, and applied activities to help \nstudents understand how ideas in this domain are developed, debated, and implemented. \nThroughout the term, students will gain exposure to foundational theories as well as \ncontemporary approaches, gaining insight into the ways [subject area] influences academic \nresearch, industry practice, and everyday life. The course also offers opportunities to work with \nreal-world examples and case studies, encouraging students to make connections between \nabstract concepts and practical applications. \nThis description outlines the scope and nature of the course, providing students with a clear sense \nof the themes and topics that will be covered. Specific learning objectives, assessment criteria, \nand expected outcomes are detailed in separate sections of the syllabus.'
@@ -148,7 +150,7 @@ def test_syllabi_file_name_without_course_code_number_term_and_multiple_codes_in
     assert course_instance['code'] == 'TEST'
     assert course_instance['number'] == 101
     assert course_instance['term'] == 'W2'
-    assert course_instance['year'] == 2025
+    assert course_instance['year'] == date.today().year
     assert course_instance['title'] == 'TEST Course Syllabus'
     assert course_instance['level'] == 'Undergraduate'
     assert course_instance['description'] == 'This course provides a comprehensive introduction to [subject area], focusing on the key \nconcepts, issues, and practices that shape the field. Students will explore the historical \nbackground, current trends, and future directions of [subject area], engaging with a variety of \nperspectives and resources. The course blends lectures, discussions, and applied activities to help \nstudents understand how ideas in this domain are developed, debated, and implemented. \nThroughout the term, students will gain exposure to foundational theories as well as \ncontemporary approaches, gaining insight into the ways [subject area] influences academic \nresearch, industry practice, and everyday life. The course also offers opportunities to work with \nreal-world examples and case studies, encouraging students to make connections between \nabstract concepts and practical applications. \nThis description outlines the scope and nature of the course, providing students with a clear sense \nof the themes and topics that will be covered. Specific learning objectives, assessment criteria, \nand expected outcomes are detailed in separate sections of the syllabus.'
@@ -217,7 +219,7 @@ def test_syllabi_description_with_additional_section():
     assert course_instance['code'] == 'TEST'
     assert course_instance['number'] == 101
     assert course_instance['term'] == 'W2'
-    assert course_instance['year'] == 2025
+    assert course_instance['year'] == date.today().year
     assert course_instance['title'] == 'TEST Course Syllabus'
     assert course_instance['level'] == 'Undergraduate'
     assert course_instance['description'] == 'This course provides a comprehensive introduction to [subject area], focusing on the key \nconcepts, issues, and practices that shape the field. Students will explore the historical \nbackground, current trends, and future directions of [subject area], engaging with a variety of \nperspectives and resources. The course blends lectures, discussions, and applied activities to help \nstudents understand how ideas in this domain are developed, debated, and implemented. \nThroughout the term, students will gain exposure to foundational theories as well as \ncontemporary approaches, gaining insight into the ways [subject area] influences academic \nresearch, industry practice, and everyday life. The course also offers opportunities to work with \nreal-world examples and case studies, encouraging students to make connections between \nabstract concepts and practical applications. \nThis description outlines the scope and nature of the course, providing students with a clear sense \nof the themes and topics that will be covered. Specific learning objectives, assessment criteria, \nand expected outcomes are detailed in separate sections of the syllabus. \nTarget Audience \nThis course is intended for undergraduates who are interested in gaining knowledge and skills in \n[subject area]. It is especially suitable for students enrolled in forestry programs, as well as \nthose from related fields seeking to broaden their understanding of the topic. No prior experience \nin [subject area] is required unless otherwise noted in the prerequisites.'
