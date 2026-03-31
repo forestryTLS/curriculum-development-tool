@@ -2,8 +2,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 
-from app.schemas import OutcomeMappingRequest, OutcomeMappingResponse
-from app.services import MappingProcessor
+from app.schemas import (
+    OutcomeMappingRequest,
+    OutcomeMappingResponse,
+)
+from app.services import BatchTransformInputBuilder
 
 
 app = FastAPI(
@@ -31,5 +34,6 @@ async def health_check() -> dict[str, str]:
 async def map_program_outcomes(
     request: OutcomeMappingRequest,
 ) -> OutcomeMappingResponse:
-    processor = MappingProcessor(request)
-    return processor.process()
+    batchTranformInputBuilder = BatchTransformInputBuilder(request)
+    batch_transorm_records = batchTranformInputBuilder.build_batch_prompt_records()
+    return batchTranformInputBuilder.process()
