@@ -75,6 +75,12 @@ php artisan test
 From the project root, run `cd python` to enter the `python` directory.
 If you are currently in the `laravel` directory, first run `cd ..` and then `cd python`.
 
+### Navigate to a service
+From the project `python` directory:
+
+``` 
+cd services/<service_name>
+```
 
 ### Activate virtual environment
 
@@ -101,12 +107,5 @@ pip install -r requirements.txt
 ### Run the Service
 
 ``` 
-python main.py
+python3 -m app.main 
 ```
-
-
-
-
-
-
-
