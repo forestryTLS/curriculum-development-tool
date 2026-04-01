@@ -2,6 +2,9 @@ import json
 import os
 from datetime import datetime
 
+from dotenv import load_dotenv
+import boto3
+
 from app.schemas import (
     CourseLearningOutcome,
     MappingScaleOption,
@@ -14,14 +17,17 @@ class BatchTransformInputBuilder:
     """Builds batch transform input JSONL files for CLO-PLO mapping."""
 
     def __init__(self, request: OutcomeMappingRequest) -> None:
+        load_dotenv() 
         self.request = request
+        self.s3_bucket = os.getenv("BATCH_TRANSFORM_INPUT_S3_BUCKET")
 
     def build_batch_prompt_records(self) -> str:
+        
         # Use course_id and program_id from OutcomeMappingRequest
         course_id = getattr(self.request, 'course_id', None)
         program_id = getattr(self.request, 'program_id', None)
 
-        #if Course Id or Program Id is not present
+        # If Course Id or Program Id is not present
         if course_id is None:
             course_id = 'unknowncourse'
         if program_id is None:
@@ -32,37 +38,51 @@ class BatchTransformInputBuilder:
 
         # Create a unique filename using timestamp, course and program ids
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
-        out_dir = os.path.join(os.path.dirname(__file__), "batch_inputs")
-        os.makedirs(out_dir, exist_ok=True)
         filename = f"batch_transform_input__courseid-{course_id_str}__programid-{program_id_str}__{timestamp}.jsonl"
-        file_path = os.path.join(out_dir, filename)
+        s3_key = f"batch_inputs/{filename}"
 
-        with open(file_path, "w", encoding="utf-8") as f:
-            for clo in self.request.course_learning_outcomes:
-                for plo in self.request.program_learning_outcomes:
-                    pair_id = self._build_pair_id(clo, plo)
-                    prompt = self._build_prompt(clo, plo, pair_id)
-                    payload = self._build_jsonl_payload(pair_id, prompt)
-                    f.write(json.dumps(payload, ensure_ascii=False) + "\n")
+        # Build JSONL content in memory
+        lines = []
+        for clo in self.request.course_learning_outcomes:
+            for plo in self.request.program_learning_outcomes:
+                pair_id = self._build_pair_id(clo, plo)
+                prompt = self._build_prompt(clo, plo, pair_id)
+                payload = self._build_jsonl_payload(pair_id, prompt)
+                lines.append(json.dumps(payload, ensure_ascii=False))
 
-        return file_path
+        jsonl_content = "\n".join(lines)
 
-    def _build_pair_id(
-        self,
-        clo: CourseLearningOutcome,
-        plo: ProgramLearningOutcome,
-    ) -> str:
+        # Upload to S3
+        input_s3_path = self.__upload_to_s3(jsonl_content, s3_key)
+        
+        return input_s3_path
+
+    def __upload_to_s3(self, content: str, s3_key: str) -> str:
+        
+        boto_session = boto3.Session(
+            aws_access_key_id=os.getenv("ACCESS_KEY"),
+            aws_secret_access_key=os.getenv("SECRET_KEY"),
+            region_name= os.getenv("AWS_REGION")
+        )
+        s3_client = boto_session.client("s3")
+        s3_client.put_object(
+            Bucket=self.s3_bucket,
+            Key=s3_key,
+            Body=content.encode("utf-8"),
+            ContentType="application/x-ndjson",
+        )
+        
+        return f"s3://{self.s3_bucket}/{s3_key}"
+    
+    def _build_pair_id(self, clo: CourseLearningOutcome, plo: ProgramLearningOutcome,) -> str:
         return f"clo-{clo.l_outcome_id}__plo-{plo.pl_outcome_id}"
 
-    def _build_prompt(
-        self,
-        clo: CourseLearningOutcome,
-        plo: ProgramLearningOutcome,
-        pair_id: str,
-    ) -> str:
+    def _build_prompt(self, clo: CourseLearningOutcome, plo: ProgramLearningOutcome, pair_id: str,) -> str:
         mapping_scales_text = self._format_mapping_scales_for_prompt(
             self.request.mapping_scales
         )
+        
+        map_labels_json = self._build_mapping_scale_labels_list(self.request.mapping_scales)
 
         return "\n".join(
             [
@@ -74,7 +94,7 @@ class BatchTransformInputBuilder:
                 '"CLO": "<given CLO>", ',
                 '"Accreditation_Standard": "<given accreditation standard>", ',
                 '"is_mapped": true or false, ',
-                '"mapLabels": ["I", "R", "E"], ',
+                '"mapLabels": ' + map_labels_json + ', ',
                 '"explanation": "<explanation phrase>", ',
                 "} ",
                 "Note: A CLO may span multiple mapping scale levels. If so, classify it under all relevant levels. ",
@@ -96,12 +116,18 @@ class BatchTransformInputBuilder:
                 "/no_think"
             ]
         )
+        
+    def _build_mapping_scale_labels_list(self, scales: list[MappingScaleOption]) -> list[str]:
+        map_labels = []
+        for scale in self.request.mapping_scales:
+            if not scale.abbreviation:
+                raise ValueError(f"Mapping scale with id {scale.map_scale_id} is missing an abbreviation.")
+            else:
+                map_labels.append(scale.abbreviation)   
+        map_labels_json = json.dumps(map_labels)
+        return map_labels_json
 
-    def _build_jsonl_payload(
-        self,
-        pair_id: str,
-        prompt: str,
-    ) -> dict[str, object]:
+    def _build_jsonl_payload(self, pair_id: str, prompt: str,) -> dict[str, object]:
         return {
             "id": pair_id,
             "inputs": prompt,
@@ -113,9 +139,7 @@ class BatchTransformInputBuilder:
                 }
         }
 
-    def _format_mapping_scales_for_prompt(
-        self, scales: list[MappingScaleOption]
-    ) -> str:
+    def _format_mapping_scales_for_prompt(self, scales: list[MappingScaleOption]) -> str:
         if not scales:
             return "- No mapping scales were provided."
 
