@@ -1,7 +1,5 @@
 import json
-import os
 import pytest
-from pathlib import Path
 
 from app.schemas import (
     CourseLearningOutcome,

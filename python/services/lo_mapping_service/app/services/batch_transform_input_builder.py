@@ -53,26 +53,42 @@ class BatchTransformInputBuilder:
         jsonl_content = "\n".join(lines)
 
         # Upload to S3
-        input_s3_path = self.__upload_to_s3(jsonl_content, s3_key)
+        try:
+            input_s3_path = self.__upload_to_s3(jsonl_content, s3_key)
         
-        return input_s3_path
+            return input_s3_path
+        except Exception as e:  
+            raise RuntimeError(f"Failed to build and upload batch transform input: {str(e)}")
 
     def __upload_to_s3(self, content: str, s3_key: str) -> str:
         
-        boto_session = boto3.Session(
-            aws_access_key_id=os.getenv("ACCESS_KEY"),
-            aws_secret_access_key=os.getenv("SECRET_KEY"),
-            region_name= os.getenv("AWS_REGION")
-        )
-        s3_client = boto_session.client("s3")
-        s3_client.put_object(
-            Bucket=self.s3_bucket,
-            Key=s3_key,
-            Body=content.encode("utf-8"),
-            ContentType="application/x-ndjson",
-        )
+        try:
+            if not content:
+                raise ValueError("Content is empty")
+            if not s3_key:
+                raise ValueError("s3_key is required")
+            if not self.s3_bucket:
+                raise ValueError("S3 bucket is not set")
+            if not os.getenv("ACCESS_KEY") or not os.getenv("SECRET_KEY") or not os.getenv("AWS_REGION"):
+                raise ValueError("AWS credentials or region are not set in environment variables")
+
         
-        return f"s3://{self.s3_bucket}/{s3_key}"
+            boto_session = boto3.Session(
+                aws_access_key_id=os.getenv("ACCESS_KEY"),
+                aws_secret_access_key=os.getenv("SECRET_KEY"),
+                region_name= os.getenv("AWS_REGION")
+            )
+            s3_client = boto_session.client("s3")
+            s3_client.put_object(
+                Bucket=self.s3_bucket,
+                Key=s3_key,
+                Body=content.encode("utf-8"),
+                ContentType="application/x-ndjson",
+            )
+            
+            return f"s3://{self.s3_bucket}/{s3_key}"
+        except Exception as e:
+            raise RuntimeError(f"Failed to upload batch transform input to S3: {str(e)}")
     
     def _build_pair_id(self, clo: CourseLearningOutcome, plo: ProgramLearningOutcome,) -> str:
         return f"clo-{clo.l_outcome_id}__plo-{plo.pl_outcome_id}"
