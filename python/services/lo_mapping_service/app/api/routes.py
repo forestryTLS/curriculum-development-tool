@@ -5,6 +5,10 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.core.logging_config import logger
+import boto3
+import json
+import os
+
 
 from app.schemas import (
     OutcomeMappingRequest,
@@ -14,6 +18,9 @@ from app.services import BatchTransformInputBuilder, LOMappingRequestDynamoDBRec
 
 
 lo_mapping_request_store = LOMappingRequestDynamoDBRecord()
+boto_session = lo_mapping_request_store._create_boto_session()
+REGION = os.environ.get("AWS_REGION", "ca-central-1")
+lambda_client = boto_session.client("lambda", region_name=REGION)
 
 
 @asynccontextmanager
@@ -54,13 +61,33 @@ async def map_program_outcomes(request: OutcomeMappingRequest,) -> OutcomeMappin
     try:
         batchTranformInputBuilder = BatchTransformInputBuilder(request)
         s3_input_path = batchTranformInputBuilder.build_batch_prompt_records()
-        lo_mapping_request_store.create_request(
+        record = lo_mapping_request_store.create_request(
             course_id=request.course_id,
             program_id=request.program_id,
             input_s3_path=s3_input_path,
-            status="pending",
+            status="PENDING",
         )
-        return batchTranformInputBuilder.process()
+        try:
+            response = lambda_client.invoke(
+                FunctionName="start-batch-transform-job",
+                InvocationType="RequestResponse",        
+                Payload=json.dumps({"record_id": record["request_id"]
+                                    }).encode("utf-8")
+            )
+
+            if response["StatusCode"] != 200:
+                raise HTTPException(status_code=500, detail="Lambda invocation failed")
+
+            result = json.loads(response["Payload"].read())
+
+            return {
+                "message": result["body"]["message"],
+                "jobName": result["body"]["jobName"],
+                "startedForRecordId": result["body"]["startedForRecordId"],
+            }
+
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
         logger.error(f"Error in mapping LOs: {e}")
         raise HTTPException(status_code=500, detail="Something went wrong while processing mapping request")

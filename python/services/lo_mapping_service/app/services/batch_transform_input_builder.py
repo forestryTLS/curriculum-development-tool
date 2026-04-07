@@ -14,7 +14,7 @@ from app.schemas import (
 
 
 class BatchTransformInputBuilder:
-    """Builds batch transform input JSONL files for CLO-PLO mapping."""
+    """Builds batch transform input JSONL files for CLO-PLO/Standard mapping."""
 
     def __init__(self, request: OutcomeMappingRequest) -> None:
         load_dotenv() 
