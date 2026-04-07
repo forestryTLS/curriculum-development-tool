@@ -28,7 +28,7 @@ REGION               = os.environ.get("AWS_REGION", "ca-central-1")
 # HuggingFace model config
 HF_MODEL_ID          = os.getenv("HF_MODEL_ID")            
 HF_TASK              = os.environ.get("HF_TASK", "text-generation")
-HF_IMAGE_URI         = os.environ["HF_IMAGE_URI"] 
+HF_IMAGE_URI         = os.getenv("HF_IMAGE_URI") 
 
 # Run this once locally (needs boto3 + sagemaker SDK installed locally only):
 #
@@ -39,13 +39,13 @@ HF_IMAGE_URI         = os.environ["HF_IMAGE_URI"]
 # Transform job config
 INSTANCE_TYPE        = os.environ.get("INSTANCE_TYPE", "ml.g5.2xlarge")
 INSTANCE_COUNT       = int(os.environ.get("INSTANCE_COUNT", "1"))
-INPUT_S3_URI         = os.environ["INPUT_S3_URI"]            
-OUTPUT_S3_URI        = os.environ["OUTPUT_S3_URI"]           
+INPUT_S3_URI         = os.getenv("INPUT_S3_URI")            
+OUTPUT_S3_URI        = os.getenv("OUTPUT_S3_URI")           
 JOB_NAME_PREFIX      = os.environ.get("JOB_NAME_PREFIX", "hf-batch-transform")
 
 # DynamoDB config
-DYNAMODB_TABLE       = os.environ["LO_MAPPING_DYNAMODB_REQUESTS_TABLE"]
-STATUS_INDEX      = os.environ["DYNAMODB_STATUS_INDEX"] #GSI name for status-createdAt index
+DYNAMODB_TABLE       = os.getenv("LO_MAPPING_DYNAMODB_REQUESTS_TABLE")
+STATUS_INDEX      = os.getenv("DYNAMODB_STATUS_INDEX") #GSI name for status-createdAt index
 
 # Model environment variables
 
@@ -291,7 +291,7 @@ def lambda_handler(event: dict, context) -> dict:
         # Prioritise the older record — start its job instead
         logger.info(
             "Older PENDING record '%s' exists from before '%s'.",
-            older_record["id"],
+            older_record["request_id"],
             record_id,
         )
         target_record = older_record
