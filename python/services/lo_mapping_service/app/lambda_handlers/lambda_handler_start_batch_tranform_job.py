@@ -4,6 +4,7 @@ import os
 from datetime import datetime, timezone
 import json
 import re
+from boto3.dynamodb.conditions import Key
 
 
 logger = logging.getLogger()
@@ -93,7 +94,7 @@ def create_model(model_name: str) -> None:
     logger.info("Created SageMaker model: %s", model_name)
 
 
-def start_transform_job(job_name: str, model_name: str) -> None:
+def start_transform_job(job_name: str, model_name: str, input_s3_uri: str) -> None:
     
     sm.create_transform_job(
         TransformJobName=job_name,
@@ -109,7 +110,7 @@ def start_transform_job(job_name: str, model_name: str) -> None:
             "DataSource": {
                 "S3DataSource": {
                     "S3DataType": "S3Prefix",
-                    "S3Uri": INPUT_S3_URI,
+                    "S3Uri": input_s3_uri,
                 }
             },
             "ContentType": "application/json",
