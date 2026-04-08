@@ -39,25 +39,3 @@ class OutcomeMappingRequest(BaseModel):
         default_factory=list,
         description="Allowed mapping scales for this request",
     )
-
-
-class OutcomeMapResult(BaseModel):
-    l_outcome_id: int = Field(description="Course learning outcome identifier")
-    pl_outcome_id: int = Field(description="Program learning outcome identifier")
-    matched: bool = Field(description="Whether any meaningful mapping was found")
-    selected_map_scales: List[MappingScaleOption] = Field(
-        default_factory=list,
-        description="All mapping scales selected for this CLO/PLO pair",
-    )
-    explanation: str = Field(
-        default="",
-        description="Human-readable explanation of the mapping decision",
-    )
-
-
-class OutcomeMappingResponse(BaseModel):
-    status: str = Field(description="High-level request status")
-    results: List[OutcomeMapResult] = Field(
-        default_factory=list,
-        description="Per CLO/PLO mapping results",
-    )

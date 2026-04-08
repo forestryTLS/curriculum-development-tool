@@ -1,6 +1,6 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
@@ -11,9 +11,8 @@ import os
 
 from app.schemas import (
     OutcomeMappingRequest,
-    OutcomeMappingResponse,
 )
-from app.services import BatchTransformInputBuilder, LOMappingRequestDynamoDBRecord
+from app.services import BatchTransformInputBuilder, LOMappingRequestDynamoDBRecord, process_batch_transform_results
 
 
 lo_mapping_request_store = LOMappingRequestDynamoDBRecord()
@@ -55,8 +54,8 @@ async def health_check() -> dict[str, str]:
     return {"status": "ok"}
 
 
-@app.post("/map-program-outcomes", response_model=OutcomeMappingResponse)
-async def map_program_outcomes(request: OutcomeMappingRequest,) -> OutcomeMappingResponse:
+@app.post("/map-program-outcomes")
+async def map_program_outcomes(request: OutcomeMappingRequest)-> dict:
     try:
         batchTranformInputBuilder = BatchTransformInputBuilder(request)
         s3_input_path = batchTranformInputBuilder.build_batch_prompt_records()
@@ -90,3 +89,10 @@ async def map_program_outcomes(request: OutcomeMappingRequest,) -> OutcomeMappin
     except Exception as e:
         logger.error(f"Error in mapping LOs: {e}")
         raise HTTPException(status_code=500, detail="Something went wrong while processing mapping request")
+    
+@app.post("/process-batch-transform-results")
+async def process_batch_transform_results_endpoint(request: dict, background_tasks: BackgroundTasks) -> dict:
+    # To ensure lambda_handler_process_batch_transform_inference_results does not wait for it to complete
+    background_tasks.add_task(process_batch_transform_results.process_records, request["recordsAwaitingProcessing"])
+    return {"message": "accepted"}
+    
