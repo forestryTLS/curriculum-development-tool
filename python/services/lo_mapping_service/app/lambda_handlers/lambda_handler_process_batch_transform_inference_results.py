@@ -11,7 +11,6 @@ import re
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-# ── Clients ───────────────────────────────────────────────────────────────────
 ACCESS_KEY = os.getenv("ACCESS_KEY")
 SECRET_KEY = os.getenv("SECRET_KEY")
 SAGEMAKER_ROLE_ARN = os.getenv("IAM_ROLE_ARN")
@@ -25,14 +24,11 @@ boto_session = boto3.Session(
 dynamodb      = boto_session.resource("dynamodb")
 lambda_client = boto_session.client("lambda")
 
-# ── Config ────────────────────────────────────────────────────────────────────
 DYNAMODB_TABLE        = os.environ["DYNAMODB_TABLE"]
 START_JOB_LAMBDA_NAME = os.environ["START_JOB_LAMBDA_NAME"]   # first Lambda's function name
 FASTAPI_ENDPOINT      = os.environ["FASTAPI_ENDPOINT"]         
 STATUS_INDEX          = os.environ.get("STATUS_INDEX", "status-createdAt-index")
 JOB_NAME_PREFIX       = os.environ.get("JOB_NAME_PREFIX", "hf-batch-transform")
-
-# ── DynamoDB helpers ──────────────────────────────────────────────────────────
 
 def find_in_progress_record(table, job_name: str) -> dict | None:
     """
@@ -63,7 +59,7 @@ def find_in_progress_record(table, job_name: str) -> dict | None:
     return None
 
 
-def update_record_status(table, record_id: str, new_status: str) -> None:
+def update_record_status(table, record_id, new_status):
     table.update_item(
         Key={"request_id": record_id},
         UpdateExpression="SET #st = :status, updated_at = :ts",
@@ -107,7 +103,7 @@ def get_all_awaiting_completion(table) -> list:
 
     return items
 
-def trigger_start_job_lambda(record_id: str) -> None:
+def trigger_start_job_lambda(record_id: str):
     """Invoke the first Lambda asynchronously to start the next batch job."""
     response = lambda_client.invoke(
         FunctionName=START_JOB_LAMBDA_NAME,
@@ -121,7 +117,7 @@ def trigger_start_job_lambda(record_id: str) -> None:
     logger.info("Triggered start-job Lambda for record '%s'.", record_id)
  
  
-def notify_fastapi(records: list) -> None:
+def notify_fastapi(records: list):
     """
     POST all AWAITING_COMPLETION or AWAITING_COMPLETION_FAILED records to FastAPI.
     """
@@ -180,7 +176,7 @@ def parse_job_name(job_name: str) -> tuple[str, str]:
         return "unknown", "unknown"
 
 
-def lambda_handler(event: dict, context) -> dict:
+def lambda_handler(event, context) -> dict:
     """
     Triggered by EventBridge on SageMaker Batch Transform job state change.
     

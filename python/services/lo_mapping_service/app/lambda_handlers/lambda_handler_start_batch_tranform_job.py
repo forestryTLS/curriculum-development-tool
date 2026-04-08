@@ -1,7 +1,7 @@
 import boto3
 import logging
 import os
-from datetime import datetime, timezone
+from datetime import datetime
 import json
 import re
 from boto3.dynamodb.conditions import Key
@@ -79,7 +79,7 @@ def get_running_transform_job() -> dict | None:
     return None
 
 
-def create_model(model_name: str) -> None:
+def create_model(model_name: str):
     
     sm.create_model(
         ModelName=model_name,
@@ -94,7 +94,7 @@ def create_model(model_name: str) -> None:
     logger.info("Created SageMaker model: %s", model_name)
 
 
-def start_transform_job(job_name: str, model_name: str, input_s3_uri: str) -> None:
+def start_transform_job(job_name, model_name, input_s3_uri):
     
     sm.create_transform_job(
         TransformJobName=job_name,
@@ -134,7 +134,7 @@ def get_record(table, record_id):
     resp = table.get_item(Key={"request_id": record_id})
     return resp.get("Item")
 
-def get_oldest_pending_before(table, current_created_at: str):
+def get_oldest_pending_before(table, current_created_at):
     """
     Query the GSI for PENDING records with created_at < current record's created_at.
     """
@@ -187,7 +187,7 @@ def _sanitize_for_job_name(value: str) -> str:
     """Replace characters that are not allowed in SageMaker job names with hyphens."""
     return re.sub(r"[^a-zA-Z0-9\-]", "-", value)
 
-def build_job_name(record: dict) -> str:
+def build_job_name(record) -> str:
     """
     Build a SageMaker Batch Transform job name.
 
@@ -218,7 +218,7 @@ def build_job_name(record: dict) -> str:
 
     return job_name
 
-def launch_job_for_record(record: dict) -> str:
+def launch_job_for_record(record) -> str:
     """
     Given a DynamoDB record, create a SageMaker model + transform job
     and return the job name.
@@ -236,7 +236,7 @@ def launch_job_for_record(record: dict) -> str:
     return job_name
 
 
-def lambda_handler(event: dict, context) -> dict:
+def lambda_handler(event, context) -> dict:
     """
     Expected event payload:
         { "record_id": "<dynamodb-item-id>" }

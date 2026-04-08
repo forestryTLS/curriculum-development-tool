@@ -1,7 +1,6 @@
 import boto3
 import httpx
 import json
-import logging
 import os
 import re
 from app.core.logging_config import logger
@@ -73,8 +72,7 @@ def parse_composite_id(composite_id: str) -> tuple[str | None, str | None]:
 
 def extract_generated_text(line: dict) -> str | None:
     """
-    Pull the raw generated text out of a JSONL
-    Handles both list-wrapped and plain dict responses
+    Pull the raw generated text out of a JSONL file. Handles both list-wrapped and plain dict responses
     """
     if isinstance(line, list):
         line = line[0] if line else None
@@ -85,8 +83,7 @@ def extract_generated_text(line: dict) -> str | None:
 
 def strip_think_tag(text: str) -> str:
     """
-    Return only the content that follows the closing </think> tag
-    If no such tag exists the full text is returned unchanged
+    Return only the content that follows the closing </think> tag. If no such tag exists the full text is returned unchanged
     """
     if "</think>" in text:
         return text.split("</think>", 1)[-1].strip()
@@ -187,7 +184,7 @@ def process_jsonl_lines(lines: list[dict]) -> list[dict]:
 
 
 def delete_dynamodb_record(record_id: str) -> None:
-    """Delete the DynamoDB record once its output has been fully processed."""
+    """Delete the DynamoDB record once its output has been fully processed"""
     table = dynamodb.Table(DYNAMODB_TABLE)
     table.delete_item(Key={"id": record_id})
     logger.info("Deleted DynamoDB record '%s'.", record_id)
@@ -195,7 +192,7 @@ def delete_dynamodb_record(record_id: str) -> None:
 
 
 async def send_results_to_external_api(record_id: str, results: list[dict], record: dict) -> None:
-    """POST all extracted results for a single record to the external API."""
+    """POST all extracted results for a single record to the external API"""
     payload = {
         "request_id":      record_id,
         "course_id":  record.get("course_id"),

@@ -41,7 +41,7 @@ class BatchTransformInputBuilder:
         filename = f"batch_transform_input__courseid-{course_id_str}__programid-{program_id_str}__{timestamp}.jsonl"
         s3_key = f"batch_inputs/{filename}"
 
-        # Build JSONL content in memory
+        # Build JSONL content
         lines = []
         for clo in self.request.course_learning_outcomes:
             for plo in self.request.program_learning_outcomes:
