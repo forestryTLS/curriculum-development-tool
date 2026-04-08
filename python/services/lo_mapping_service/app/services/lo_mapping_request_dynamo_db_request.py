@@ -11,14 +11,14 @@ from app.core.logging_config import logger
 class LOMappingRequestDynamoDBRecord:
     """Persists LO mapping request records in DynamoDB."""
 
-    def __init__(self) -> None:
+    def __init__(self):
         load_dotenv()
         self.table_name = os.getenv("LO_MAPPING_REQUESTS_TABLE")
         self.aws_region = os.getenv("AWS_REGION")
         self.aws_access_key = os.getenv("ACCESS_KEY")
         self.aws_secret_key = os.getenv("SECRET_KEY")
 
-    def ensure_table_exists(self) -> None:
+    def ensure_table_exists(self):
         if not self.table_name:
             raise ValueError("LO_MAPPING_REQUESTS_TABLE is not set")
 
@@ -57,21 +57,20 @@ class LOMappingRequestDynamoDBRecord:
             table.wait_until_exists()
             logger.info("DynamoDB table %s is ready", self.table_name)
 
-    def create_request(self, course_id: int | str | None, program_id: int | str | None,
-                       input_s3_path: str, status: str = "pending",) -> dict[str, str | int | None]:
+    def create_request(self, course_id, program_id, input_s3_path, status: str = "PENDING",):
         if not self.table_name:
             raise ValueError("LO_MAPPING_REQUESTS_TABLE is not set")
         if not input_s3_path:
             raise ValueError("input_s3_path is required")
 
         item = {
-            "request_id": str(uuid4()), # Generate based on datetime to ensure uniqueness
+            "request_id": datetime.now().strftime('%Y%m%d-%H%M%S-') + str(uuid4()), # Generate based on datetime to ensure uniqueness
             "course_id": course_id,
             "program_id": program_id,
             "status": status,
             "input_s3_path": input_s3_path,
             "output_s3_path": input_s3_path.replace("batch_inputs", "batch_outputs") + ".out",
-            "created_at": datetime.now(timezone.utc).isoformat(),
+            "created_at": datetime.now().isoformat(),
         }
 
         try:

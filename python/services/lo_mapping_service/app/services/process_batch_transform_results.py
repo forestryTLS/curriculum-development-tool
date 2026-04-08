@@ -1,0 +1,257 @@
+import boto3
+import httpx
+import json
+import logging
+import os
+import re
+from app.core.logging_config import logger
+
+AWS_REGION = os.getenv("AWS_REGION", "ca-central-1")
+AWS_ACCESS_KEY = os.getenv("ACCESS_KEY")
+AWS_SECRET_KEY = os.getenv("SECRET_KEY")
+
+boto_session = boto3.Session(
+    aws_access_key_id=AWS_ACCESS_KEY,
+    aws_secret_access_key=AWS_SECRET_KEY,
+    region_name=AWS_REGION
+)
+
+s3       = boto_session.client("s3")
+dynamodb = boto_session.resource("dynamodb")
+
+DYNAMODB_TABLE  = os.environ["LO_MAPPING_DYNAMODB_REQUESTS_TABLE"]
+LARAVEL_API_URL = os.getenv("LARAVEL_API_URL")
+
+
+def parse_s3_uri(s3_uri: str) -> tuple[str, str]:
+    if not s3_uri.startswith("s3://"):
+        raise ValueError(f"Invalid S3 URI: {s3_uri}")
+
+    without_scheme = s3_uri[len("s3://"):]
+    parts = without_scheme.split("/", 1)
+
+    bucket = parts[0]
+    key    = parts[1] if len(parts) > 1 else ""
+
+    return bucket, key
+
+
+def read_s3_jsonl(s3_uri: str) -> list[dict]:
+    """Download .jsonl file from S3 and return each line as a parsed dict."""
+    bucket, key = parse_s3_uri(s3_uri)
+    logger.info("Reading S3 output: s3://%s/%s", bucket, key)
+
+    response = s3.get_object(Bucket=bucket, Key=key)
+    body     = response["Body"].read().decode("utf-8")
+
+    lines  = [line.strip() for line in body.splitlines() if line.strip()]
+    parsed = []
+    for i, line in enumerate(lines):
+        try:
+            parsed.append(json.loads(line))
+        except json.JSONDecodeError as e:
+            logger.warning("Skipping malformed JSONL line %d: %s — %s", i, line, e)
+
+    logger.info("Parsed %d line(s) from %s", len(parsed), s3_uri)
+    return parsed
+
+
+def parse_composite_id(composite_id: str) -> tuple[str | None, str | None]:
+    """
+    Parse a composite ID of the form  'clo-{clo_id}__plo-{plo_id}'
+    and return (clo_id, plo_id).
+
+    Returns (None, None) if the format is not recognised.
+    """
+    match = re.match(r"clo-(?P<clo_id>[^_]+)__plo-(?P<plo_id>.+)", composite_id or "")
+    if not match:
+        logger.warning("Could not parse composite id '%s'.", composite_id)
+        return None, None
+
+    return match.group("clo_id"), match.group("plo_id")
+
+
+def extract_generated_text(line: dict) -> str | None:
+    """
+    Pull the raw generated text out of a JSONL
+    Handles both list-wrapped and plain dict responses
+    """
+    if isinstance(line, list):
+        line = line[0] if line else None
+    if not isinstance(line, dict):
+        return None
+    return line.get("generated_text")
+
+
+def strip_think_tag(text: str) -> str:
+    """
+    Return only the content that follows the closing </think> tag
+    If no such tag exists the full text is returned unchanged
+    """
+    if "</think>" in text:
+        return text.split("</think>", 1)[-1].strip()
+    return text.strip()
+
+
+def extract_label_and_explanation(generated_text: str) -> dict:
+    """
+    Try to parse the generated text as JSON first; fall back to line scanning.
+
+    Expected JSON shape:
+        {
+            "id":          "clo-1__plo-2",   # optional here; handled upstream
+            "CLO":         "...",            
+            "Accreditation_Standard": "...", 
+            "is_mapped":   true or false,    
+            "explanation": "...",
+            "mapLabels":   [...]
+        }
+    """
+    try:
+        parsed = json.loads(generated_text)
+        if isinstance(parsed, dict):
+            return {
+                "id":          parsed.get("id", None),
+                "CLO":        parsed.get("CLO", ""),
+                "Accreditation_Standard": parsed.get("Accreditation_Standard", ""),
+                "is_mapped":  parsed.get("is_mapped", False),
+                "explanation": parsed.get("explanation", None),
+                "map_labels":  parsed.get("mapLabels", [])
+            }
+    except (json.JSONDecodeError, TypeError):
+        pass
+
+    id = clo = accreditation_standard = explanation = None
+    for text_line in generated_text.splitlines():
+        text_line = text_line.strip()
+        if text_line.lower().startswith("explanation:"):
+            explanation = text_line.split(":", 1)[1].strip()
+        elif text_line.lower().startswith("clo:"):
+            clo = text_line.split(":", 1)[1].strip()
+        elif text_line.lower().startswith("accreditation_standard:"):
+            accreditation_standard = text_line.split(":", 1)[1].strip()
+        elif text_line.lower().startswith("id:"):
+            id = text_line.split(":", 1)[1].strip()
+    return {
+        "id": id if id else None,
+        "CLO": clo if clo else "",
+        "Accreditation_Standard": accreditation_standard if accreditation_standard else "",
+        "explanation": explanation,
+        "map_labels":  [],
+        "is_mapped": False
+        }
+
+
+def process_jsonl_lines(lines: list[dict]) -> list[dict]:
+    """
+    For every JSONL line:
+      - Extract generated_text
+      - Strip everything up to and including </think>.
+      - Parse the remaining text for clo, mapped_labels, etc.
+      - Parse clo_id / plo_id from the line's 'id' field.
+
+    Returns a list of result objects ready to be sent to the API
+    """
+    results = []
+
+    for i, line in enumerate(lines):
+        try:
+            raw_text = extract_generated_text(line)
+            if raw_text is None:
+                logger.warning("Line %d has no generated_text — skipping.", i)
+                continue
+
+            clean_text = strip_think_tag(raw_text)
+            extracted  = extract_label_and_explanation(clean_text)
+            composite_id     = extracted.get("id", "")
+            clo_id, plo_id   = parse_composite_id(composite_id)
+            
+            if clo_id is None or plo_id is None:
+                logger.warning("Line %d has invalid or missing composite id '%s' — skipping.", i, composite_id)
+                continue
+
+            results.append({
+                "clo_id":      clo_id,
+                "plo_id":      plo_id,
+                "CLO": extracted["CLO"],
+                "Accreditation_Standard": extracted["Accreditation_Standard"],
+                "is_mapped": extracted["is_mapped"],
+                "explanation": extracted["explanation"],
+                "map_labels":  extracted["map_labels"],
+            })
+
+        except Exception as e:
+            logger.warning("Failed to process line %d: %s — %s", i, line, e)
+
+    return results
+
+
+def delete_dynamodb_record(record_id: str) -> None:
+    """Delete the DynamoDB record once its output has been fully processed."""
+    table = dynamodb.Table(DYNAMODB_TABLE)
+    table.delete_item(Key={"id": record_id})
+    logger.info("Deleted DynamoDB record '%s'.", record_id)
+
+
+
+async def send_results_to_external_api(record_id: str, results: list[dict], record: dict) -> None:
+    """POST all extracted results for a single record to the external API."""
+    payload = {
+        "request_id":      record_id,
+        "course_id":  record.get("course_id"),
+        "program_id": record.get("program_id"),
+        "results":       results,   # list of {clo_id, plo_id, clo, accreditation_standard, explanation, map_labels, is_mapped}
+    }
+
+    async with httpx.AsyncClient(timeout=30) as client:
+        response = await client.post(LARAVEL_API_URL, json=payload)
+        response.raise_for_status()
+        logger.info(
+            "Sent %d result(s) for record '%s' to external API — HTTP %s.",
+            len(results), record_id, response.status_code,
+        )
+
+
+async def process_records(records: list) -> None:
+    """
+    For each record:
+      - get the S3 output path from the DynamoDB record
+      - Read and parse the JSONL file
+      - Strip <think> blocks and extract fields from each line
+      - Send all results for this record to the external API
+      - Delete the DynamoDB record
+
+    A failure in one record is logged but record is not deleted
+    """
+    logger.info("Starting processing for %d record(s).", len(records))
+
+    for record in records:
+        record_id = record.get("request_id")
+        logger.info("Processing record '%s'.", record_id)
+
+        try:
+            output_s3_uri = record.get("output_s3_path")
+            if not output_s3_uri:
+                logger.warning("Record '%s' is missing output_s3_path — skipping.", record_id)
+                continue
+
+            lines = read_s3_jsonl(output_s3_uri)
+
+            results = process_jsonl_lines(lines)
+            logger.info(
+                "Extracted %d result(s) for record '%s'.",
+                len(results), record_id,
+            )
+
+            await send_results_to_external_api(record_id, results, record)
+
+            delete_dynamodb_record(record_id)
+
+        except Exception as e:
+            logger.error(
+                "Failed to process record '%s': %s — skipping.",
+                record_id, e,
+            )
+            continue
+
+    logger.info("Finished processing %d record(s).", len(records))

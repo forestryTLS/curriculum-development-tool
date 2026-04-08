@@ -98,7 +98,7 @@ class TestLOMappingRequestDynamoDBRecordCreateRequest:
         assert "request_id" in item
         assert item["course_id"] == 101
         assert item["program_id"] == 202
-        assert item["status"] == "pending"
+        assert item["status"] == "PENDING"
         assert item["input_s3_path"] == "s3://bucket/batch_inputs/file.json"
         assert item["output_s3_path"] == "s3://bucket/batch_outputs/file.json.out"
         assert "created_at" in item
@@ -117,15 +117,15 @@ class TestLOMappingRequestDynamoDBRecordCreateRequest:
             course_id=1,
             program_id=2,
             input_s3_path="s3://bucket/batch_inputs/file.json",
-            status="processing",
+            status="IN_PROGRESS",
         )
-        assert item["status"] == "processing"
+        assert item["status"] == "IN_PROGRESS"
 
         dynamodb = boto3.resource("dynamodb", region_name=AWS_REGION)
         stored = dynamodb.Table(TABLE_NAME).get_item(
             Key={"request_id": item["request_id"]}
         )["Item"]
-        assert stored["status"] == "processing"
+        assert stored["status"] == "IN_PROGRESS"
 
     @mock_aws
     def test_raises_runtime_error_on_dynamodb_failure(self, record):
