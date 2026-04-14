@@ -3,6 +3,7 @@ from datetime import datetime
 from uuid import uuid4
 
 import boto3
+from boto3.dynamodb.conditions import Key
 from dotenv import load_dotenv
 
 from app.core.logging_config import logger
@@ -17,6 +18,7 @@ class LOMappingRequestDynamoDBRecord:
         self.aws_region = os.getenv("AWS_REGION")
         self.aws_access_key = os.getenv("ACCESS_KEY")
         self.aws_secret_key = os.getenv("SECRET_KEY")
+        self.status_index = os.getenv("DYNAMODB_STATUS_INDEX", "status-created_at-index")
 
     def ensure_table_exists(self):
         if not self.table_name:
@@ -85,6 +87,62 @@ class LOMappingRequestDynamoDBRecord:
         except Exception as e:
             raise RuntimeError(f"Failed to create LO mapping request record in DynamoDB: {str(e)}") from e
 
+    def get_records_by_status(self, status: str) -> list[dict]:
+        """Return all records for a given status using the status-created_at GSI"""
+        
+        table = self._get_table()
+        items = []
+        args = {
+            "IndexName": self.status_index,
+            "KeyConditionExpression": Key("status").eq(status),
+        }
+
+        response = table.query(**args)
+        items.extend(response.get("Items", []))
+
+        while "LastEvaluatedKey" in response:
+            response = table.query(**args, ExclusiveStartKey=response["LastEvaluatedKey"])
+            items.extend(response.get("Items", []))
+
+        return items
+
+    def find_latest_awaiting_record_by_ids(self, course_id, program_id) -> dict | None:
+        """Find the latest record for the given course/program awaiting post-processing"""
+        
+        latest_record = None
+        table = self._get_table()
+
+        for status in ("AWAITING_COMPLETION", "AWAITING_COMPLETION_FAILED"):
+            response = table.query(
+                IndexName=self.status_index,
+                KeyConditionExpression=Key("status").eq(status),
+            )
+
+            for item in response.get("Items", []):
+                if item.get("course_id") != course_id or item.get("program_id") != program_id:
+                    continue
+                if latest_record is None or item.get("created_at", "") > latest_record.get("created_at", ""):
+                    latest_record = item
+
+            while "LastEvaluatedKey" in response:
+                response = table.query(
+                    IndexName=self.status_index,
+                    KeyConditionExpression=Key("status").eq(status),
+                    ExclusiveStartKey=response["LastEvaluatedKey"],
+                )
+                for item in response.get("Items", []):
+                    if item.get("course_id") != course_id or item.get("program_id") != program_id:
+                        continue
+                    if latest_record is None or item.get("created_at", "") > latest_record.get("created_at", ""):
+                        latest_record = item
+
+        return latest_record
+
+    def delete_request(self, request_id: str) -> None:
+        """Delete a record by its request_id"""
+        self._get_table().delete_item(Key={"request_id": request_id})
+        logger.info("Deleted LO mapping request record '%s'.", request_id)
+
     def _create_boto_session(self) -> boto3.Session:
         if not self.aws_access_key or not self.aws_secret_key or not self.aws_region:
             raise ValueError("AWS credentials or region are not set in environment variables")
@@ -94,3 +152,8 @@ class LOMappingRequestDynamoDBRecord:
             aws_secret_access_key=self.aws_secret_key,
             region_name=self.aws_region,
         )
+
+    def _get_table(self):
+        if not self.table_name:
+            raise ValueError("LO_MAPPING_REQUESTS_TABLE is not set")
+        return self._create_boto_session().resource("dynamodb").Table(self.table_name)

@@ -4,6 +4,7 @@ import json
 import os
 import re
 from app.core.logging_config import logger
+from app.services.lo_mapping_request_dynamo_db_request import LOMappingRequestDynamoDBRecord
 
 AWS_REGION = os.getenv("AWS_REGION", "ca-central-1")
 AWS_ACCESS_KEY = os.getenv("ACCESS_KEY")
@@ -16,10 +17,9 @@ boto_session = boto3.Session(
 )
 
 s3       = boto_session.client("s3")
-dynamodb = boto_session.resource("dynamodb")
 
-DYNAMODB_TABLE  = os.environ["LO_MAPPING_DYNAMODB_REQUESTS_TABLE"]
 LARAVEL_API_URL = os.getenv("LARAVEL_API_URL")
+lo_mapping_request_store = LOMappingRequestDynamoDBRecord()
 
 
 def parse_s3_uri(s3_uri: str) -> tuple[str, str]:
@@ -185,9 +185,12 @@ def process_jsonl_lines(lines: list[dict]) -> list[dict]:
 
 def delete_dynamodb_record(record_id: str) -> None:
     """Delete the DynamoDB record once its output has been fully processed"""
-    table = dynamodb.Table(DYNAMODB_TABLE)
-    table.delete_item(Key={"id": record_id})
-    logger.info("Deleted DynamoDB record '%s'.", record_id)
+    try:
+        lo_mapping_request_store.delete_request(record_id)
+        logger.info("Deleted DynamoDB record '%s'.", record_id)
+    except Exception as e:
+        logger.error("Failed to delete DynamoDB record '%s': %s", record_id, e)
+        # Not re-raising since failure to delete should not block processing of other records
 
 
 

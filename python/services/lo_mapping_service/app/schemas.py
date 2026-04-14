@@ -39,3 +39,7 @@ class OutcomeMappingRequest(BaseModel):
         default_factory=list,
         description="Allowed mapping scales for this request",
     )
+    
+class ManualProcessRequest(BaseModel):
+    course_id: str
+    program_id: str

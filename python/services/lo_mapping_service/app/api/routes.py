@@ -11,8 +11,11 @@ import os
 
 from app.schemas import (
     OutcomeMappingRequest,
+    ManualProcessRequest
 )
 from app.services import BatchTransformInputBuilder, LOMappingRequestDynamoDBRecord, process_batch_transform_results
+from app.services.scheduled_job import create_scheduler
+from app.services.process_batch_transform_results import process_records
 
 
 lo_mapping_request_store = LOMappingRequestDynamoDBRecord()
@@ -29,7 +32,15 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"Error during application startup: {e}")
         raise e
+    scheduler = create_scheduler()
+    scheduler.start()
+    logger.info("APScheduler started.")
+    app.state.scheduler = scheduler
+    
     yield
+    
+    scheduler.shutdown(wait=False)
+    logger.info("APScheduler stopped.")
 
 
 app = FastAPI(
@@ -95,4 +106,46 @@ async def process_batch_transform_results_endpoint(request: dict, background_tas
     # To ensure lambda_handler_process_batch_transform_inference_results does not wait for it to complete
     background_tasks.add_task(process_batch_transform_results.process_records, request["recordsAwaitingProcessing"])
     return {"message": "accepted"}
+
+@app.post("/get-processed-results")
+async def manually_trigger_processing(body: ManualProcessRequest):
+    """
+    Called by Laravel when it wants results for a given course_id + program_id.
+ 
+    - Finds the latest DynamoDB record in AWAITING_COMPLETION or AWAITING_COMPLETION_FAILED status for the given course_id and program_id
+    - If found: runs post-processing and returns
+    - If not found: returns telling Laravel results are still being processed
+    """
+    logger.info(
+        "Manually trigger processing request — course_id=%s program_id=%s",
+        body.course_id, body.program_id,
+    )
+ 
+    record = lo_mapping_request_store.find_latest_awaiting_record_by_ids(body.course_id, body.program_id)
+ 
+    if not record:
+        # Either still pending, processing or record doesn't exist
+        logger.info(
+            "No AWAITING_COMPLETION or AWAITING_COMPLETION_FAILED record found for course_id=%s program=%s — still processing.",
+            body.course_id, body.program,
+        )
+        return {
+            "status": "pending",
+            "message": "Results are still being processed. Please try again later.",
+        }
+ 
+    record_id = record.get("request_id")
+    record_status = record.get("status")
+    logger.info(
+        "Found record '%s' with status '%s' — starting post-processing.",
+        record_id, record_status,
+    )
+ 
+    await process_records([record])
+ 
+    return {
+        "status": "ok",
+        "message": f"Results for course '{body.course_id}' / program '{body.program}' processed and sent.",
+        "record_id": record_id,
+    }
     

@@ -26,7 +26,7 @@ lambda_client = boto_session.client("lambda")
 
 DYNAMODB_TABLE        = os.environ["DYNAMODB_TABLE"]
 START_JOB_LAMBDA_NAME = os.environ["START_JOB_LAMBDA_NAME"]   # first Lambda's function name
-FASTAPI_ENDPOINT      = os.environ["FASTAPI_ENDPOINT"]         
+#FASTAPI_ENDPOINT      = os.environ["FASTAPI_ENDPOINT"]   # No longer needed with scheduled job and manual endpoint handling post-processing      
 STATUS_INDEX          = os.environ.get("STATUS_INDEX", "status-createdAt-index")
 JOB_NAME_PREFIX       = os.environ.get("JOB_NAME_PREFIX", "hf-batch-transform")
 
@@ -84,6 +84,7 @@ def get_oldest_pending(table) -> dict | None:
     return items[0] if items else None
 
 
+## No longer needed with scheduled job and manual endpoint handling post-processing
 def get_all_awaiting_completion(table) -> list:
     """Return every record with status AWAITING_COMPLETION or AWAITING_COMPLETION_FAILED."""
     items = []
@@ -117,6 +118,7 @@ def trigger_start_job_lambda(record_id: str):
     logger.info("Triggered start-job Lambda for record '%s'.", record_id)
  
  
+## No longer needed with scheduled job and manual endpoint handling post-processing 
 def notify_fastapi(records: list):
     """
     POST all AWAITING_COMPLETION or AWAITING_COMPLETION_FAILED records to FastAPI.
@@ -182,7 +184,6 @@ def lambda_handler(event, context) -> dict:
     
     Updates the corresponding DynamoDB record's status to AWAITING_COMPLETION or AWAITING_COMPLETION_FAILED.
     Then checks for the next PENDING record and triggers the start-job Lambda if found.
-    Finally, it gathers all AWAITING_COMPLETION records and notifies the FastAPI.
     """
     
     logger.info("EventBridge event: %s", json.dumps(event))
@@ -228,20 +229,24 @@ def lambda_handler(event, context) -> dict:
         trigger_start_job_lambda(oldest_pending["request_id"])
     else:
         logger.info("No PENDING records found — queue is empty.")
+    
+    
+    ## No longer neded with scheduled job and manual endpoint handling post-processing
+        
+    # awaiting_records = get_all_awaiting_completion(table)
 
-    awaiting_records = get_all_awaiting_completion(table)
+    # # Ensure the current record is in the list even if the GSI lags
+    # awaiting_ids = {r["request_id"] for r in awaiting_records}
+    # if (new_status == "AWAITING_COMPLETION" or new_status == "AWAITING_COMPLETION_FAILED") and record_id not in awaiting_ids:
+    #     logger.info("Adding current record to awaitingCompletion list (GSI lag).")
+    #     awaiting_records.append({**record, "status": new_status})
 
-    # Ensure the current record is in the list even if the GSI lags
-    awaiting_ids = {r["request_id"] for r in awaiting_records}
-    if (new_status == "AWAITING_COMPLETION" or new_status == "AWAITING_COMPLETION_FAILED") and record_id not in awaiting_ids:
-        logger.info("Adding current record to awaitingCompletion list (GSI lag).")
-        awaiting_records.append({**record, "status": new_status})
-
-    if awaiting_records:
-        logger.info("%d awaitingCompletion record(s) — notifying FastAPI.", len(awaiting_records))
-        notify_fastapi(awaiting_records)
-    else:
-        logger.info("No awaitingCompletion records — FastAPI not notified.")
+    # if awaiting_records:
+    #     logger.info("%d awaitingCompletion record(s) — notifying FastAPI.", len(awaiting_records))
+    #     notify_fastapi(awaiting_records)
+    # else:
+    #     logger.info("No awaitingCompletion records — FastAPI not notified.")
+ 
  
     return {
         "statusCode": 200,
@@ -252,6 +257,5 @@ def lambda_handler(event, context) -> dict:
             "updatedRecordId":     record_id,
             "updatedRecordStatus": new_status,
             "nextJobTriggered":    oldest_pending["request_id"] if oldest_pending else None,
-            "awaitingCount":       len(awaiting_records),
         },
     }

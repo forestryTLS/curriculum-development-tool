@@ -11,7 +11,6 @@ os.environ.update({
     "IAM_ROLE_ARN": "arn:aws:iam::123456789012:role/fake-role",
     "DYNAMODB_TABLE": "requests-table",
     "START_JOB_LAMBDA_NAME": "start-job-lambda",
-    "FASTAPI_ENDPOINT": "https://example.test/notify",
     "STATUS_INDEX": "status-createdAt-index",
 })
 
@@ -107,7 +106,7 @@ def test_no_matching_in_progress_record_returns_404():
     )
 
 
-def test_completed_job_updates_status_triggers_next_job_and_notifies_fastapi(monkeypatch):
+def test_completed_job_updates_status_and_triggers_next_job(monkeypatch):
     dynamodb = boto3.resource("dynamodb", region_name=REGION)
     table = make_table(dynamodb)
     put_record(
@@ -120,17 +119,10 @@ def test_completed_job_updates_status_triggers_next_job_and_notifies_fastapi(mon
     put_record(table, "rec-pending", "PENDING", "2024-01-01T11:00:00")
 
     triggered = []
-    notified = []
-
     monkeypatch.setattr(
         lambda_handler_process_batch_transform_inference_results,
         "trigger_start_job_lambda",
         lambda record_id: triggered.append(record_id),
-    )
-    monkeypatch.setattr(
-        lambda_handler_process_batch_transform_inference_results,
-        "notify_fastapi",
-        lambda records: notified.extend(records),
     )
 
     resp = lambda_handler_process_batch_transform_inference_results.lambda_handler(
@@ -148,18 +140,14 @@ def test_completed_job_updates_status_triggers_next_job_and_notifies_fastapi(mon
     assert resp["body"]["updatedRecordId"] == "rec-in-progress"
     assert resp["body"]["updatedRecordStatus"] == "AWAITING_COMPLETION"
     assert resp["body"]["nextJobTriggered"] == "rec-pending"
-    assert resp["body"]["awaitingCount"] == 1
     assert triggered == ["rec-pending"]
-    assert len(notified) == 1
-    assert notified[0]["request_id"] == "rec-in-progress"
-    assert notified[0]["status"] == "AWAITING_COMPLETION"
 
     updated = table.get_item(Key={"request_id": "rec-in-progress"})["Item"]
     assert updated["status"] == "AWAITING_COMPLETION"
     assert "updated_at" in updated
 
 
-def test_failed_job_updates_status_and_notifies_without_triggering_next_job(monkeypatch):
+def test_failed_job_updates_status_without_triggering_next_job(monkeypatch):
     dynamodb = boto3.resource("dynamodb", region_name=REGION)
     table = make_table(dynamodb)
     put_record(
@@ -171,17 +159,10 @@ def test_failed_job_updates_status_and_notifies_without_triggering_next_job(monk
     )
 
     triggered = []
-    notified = []
-
     monkeypatch.setattr(
         lambda_handler_process_batch_transform_inference_results,
         "trigger_start_job_lambda",
         lambda record_id: triggered.append(record_id),
-    )
-    monkeypatch.setattr(
-        lambda_handler_process_batch_transform_inference_results,
-        "notify_fastapi",
-        lambda records: notified.extend(records),
     )
 
     resp = lambda_handler_process_batch_transform_inference_results.lambda_handler(
@@ -199,11 +180,7 @@ def test_failed_job_updates_status_and_notifies_without_triggering_next_job(monk
     assert resp["body"]["updatedRecordId"] == "rec-in-progress"
     assert resp["body"]["updatedRecordStatus"] == "AWAITING_COMPLETION_FAILED"
     assert resp["body"]["nextJobTriggered"] is None
-    assert resp["body"]["awaitingCount"] == 1
     assert triggered == []
-    assert len(notified) == 1
-    assert notified[0]["request_id"] == "rec-in-progress"
-    assert notified[0]["status"] == "AWAITING_COMPLETION_FAILED"
 
     updated = table.get_item(Key={"request_id": "rec-in-progress"})["Item"]
     assert updated["status"] == "AWAITING_COMPLETION_FAILED"
