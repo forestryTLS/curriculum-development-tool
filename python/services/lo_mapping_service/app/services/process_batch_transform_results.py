@@ -200,6 +200,7 @@ async def send_results_to_external_api(record_id: str, results: list[dict], reco
         "request_id":      record_id,
         "course_id":  record.get("course_id"),
         "program_id": record.get("program_id"),
+        "status": record.get("status"),
         "results":       results,   # list of {clo_id, plo_id, clo, accreditation_standard, explanation, map_labels, is_mapped}
     }
 
@@ -227,13 +228,26 @@ async def process_records(records: list) -> None:
 
     for record in records:
         record_id = record.get("request_id")
+        record_status = record.get("status")
         logger.info("Processing record '%s'.", record_id)
 
         try:
+            if record_status == "AWAITING_COMPLETION_FAILED":
+                logger.info(
+                    "Record '%s' is marked as failed; notifying external API without reading S3 output.",
+                    record_id,
+                )
+                await send_results_to_external_api(record_id, [], record)
+                delete_dynamodb_record(record_id)
+                continue
+
             output_s3_uri = record.get("output_s3_path")
             if not output_s3_uri:
-                logger.warning("Record '%s' is missing output_s3_path — skipping.", record_id)
-                continue
+                input_s3_path = record.get("input_s3_path", "")
+                output_s3_uri = input_s3_path.replace("batch_inputs", "batch_outputs") + ".out"
+                if not output_s3_uri:
+                    logger.warning("Record '%s' is missing output_s3_path — using '%s'.", record_id, output_s3_uri)
+                    continue
 
             lines = read_s3_jsonl(output_s3_uri)
 
