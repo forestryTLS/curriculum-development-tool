@@ -21,11 +21,11 @@ class MappingScaleOption(BaseModel):
 
 
 class OutcomeMappingRequest(BaseModel):
-    course_id: Optional[int] = Field(
-        default=None, description="Course identifier when available"
+    course_id: int = Field(
+        default=None, description="Course identifier"
     )
-    program_id: Optional[int] = Field(
-        default=None, description="Program identifier when available"
+    program_id: int = Field(
+        default=None, description="Program identifier"
     )
     course_learning_outcomes: List[CourseLearningOutcome] = Field(
         default_factory=list,
