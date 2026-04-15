@@ -1,6 +1,7 @@
 import pytest
 import boto3
 from moto import mock_aws
+from app.core.config import Settings
 from app.services.lo_mapping_request_dynamo_db_request import LOMappingRequestDynamoDBRecord
 
 
@@ -24,6 +25,22 @@ def record():
     return LOMappingRequestDynamoDBRecord()
 
 class TestLOMappingRequestDynamoDBRecordEnsureTableExists:
+    def test_uses_pydantic_settings_object(self):
+        settings = Settings(
+            LO_MAPPING_REQUESTS_TABLE="custom-table",
+            AWS_REGION=AWS_REGION,
+            ACCESS_KEY="custom-access-key",
+            SECRET_KEY="custom-secret-key",
+            DYNAMODB_STATUS_INDEX="custom-status-index",
+        )
+
+        record = LOMappingRequestDynamoDBRecord(settings=settings)
+
+        assert record.table_name == "custom-table"
+        assert record.aws_region == AWS_REGION
+        assert record.aws_access_key == "custom-access-key"
+        assert record.aws_secret_key == "custom-secret-key"
+        assert record.status_index == "custom-status-index"
 
     def test_raises_if_table_name_not_set(self, record):
         record.table_name = None

@@ -1,24 +1,23 @@
-import os
 from datetime import datetime
 from uuid import uuid4
 
 import boto3
 from boto3.dynamodb.conditions import Key
-from dotenv import load_dotenv
 
+from app.core.config import Settings
 from app.core.logging_config import logger
 
 
 class LOMappingRequestDynamoDBRecord:
     """Persists LO mapping request records in DynamoDB."""
 
-    def __init__(self):
-        load_dotenv()
-        self.table_name = os.getenv("LO_MAPPING_REQUESTS_TABLE")
-        self.aws_region = os.getenv("AWS_REGION")
-        self.aws_access_key = os.getenv("ACCESS_KEY")
-        self.aws_secret_key = os.getenv("SECRET_KEY")
-        self.status_index = os.getenv("DYNAMODB_STATUS_INDEX", "status-created_at-index")
+    def __init__(self, settings: Settings | None = None):
+        self.settings = settings or Settings()
+        self.table_name = self.settings.LO_MAPPING_REQUESTS_TABLE
+        self.aws_region = self.settings.AWS_REGION
+        self.aws_access_key = self.settings.ACCESS_KEY
+        self.aws_secret_key = self.settings.SECRET_KEY
+        self.status_index = self.settings.DYNAMODB_STATUS_INDEX
 
     def ensure_table_exists(self):
         if not self.table_name:
