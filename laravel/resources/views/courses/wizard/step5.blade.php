@@ -468,19 +468,26 @@
     });
 
     function showManualMapDiv(course_id, program_id) {
-        const div = document.getElementById(`mappingOptions-${course_id}-${program_id}`);
-        div.classList.add('d-none');
-        div.classList.remove('d-flex');
-
-        document.getElementById(`ManualMapBody-${course_id}-${program_id}`).style.display = "block";
-
         fetch(`${program_id}/manualMap`, {
             method: 'POST',
             headers: {
                 'X-CSRF-TOKEN': '{{ csrf_token() }}',
                 'Accept': 'application/json'
             }
-        });
+        }).then(response => {
+                if (!response.ok) {
+                    throw new Error(`Request failed with status ${response.status}`);
+                }
+
+                const div = document.getElementById(`mappingOptions-${course_id}-${program_id}`);
+                div.classList.add('d-none');
+                div.classList.remove('d-flex');
+
+                document.getElementById(`ManualMapBody-${course_id}-${program_id}`).style.display = "block";
+            }).catch(error => {
+                console.error('Unable to enable manual mapping:', error);
+                alert('We could not open manual mapping right now. Please try again later.');
+            });
     }
 
     function add() {
