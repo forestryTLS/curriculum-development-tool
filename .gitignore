@@ -21,3 +21,10 @@ python/.env
 __pycache__/
 python/logs/
 .DS_Store/
+experiments/llm-evaluation/venv
+.venv/
+.pytest_cache/
+.idea/
+python/services/logs/
+python/services/lo_mapping_service/app/services/batch_inputs/**
+**.env
