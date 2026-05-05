@@ -10,7 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
-class OutcomeMapController extends Controller
+class OutcomeMapAiSuggestionsController extends Controller
 {
     /**
      * Display a listing of the resource.
@@ -53,14 +53,14 @@ class OutcomeMapController extends Controller
 
         foreach ($outcomeMap as $cloId => $ploToScaleIds) {
             foreach ($ploToScaleIds as $ploId => $scaleIds) {
-                DB::table('outcome_maps')
-                        ->where('l_outcome_id', $cloId)
-                        ->where('pl_outcome_id', $ploId)
-                        ->delete();
+                DB::table('outcome_map_ai_suggestions')
+                    ->where('l_outcome_id', $cloId)
+                    ->where('pl_outcome_id', $ploId)
+                    ->delete();
                 foreach ($scaleIds as $mapScaleId) {
-                    DB::table('outcome_maps')->insert(
+                    DB::table('outcome_map_ai_suggestions')->insert(
                         ['pl_outcome_id' => $ploId, 'l_outcome_id' => $cloId,
-                        'map_scale_id' => $mapScaleId]
+                            'map_scale_id' => $mapScaleId]
                     );
                 }
             }

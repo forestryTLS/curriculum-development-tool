@@ -18,6 +18,12 @@ class ProgramLearningOutcome extends Model
         return $this->belongsToMany(LearningOutcome::class, 'outcome_maps', 'pl_outcome_id', 'l_outcome_id')->using(\App\Models\OutcomeMap::class)->withPivot('map_scale_id')->withTimestamps();
     }
 
+    public function aiSuggestedOutcomeMap()
+    {
+        return $this->hasMany(OutcomeMapAiSuggestion::class, 'pl_outcome_id', 'pl_outcome_id');
+
+    }
+
     public function category()
     {
         return $this->belongsTo(\App\Models\PLOCategory::class, 'plo_category_id', 'plo_category_id');

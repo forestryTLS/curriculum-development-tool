@@ -41,4 +41,9 @@ class LearningOutcome extends Model
     {
         return $this->belongsToMany(ProgramLearningOutcome::class, 'outcome_maps', 'l_outcome_id', 'pl_outcome_id')->using(OutcomeMap::class)->withPivot('map_scale_id')->withTimeStamps();
     }
+
+    public function aiSuggestedOutcomeMap()
+    {
+        return $this->hasMany(OutcomeMapAiSuggestion::class, 'l_outcome_id', 'l_outcome_id');
+    }
 }

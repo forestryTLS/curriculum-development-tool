@@ -384,7 +384,9 @@ class CourseTest extends TestCase
             'l_outcome_id' => $clo->l_outcome_id,
             'map' => [
                 $clo->l_outcome_id => [
-                    $plo->pl_outcome_id => 1, //this is setting the mapping scale option to I, since that is the map_scale_id (0=N/A,1=I,2=D,3=A)
+                    $plo->pl_outcome_id => [
+                        0 => 1
+                    ] //this is setting the mapping scale option to I, since that is the map_scale_id (0=N/A,1=I,2=D,3=A)
                 ],
             ],
         ]);
