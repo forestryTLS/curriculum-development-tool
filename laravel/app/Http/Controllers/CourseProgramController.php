@@ -16,6 +16,8 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class CourseProgramController extends Controller
 {
@@ -183,5 +185,86 @@ class CourseProgramController extends Controller
         // Mark mapping as hidden
         $courseProgram->ai_suggestion_status = !$courseProgram->ai_suggestion_status;
         $courseProgram->save();
+    }
+
+    public function generateAiSuggestions(Request $request, $courseId, $programId)
+    {
+        $USE_MOCK_DATA = true;
+
+        if ($USE_MOCK_DATA) {
+            Log::info("Generating AI suggestions (MOCK MODE) for course_id=$courseId, program_id=$programId");
+
+            return response()->json([
+                'status' => 'mock',
+                'message' => 'Mock AI suggestions generated successfully',
+                'request_id' => 'mock_request_' . uniqid(),
+                'course_id' => $courseId,
+                'program_id' => $programId,
+            ]);
+        }
+
+        try {
+            $course = Course::findOrFail($courseId);
+            $program = Program::findOrFail($programId);
+
+            $clos = $course->learningOutcomes()->get();
+            $plos = $program->programLearningOutcomes()->get();
+            $scales = $program->mappingScaleLevels()->get();
+
+            $payload = [
+                'course_id' => $courseId,
+                'program_id' => $programId,
+                'course_learning_outcomes' => $clos->map(function ($clo) {
+                    return [
+                        'l_outcome_id' => $clo->l_outcome_id,
+                        'l_outcome' => $clo->l_outcome,
+                    ];
+                })->toArray(),
+                'program_learning_outcomes' => $plos->map(function ($plo) {
+                    return [
+                        'pl_outcome_id' => $plo->pl_outcome_id,
+                        'pl_outcome' => $plo->pl_outcome,
+                    ];
+                })->toArray(),
+                'mapping_scales' => $scales->map(function ($scale) {
+                    return [
+                        'map_scale_id' => $scale->map_scale_id,
+                        'title' => $scale->title,
+                        'abbreviation' => $scale->abbreviation,
+                        'description' => $scale->description,
+                    ];
+                })->toArray(),
+            ];
+
+            $loMappingServiceUrl = config('services.lo_mapping.base_url');
+            Log::info("Calling lo_mapping_service at: $loMappingServiceUrl/map-program-outcomes");
+
+            $response = Http::post($loMappingServiceUrl . '/map-program-outcomes', $payload);
+
+            if ($response->failed()) {
+                Log::error('lo_mapping_service returned an error: ' . $response->body());
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Failed to generate AI suggestions',
+                ], 500);
+            }
+
+            $data = $response->json();
+            Log::info('AI suggestion request submitted successfully: ' . json_encode($data));
+
+            return response()->json([
+                'status' => 'success',
+                'request_id' => $data['startedForRecordId'] ?? null,
+                'job_name' => $data['jobName'] ?? null,
+                'message' => $data['message'] ?? 'Request submitted',
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error generating AI suggestions: ' . $e->getMessage());
+            return response()->json([
+                'status' => 'error',
+                'message' => 'An error occurred while processing the request',
+            ], 500);
+        }
     }
 }

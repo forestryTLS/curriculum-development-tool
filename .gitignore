@@ -28,3 +28,5 @@ experiments/llm-evaluation/venv
 python/services/logs/
 python/services/lo_mapping_service/app/services/batch_inputs/**
 **.env
+python/services/lo_mapping_service/env
+python/services/syllabi_service/env

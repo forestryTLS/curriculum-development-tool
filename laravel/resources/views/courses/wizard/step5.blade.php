@@ -72,7 +72,7 @@
                                                         </div>
                                                         <div class="modal-footer">
                                                             <button style="width:60px" type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">No</button>
-                                                            <button style="width:80px" type="button" class="btn btn-success btn-sm">Yes</button>
+                                                            <button style="width:80px" type="button" class="btn btn-success btn-sm" onclick="generateAiSuggestions({{$course->course_id}}, {{$courseProgram->program_id}})">Yes</button>
                                                         </div>
                                                 </div>
                                             </div>
@@ -506,6 +506,90 @@
             </tr>`;
             var container = $('#highOpportunityTable tbody');
             container.append(element);
+    }
+
+    function generateAiSuggestions(courseId, programId) {
+        const yesButton = event.target;
+        yesButton.disabled = true;
+        const originalText = yesButton.innerHTML;
+        yesButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+
+        fetch(`/courseWizard/${courseId}/${programId}/generate-ai-suggestions`, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+            },
+            body: JSON.stringify({
+                course_id: courseId,
+                program_id: programId,
+            })
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('AI suggestion response:', data);
+
+            if (data.status === 'mock') {
+                alert('Mock AI suggestions generated! (Testing mode)\n\nRequest ID: ' + data.request_id);
+                $(`#AiSuggestionConfirmation${courseId}${programId}`).modal('hide');
+            } else if (data.status === 'success') {
+                alert('AI suggestion request submitted successfully!\n\nJob Name: ' + data.job_name);
+                $(`#AiSuggestionConfirmation${courseId}${programId}`).modal('hide');
+                pollForResults(courseId, programId, data.request_id);
+            } else {
+                throw new Error(data.message || 'Unknown error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error generating AI suggestions: ' + error.message);
+        })
+        .finally(() => {
+            yesButton.disabled = false;
+            yesButton.innerHTML = originalText;
+        });
+    }
+
+    function pollForResults(courseId, programId, requestId) {
+        const maxAttempts = 120;
+        let attempts = 0;
+
+        const interval = setInterval(async () => {
+            attempts++;
+            try {
+                const response = await fetch(`/courseWizard/${courseId}/${programId}/check-ai-results`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify({ request_id: requestId }),
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (data.status === 'complete') {
+                    clearInterval(interval);
+                    window.location.reload();
+                } else if (attempts >= maxAttempts) {
+                    clearInterval(interval);
+                    alert('AI suggestion generation timed out. Please try again.');
+                }
+            } catch (err) {
+                console.error('Polling error:', err);
+            }
+        }, 5000);
     }
 
 </script>
