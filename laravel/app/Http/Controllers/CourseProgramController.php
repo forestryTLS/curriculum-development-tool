@@ -189,7 +189,7 @@ class CourseProgramController extends Controller
 
     public function generateAiSuggestions(Request $request, $courseId, $programId)
     {
-        $USE_MOCK_DATA = true;
+        $USE_MOCK_DATA = false;
 
         if ($USE_MOCK_DATA) {
             Log::info("Generating AI suggestions (MOCK MODE) for course_id=$courseId, program_id=$programId");

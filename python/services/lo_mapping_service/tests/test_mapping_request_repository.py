@@ -13,7 +13,7 @@ AWS_REGION = "ca-central-1"
 @pytest.fixture(autouse=True)
 def env_vars(monkeypatch):
     """Set required environment variables for all tests."""
-    monkeypatch.setenv("LO_MAPPING_REQUESTS_TABLE", TABLE_NAME)
+    monkeypatch.setenv("LO_MAPPING_DYNAMODB_REQUESTS_TABLE", TABLE_NAME)
     monkeypatch.setenv("AWS_REGION", AWS_REGION)
     monkeypatch.setenv("ACCESS_KEY", "fake-access-key")
     monkeypatch.setenv("SECRET_KEY", "fake-secret-key")
@@ -27,7 +27,7 @@ def record():
 class TestLOMappingRequestDynamoDBRecordEnsureTableExists:
     def test_uses_pydantic_settings_object(self):
         settings = Settings(
-            LO_MAPPING_REQUESTS_TABLE="custom-table",
+            LO_MAPPING_DYNAMODB_REQUESTS_TABLE="custom-table",
             AWS_REGION=AWS_REGION,
             ACCESS_KEY="custom-access-key",
             SECRET_KEY="custom-secret-key",
@@ -44,7 +44,7 @@ class TestLOMappingRequestDynamoDBRecordEnsureTableExists:
 
     def test_raises_if_table_name_not_set(self, record):
         record.table_name = None
-        with pytest.raises(ValueError, match="LO_MAPPING_REQUESTS_TABLE is not set"):
+        with pytest.raises(ValueError, match="LO_MAPPING_DYNAMODB_REQUESTS_TABLE is not set"):
             record.ensure_table_exists()
 
     @mock_aws
@@ -92,7 +92,7 @@ class TestLOMappingRequestDynamoDBRecordCreateRequest:
 
     def test_raises_if_table_name_not_set(self, record):
         record.table_name = None
-        with pytest.raises(ValueError, match="LO_MAPPING_REQUESTS_TABLE is not set"):
+        with pytest.raises(ValueError, match="LO_MAPPING_DYNAMODB_REQUESTS_TABLE is not set"):
             record.create_request(1, 2, "s3://bucket/batch_inputs/file.json")
 
     def test_raises_if_input_s3_path_empty(self, record):

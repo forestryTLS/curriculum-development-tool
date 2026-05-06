@@ -13,7 +13,7 @@ class LOMappingRequestDynamoDBRecord:
 
     def __init__(self, settings: Settings | None = None):
         self.settings = settings or Settings()
-        self.table_name = self.settings.LO_MAPPING_REQUESTS_TABLE
+        self.table_name = self.settings.LO_MAPPING_DYNAMODB_REQUESTS_TABLE
         self.aws_region = self.settings.AWS_REGION
         self.aws_access_key = self.settings.ACCESS_KEY
         self.aws_secret_key = self.settings.SECRET_KEY
@@ -21,7 +21,7 @@ class LOMappingRequestDynamoDBRecord:
 
     def ensure_table_exists(self):
         if not self.table_name:
-            raise ValueError("LO_MAPPING_REQUESTS_TABLE is not set")
+            raise ValueError("LO_MAPPING_DYNAMODB_REQUESTS_TABLE is not set")
 
         boto_session = self._create_boto_session()
         dynamodb = boto_session.resource("dynamodb", region_name=self.aws_region)
@@ -60,7 +60,7 @@ class LOMappingRequestDynamoDBRecord:
 
     def create_request(self, course_id, program_id, input_s3_path, status: str = "PENDING",):
         if not self.table_name:
-            raise ValueError("LO_MAPPING_REQUESTS_TABLE is not set")
+            raise ValueError("LO_MAPPING_DYNAMODB_REQUESTS_TABLE is not set")
         if not input_s3_path:
             raise ValueError("input_s3_path is required")
 
@@ -154,5 +154,5 @@ class LOMappingRequestDynamoDBRecord:
 
     def _get_table(self):
         if not self.table_name:
-            raise ValueError("LO_MAPPING_REQUESTS_TABLE is not set")
+            raise ValueError("LO_MAPPING_DYNAMODB_REQUESTS_TABLE is not set")
         return self._create_boto_session().resource("dynamodb").Table(self.table_name)
