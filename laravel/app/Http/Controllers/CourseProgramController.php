@@ -375,6 +375,12 @@ class CourseProgramController extends Controller
             ->pluck('map_scale_id', 'abbreviation')
             ->toArray();
 
+        // Look up the "Not Applicable" scale (used to record AI's "is_mapped: false"
+        // suggestions on the N/A column). May not exist in every deployment, so guard.
+        $notApplicableScaleId = \App\Models\MappingScale::where('map_scale_id', 0)
+            ->orWhere('abbreviation', 'N/A')
+            ->value('map_scale_id');
+
         DB::beginTransaction();
         try {
             $rowsWritten = 0;
@@ -390,9 +396,15 @@ class CourseProgramController extends Controller
                     continue;
                 }
 
-                // Unmapped pair: write nothing. Absence of a row = "no AI suggestion."
-                // Avoids the map_scale_id=0 FK violation against mapping_scales.
                 if (!$isMapped || empty($mapLabels)) {
+                    if ($notApplicableScaleId !== null) {
+                        OutcomeMapAiSuggestion::updateOrCreate([
+                            'l_outcome_id'  => $cloId,
+                            'pl_outcome_id' => $ploId,
+                            'map_scale_id'  => $notApplicableScaleId,
+                        ]);
+                        $rowsWritten++;
+                    }
                     continue;
                 }
 

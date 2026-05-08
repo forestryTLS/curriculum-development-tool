@@ -114,7 +114,7 @@
                                                              {!! $_pollAttrs !!}>
                                                             <button id="aiCheckingHeader-{{$course->course_id}}-{{$courseProgram->program_id}}" type="button" class="btn btn-sm btn-secondary" disabled>
                                                                 <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
-                                                                Checking for results...
+                                                                Waiting for AI suggestions...
                                                             </button>
                                                             <button id="aiRefreshHeader-{{$course->course_id}}-{{$courseProgram->program_id}}" type="button" class="btn btn-sm btn-warning d-none"
                                                                     onclick="refreshAiSuggestions({{$course->course_id}}, {{$courseProgram->program_id}})">
@@ -164,8 +164,11 @@
 
                                                                 @php
                                                                     $_inFlightCenter      = isset($aiSuggestionInFlight) && !empty($aiSuggestionInFlight[$courseProgram->program_id]);
-                                                                    $_mappingOptionsHide  = ($courseProgram->pivot->manual_map_status || $_inFlightCenter);
-                                                                    $_mappingOptionsClass = $_mappingOptionsHide ? 'd-none' : 'd-flex';
+                                                                    // Mapping options row is hidden only when manual mapping has started.
+                                                                    // During in-flight, "Create Manually" stays available; only the AI Suggestions
+                                                                    // button below is hidden in favour of the Checking/Refresh status.
+                                                                    $_mappingOptionsClass = $courseProgram->pivot->manual_map_status ? 'd-none' : 'd-flex';
+                                                                    $_aiSuggestionsBtnClass = $_inFlightCenter ? 'd-none' : 'd-inline-block';
                                                                     $_centerStatusClass   = $_inFlightCenter ? 'd-flex' : 'd-none';
                                                                     $_centerPollAttrs     = $_inFlightCenter ? sprintf('data-poll-on-load="true" data-course-id="%d" data-program-id="%d"', $course->course_id, $courseProgram->program_id) : '';
                                                                     $_msgClass            = $_inFlightCenter ? 'small text-muted text-center mt-2 mb-0' : 'd-none small text-muted text-center mt-2 mb-0';
@@ -173,7 +176,7 @@
                                                                 @endphp
                                                                 <div id="mappingOptions-{{$course->course_id}}-{{$courseProgram->program_id}}" class="{{ $_mappingOptionsClass }} justify-content-center gap-2">
                                                                     <button id="buttonManualMap[{{$course->course_id}}][{{$courseProgram->program_id}}]" type="button" class="btn btn-sm btn-primary col-3 py-2" onclick="showManualMapDiv({{$course->course_id}}, {{$courseProgram->program_id}})">Create Manually</button>
-                                                                    <button id="buttonAISuggestionCenter-{{$course->course_id}}-{{$courseProgram->program_id}}" type="button" class="btn btn-sm btn-primary col-3 py-2"
+                                                                    <button id="buttonAISuggestionCenter-{{$course->course_id}}-{{$courseProgram->program_id}}" type="button" class="btn btn-sm btn-primary col-3 py-2 {{ $_aiSuggestionsBtnClass }}"
                                                                             data-toggle="modal" data-target="#AiSuggestionConfirmation{{$course->course_id}}{{$courseProgram->program_id}}">
                                                                         <img src="{{asset('img/AISuggestionWhite.png')}}" alt="icon" style="height: 1.5em; width: auto;" class="me-2">AI Suggestions</button>
                                                                 </div>
@@ -183,7 +186,7 @@
                                                                      {!! $_centerPollAttrs !!}>
                                                                     <button id="aiCheckingCenter-{{$course->course_id}}-{{$courseProgram->program_id}}" type="button" class="btn btn-sm btn-secondary col-3 py-2" disabled>
                                                                         <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                                                                        Checking for results...
+                                                                        Waiting for AI suggestions...
                                                                     </button>
                                                                     <button id="aiRefreshCenter-{{$course->course_id}}-{{$courseProgram->program_id}}" type="button" class="btn btn-sm btn-warning col-3 py-2 d-none"
                                                                             onclick="refreshAiSuggestions({{$course->course_id}}, {{$courseProgram->program_id}})">
