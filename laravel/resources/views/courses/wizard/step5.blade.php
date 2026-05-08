@@ -164,31 +164,28 @@
 
                                                                 @php
                                                                     $_inFlightCenter      = isset($aiSuggestionInFlight) && !empty($aiSuggestionInFlight[$courseProgram->program_id]);
-                                                                    // Mapping options row is hidden only when manual mapping has started.
-                                                                    // During in-flight, "Create Manually" stays available; only the AI Suggestions
-                                                                    // button below is hidden in favour of the Checking/Refresh status.
                                                                     $_mappingOptionsClass = $courseProgram->pivot->manual_map_status ? 'd-none' : 'd-flex';
-                                                                    $_aiSuggestionsBtnClass = $_inFlightCenter ? 'd-none' : 'd-inline-block';
-                                                                    $_centerStatusClass   = $_inFlightCenter ? 'd-flex' : 'd-none';
-                                                                    $_centerPollAttrs     = $_inFlightCenter ? sprintf('data-poll-on-load="true" data-course-id="%d" data-program-id="%d"', $course->course_id, $courseProgram->program_id) : '';
-                                                                    $_msgClass            = $_inFlightCenter ? 'small text-muted text-center mt-2 mb-0' : 'd-none small text-muted text-center mt-2 mb-0';
-                                                                    $_msgText             = $_inFlightCenter ? 'An AI suggestion request is already in progress for this course/program. You can leave this page - results will appear automatically when ready.' : '';
+                                                                    // All four buttons live in one flex row; toggle visibility per-button so
+                                                                    // they sit side-by-side instead of stacking vertically.
+                                                                    $_aiSuggestionsBtnHidden = $_inFlightCenter;
+                                                                    $_checkingBtnHidden      = !$_inFlightCenter;
+                                                                    $_refreshBtnHidden       = true; // JS shows this only after a polling timeout
+                                                                    $_pollAttrs              = $_inFlightCenter ? sprintf('data-poll-on-load="true" data-course-id="%d" data-program-id="%d"', $course->course_id, $courseProgram->program_id) : '';
+                                                                    $_msgClass               = $_inFlightCenter ? 'small text-muted text-center mt-2 mb-0' : 'd-none small text-muted text-center mt-2 mb-0';
+                                                                    $_msgText                = $_inFlightCenter ? 'An AI suggestion request is already in progress for this course/program. You can leave this page - results will appear automatically when ready.' : '';
                                                                 @endphp
-                                                                <div id="mappingOptions-{{$course->course_id}}-{{$courseProgram->program_id}}" class="{{ $_mappingOptionsClass }} justify-content-center gap-2">
+                                                                <div id="mappingOptions-{{$course->course_id}}-{{$courseProgram->program_id}}"
+                                                                     class="{{ $_mappingOptionsClass }} justify-content-center gap-2"
+                                                                     {!! $_pollAttrs !!}>
                                                                     <button id="buttonManualMap[{{$course->course_id}}][{{$courseProgram->program_id}}]" type="button" class="btn btn-sm btn-primary col-3 py-2" onclick="showManualMapDiv({{$course->course_id}}, {{$courseProgram->program_id}})">Create Manually</button>
-                                                                    <button id="buttonAISuggestionCenter-{{$course->course_id}}-{{$courseProgram->program_id}}" type="button" class="btn btn-sm btn-primary col-3 py-2 {{ $_aiSuggestionsBtnClass }}"
+                                                                    <button id="buttonAISuggestionCenter-{{$course->course_id}}-{{$courseProgram->program_id}}" type="button" class="btn btn-sm btn-primary col-3 py-2 {{ $_aiSuggestionsBtnHidden ? 'd-none' : '' }}"
                                                                             data-toggle="modal" data-target="#AiSuggestionConfirmation{{$course->course_id}}{{$courseProgram->program_id}}">
                                                                         <img src="{{asset('img/AISuggestionWhite.png')}}" alt="icon" style="height: 1.5em; width: auto;" class="me-2">AI Suggestions</button>
-                                                                </div>
-                                                                <!-- AI status container (shown while polling for results) -->
-                                                                <div id="aiStatusCenter-{{$course->course_id}}-{{$courseProgram->program_id}}"
-                                                                     class="{{ $_centerStatusClass }} justify-content-center gap-2"
-                                                                     {!! $_centerPollAttrs !!}>
-                                                                    <button id="aiCheckingCenter-{{$course->course_id}}-{{$courseProgram->program_id}}" type="button" class="btn btn-sm btn-secondary col-3 py-2" disabled>
+                                                                    <button id="aiCheckingCenter-{{$course->course_id}}-{{$courseProgram->program_id}}" type="button" class="btn btn-sm btn-secondary col-3 py-2 {{ $_checkingBtnHidden ? 'd-none' : '' }}" disabled>
                                                                         <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
                                                                         Waiting for AI suggestions...
                                                                     </button>
-                                                                    <button id="aiRefreshCenter-{{$course->course_id}}-{{$courseProgram->program_id}}" type="button" class="btn btn-sm btn-warning col-3 py-2 d-none"
+                                                                    <button id="aiRefreshCenter-{{$course->course_id}}-{{$courseProgram->program_id}}" type="button" class="btn btn-sm btn-warning col-3 py-2 {{ $_refreshBtnHidden ? 'd-none' : '' }}"
                                                                             onclick="refreshAiSuggestions({{$course->course_id}}, {{$courseProgram->program_id}})">
                                                                         <i class="bi bi-arrow-clockwise me-2"></i>
                                                                         Refresh AI Suggestions
@@ -585,11 +582,7 @@
 
     function hideAiModal(courseId, programId) {
         const modalEl = document.getElementById(`AiSuggestionConfirmation${courseId}${programId}`);
-        if (!modalEl) return;
-        if (window.bootstrap && bootstrap.Modal) {
-            const inst = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
-            inst.hide();
-        } else if (window.jQuery && jQuery(modalEl).modal) {
+        if (modalEl && window.jQuery) {
             jQuery(modalEl).modal('hide');
         }
     }
@@ -606,17 +599,13 @@
     }
 
     function enterCheckingState(courseId, programId, message) {
-        // Hide both AI Suggestion buttons
         const aiBtnHeader = document.getElementById(`buttonAISuggestionHeader-${courseId}-${programId}`);
         const aiBtnCenter = document.getElementById(`buttonAISuggestionCenter-${courseId}-${programId}`);
         if (aiBtnHeader) aiBtnHeader.classList.add('d-none');
         if (aiBtnCenter) aiBtnCenter.classList.add('d-none');
 
-        // Show status containers
         setHidden(document.getElementById(`aiStatusHeader-${courseId}-${programId}`), false);
-        setHidden(document.getElementById(`aiStatusCenter-${courseId}-${programId}`), false);
 
-        // Show "Checking..." button, hide "Refresh" button in both locations
         ['Header', 'Center'].forEach(loc => {
             const checking = document.getElementById(`aiChecking${loc}-${courseId}-${programId}`);
             const refresh  = document.getElementById(`aiRefresh${loc}-${courseId}-${programId}`);
@@ -624,7 +613,6 @@
             if (refresh)  refresh.classList.add('d-none');
         });
 
-        // Show status message
         const msgEl = document.getElementById(`aiStatusMessage-${courseId}-${programId}`);
         if (msgEl) {
             msgEl.textContent = message;
@@ -633,7 +621,6 @@
     }
 
     function enterTimedOutState(courseId, programId) {
-        // Hide "Checking..." button, show "Refresh" button in both locations
         ['Header', 'Center'].forEach(loc => {
             const checking = document.getElementById(`aiChecking${loc}-${courseId}-${programId}`);
             const refresh  = document.getElementById(`aiRefresh${loc}-${courseId}-${programId}`);
