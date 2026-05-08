@@ -189,6 +189,20 @@ aws lambda add-permission `
   --region $REGION
 ```
 
+## Dev cleanup script
+
+For wiping transient test state on AWS (running SageMaker jobs, DynamoDB records, optionally S3 folders) without touching infra:
+
+```powershell
+# Stop in-flight transform jobs and delete every DynamoDB record
+.\deploy\cleanup-dev.ps1
+
+# Same, plus also empty the S3 batch_inputs/, batch_outputs/, output/ prefixes
+.\deploy\cleanup-dev.ps1 -ClearS3
+```
+
+It does NOT delete the EventBridge rule, the SageMaker model, or any Laravel data. See [deploy/cleanup-dev.ps1](deploy/cleanup-dev.ps1) for the exact behavior.
+
 ## Re-deploys
 
 If you need to update an existing Lambda's code or env vars, use `update-function-code` and `update-function-configuration` instead of `create-function`. Do NOT use `create-function`, it will fail because the function already exists.

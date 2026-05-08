@@ -43,3 +43,12 @@ class OutcomeMappingRequest(BaseModel):
 class ManualProcessRequest(BaseModel):
     course_id: str
     program_id: str
+
+
+class CourseProgramPair(BaseModel):
+    course_id: int
+    program_id: int
+
+
+class InFlightStatusRequest(BaseModel):
+    pairs: List[CourseProgramPair]
