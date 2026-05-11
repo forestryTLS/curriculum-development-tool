@@ -8,10 +8,11 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 # Resolve .env from the service root (../../.env relative to this file) so it
-# works regardless of where uvicorn was launched from. override=True so a stale
-# value already in os.environ (e.g. inherited from the shell) gets replaced.
+# works regardless of where uvicorn was launched from. override=False so explicit
+# env vars from the parent process (e.g. an E2E test launching this as a subprocess)
+# take precedence over .env defaults.
 _SERVICE_ROOT = Path(__file__).resolve().parents[2]
-load_dotenv(_SERVICE_ROOT / ".env", override=True)
+load_dotenv(_SERVICE_ROOT / ".env", override=False)
 
 from app.core.logging_config import logger
 from app.services.lo_mapping_request_dynamo_db_request import LOMappingRequestDynamoDBRecord

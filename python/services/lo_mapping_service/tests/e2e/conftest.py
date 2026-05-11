@@ -1,5 +1,5 @@
 """
-Shared fixtures for E2E tests.
+Shared configs for E2E tests.
 
 Prerequisites for running these tests (see README.md):
   - Docker running (for LocalStack)
@@ -12,6 +12,7 @@ import os
 import subprocess
 import sys
 import time
+import uuid
 from pathlib import Path
 
 import boto3
@@ -23,8 +24,12 @@ from testcontainers.localstack import LocalStackContainer
 REGION              = "ca-central-1"
 FAKE_AWS_KEY        = "test"
 FAKE_AWS_SECRET     = "test"
-DYNAMO_TABLE_NAME   = os.environ.get("E2E_DYNAMO_TABLE", "lo-mapping-requests-e2e")
-S3_BUCKET           = os.environ.get("E2E_S3_BUCKET", "curriculum-map-e2e-bucket")
+# Suffix table and bucket names with a per-session uuid so we can never collide
+# with a leftover resource from a crashed run, a concurrent run, or another
+# developer's LocalStack. Sidesteps delete-then-create races in LocalStack.
+_SESSION_TAG        = uuid.uuid4().hex[:8]
+DYNAMO_TABLE_NAME   = os.environ.get("E2E_DYNAMO_TABLE",  f"lo-mapping-requests-e2e-{_SESSION_TAG}")
+S3_BUCKET           = os.environ.get("E2E_S3_BUCKET",    f"curriculum-map-e2e-bucket-{_SESSION_TAG}")
 DYNAMO_GSI          = "status-created_at-index"
 
 LARAVEL_URL         = os.environ.get("LARAVEL_URL", "http://127.0.0.1:8000")
@@ -111,29 +116,20 @@ def s3_bucket(s3_client):
 
 
 @pytest.fixture
-def dynamo_table(dynamodb_resource):
-    """Create a fresh DynamoDB table per test."""
-    table = dynamodb_resource.create_table(
-        TableName=DYNAMO_TABLE_NAME,
-        KeySchema=[{"AttributeName": "request_id", "KeyType": "HASH"}],
-        AttributeDefinitions=[
-            {"AttributeName": "request_id", "AttributeType": "S"},
-            {"AttributeName": "status",     "AttributeType": "S"},
-            {"AttributeName": "created_at", "AttributeType": "S"},
-        ],
-        BillingMode="PAY_PER_REQUEST",
-        GlobalSecondaryIndexes=[{
-            "IndexName": DYNAMO_GSI,
-            "KeySchema": [
-                {"AttributeName": "status",     "KeyType": "HASH"},
-                {"AttributeName": "created_at", "KeyType": "RANGE"},
-            ],
-            "Projection": {"ProjectionType": "ALL"},
-        }],
-    )
+def dynamo_table(fastapi_service, dynamodb_resource):
+    """Yield the DynamoDB table FastAPI created in its lifespan hook
+    (ensure_table_exists). The depends-on-fastapi_service ordering guarantees
+    the table is ready before the test runs. At teardown we wipe items rather
+    than delete the table, so subsequent tests in the same session still find
+    it (FastAPI's lifespan only runs once)."""
+    table = dynamodb_resource.Table(DYNAMO_TABLE_NAME)
     table.wait_until_exists()
     yield table
-    table.delete()
+    # Wipe all items so the next test starts clean.
+    scan = table.scan(ProjectionExpression="request_id")
+    with table.batch_writer() as batch:
+        for item in scan.get("Items", []):
+            batch.delete_item(Key={"request_id": item["request_id"]})
 
 
 # ─────────────────── Postgres test data ───────────────────
@@ -149,7 +145,7 @@ def pg_conn():
 @pytest.fixture
 def seeded_course_program(pg_conn):
     """
-    Seed a minimal course/program with 2 CLOs, 2 PLOs, and 2 mapping scales.
+    Set up a minimal course/program with 2 CLOs, 2 PLOs, and 2 mapping scales.
     Cleans up everything at the end.
     """
     cur = pg_conn.cursor()
@@ -200,7 +196,7 @@ def seeded_course_program(pg_conn):
         cur.execute(
             """
             INSERT INTO programs (program_id, program, level, status, created_at, updated_at)
-            VALUES (%s, 'E2E Test Program', 'undergrad', 'active', NOW(), NOW())
+            VALUES (%s, 'E2E Test Program', 'undergrad', 1, NOW(), NOW())
             ON CONFLICT (program_id) DO NOTHING
             """,
             (TEST_PROGRAM_ID,),
@@ -228,14 +224,42 @@ def seeded_course_program(pg_conn):
                 (TEST_PROGRAM_ID, ms_id),
             )
 
-        # course_programs pivot
+        cur.execute(
+            "DELETE FROM course_programs WHERE course_id = %s AND program_id = %s",
+            (TEST_COURSE_ID, TEST_PROGRAM_ID),
+        )
         cur.execute(
             """
             INSERT INTO course_programs (course_id, program_id, course_required, manual_map_status, ai_suggestion_status, created_at, updated_at)
-            VALUES (%s, %s, false, false, false, NOW(), NOW())
-            ON CONFLICT (course_id, program_id) DO UPDATE SET manual_map_status = false, ai_suggestion_status = false
+            VALUES (%s, %s, 0, false, false, NOW(), NOW())
             """,
             (TEST_COURSE_ID, TEST_PROGRAM_ID),
+        )
+
+        # Link the test login user to this course/program as Owner (permission=1),
+        # so HasAccessMiddleware doesn't redirect step5 to /home.
+        email, _ = _resolve_credentials()
+        cur.execute("SELECT id FROM users WHERE email = %s", (email,))
+        row = cur.fetchone()
+        if row is None:
+            raise RuntimeError(
+                f"Test login user {email!r} not found in users table. "
+                f"Did you run UserSeeder? (php artisan db:seed --class=UserSeeder)"
+            )
+        test_user_id = row[0]
+        cur.execute(
+            """
+            INSERT INTO course_users (course_id, user_id, permission, created_at, updated_at)
+            VALUES (%s, %s, 1, NOW(), NOW())
+            """,
+            (TEST_COURSE_ID, test_user_id),
+        )
+        cur.execute(
+            """
+            INSERT INTO program_users (user_id, program_id, permission, created_at, updated_at)
+            VALUES (%s, %s, 1, NOW(), NOW())
+            """,
+            (test_user_id, TEST_PROGRAM_ID),
         )
 
         pg_conn.commit()
@@ -256,6 +280,8 @@ def seeded_course_program(pg_conn):
         try:
             cur.execute("DELETE FROM outcome_map_ai_suggestions WHERE l_outcome_id = ANY(%s)", (TEST_CLO_IDS,))
             cur.execute("DELETE FROM outcome_maps WHERE l_outcome_id = ANY(%s)", (TEST_CLO_IDS,))
+            cur.execute("DELETE FROM course_users WHERE course_id = %s", (TEST_COURSE_ID,))
+            cur.execute("DELETE FROM program_users WHERE program_id = %s", (TEST_PROGRAM_ID,))
             cur.execute("DELETE FROM course_programs WHERE course_id = %s AND program_id = %s", (TEST_COURSE_ID, TEST_PROGRAM_ID))
             cur.execute("DELETE FROM mapping_scale_programs WHERE program_id = %s", (TEST_PROGRAM_ID,))
             cur.execute("DELETE FROM program_learning_outcomes WHERE pl_outcome_id = ANY(%s)", (TEST_PLO_IDS,))
@@ -270,39 +296,35 @@ def seeded_course_program(pg_conn):
 
 # ─────────────────── Laravel auth ───────────────────
 
-def _resolve_credentials() -> tuple[str | None, str | None]:
-    """Read credentials from env, or prompt interactively if stdin is a TTY."""
-    # Read env fresh at call time, not module-import time, so changes after
-    # collection (or weird import-order issues) still get picked up.
-    email    = os.environ.get("E2E_TEST_USER_EMAIL")
-    password = os.environ.get("E2E_TEST_USER_PASSWORD")
-
-    if email and password:
-        return email, password
-
-    if not sys.stdin.isatty():
-        return email, password  # caller decides what to do (skip)
-
-    from getpass import getpass
-    if not email:
-        email = input("Laravel test user email: ").strip()
-    if not password:
-        password = getpass("Laravel test user password: ")
+def _resolve_credentials() -> tuple[str, str]:
+    """Resolve test-user credentials. Defaults to the seeded admin user
+    (admintest@gmail.com / password from UserSeeder), so the test runs with
+    no extra setup on a freshly-seeded local DB. Override via env vars when
+    pointing at a different account."""
+    email    = os.environ.get("E2E_TEST_USER_EMAIL")    or "admintest@gmail.com"
+    password = os.environ.get("E2E_TEST_USER_PASSWORD") or "password"
     return email, password
 
 
 @pytest.fixture(scope="session")
-def laravel_session():
+def laravel_session(pg_conn):
     """Login to Laravel and return a requests.Session with auth cookies + CSRF token helper."""
     email, password = _resolve_credentials()
-    if not email or not password:
-        pytest.skip(
-            "E2E_TEST_USER_EMAIL and E2E_TEST_USER_PASSWORD not set, and stdin is not a TTY. "
-            "Either set the env vars, or run pytest with -s to enable interactive prompts."
+
+    # Laravel's MustVerifyEmail middleware redirects unverified users to /email/verify
+    # on every request. The seeded admin user has no email_verified_at, so mark it
+    # verified now. autocommit=False on pg_conn, so commit explicitly.
+    cur = pg_conn.cursor()
+    try:
+        cur.execute(
+            "UPDATE users SET email_verified_at = COALESCE(email_verified_at, NOW()) WHERE email = %s",
+            (email,),
         )
+        pg_conn.commit()
+    finally:
+        cur.close()
 
     sess = requests.Session()
-    # GET login page to grab CSRF token
     login_page = sess.get(f"{LARAVEL_URL}/login")
     login_page.raise_for_status()
     import re
@@ -345,9 +367,8 @@ def fastapi_service(localstack_endpoint, s3_bucket):
     on teardown.
 
     Refuses to start if port is already in use (so we don't conflict with a dev
-    FastAPI instance the user has running).
+    FastAPI instance).
     """
-    # Refuse to clobber a dev FastAPI instance.
     try:
         r = requests.get(f"http://127.0.0.1:{FASTAPI_TEST_PORT}/health", timeout=1)
         if r.status_code == 200:
@@ -365,8 +386,7 @@ def fastapi_service(localstack_endpoint, s3_bucket):
     else:
         venv_python = service_root / "env" / "bin" / "python"
     if not venv_python.exists():
-        # Fall back to whatever python is on PATH
-        venv_python = Path(sys.executable)
+        raise FileNotFoundError(f"Could not find FastAPI python venv at {venv_python}. Did you run 'python -m venv env' and 'pip install -r requirements.txt'?")
 
     env = os.environ.copy()
     env.update({
@@ -384,6 +404,13 @@ def fastapi_service(localstack_endpoint, s3_bucket):
         "LARAVEL_API_URL":                    f"{LARAVEL_URL}/api/microservices/lo-mapping/ai-suggestions/store",
     })
 
+    # Dump logs into temp file for debugging
+    import tempfile
+    log_file = tempfile.NamedTemporaryFile(
+        prefix="e2e-fastapi-", suffix=".log", delete=False, mode="w+", encoding="utf-8",
+    )
+    log_path = Path(log_file.name)
+
     proc = subprocess.Popen(
         [
             str(venv_python), "-m", "uvicorn", "app.api.routes:app",
@@ -393,10 +420,16 @@ def fastapi_service(localstack_endpoint, s3_bucket):
         ],
         env=env,
         cwd=str(service_root),
-        stdout=subprocess.PIPE,
+        stdout=log_file,
         stderr=subprocess.STDOUT,
         text=True,
     )
+
+    def _read_log() -> str:
+        try:
+            return log_path.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            return "<could not read FastAPI log>"
 
     # Wait up to 30s for /health to come up
     base_url = f"http://127.0.0.1:{FASTAPI_TEST_PORT}"
@@ -404,8 +437,7 @@ def fastapi_service(localstack_endpoint, s3_bucket):
     deadline = time.time() + 30
     while time.time() < deadline:
         if proc.poll() is not None:
-            output = proc.stdout.read() if proc.stdout else ""
-            pytest.fail(f"FastAPI exited early during startup:\n{output}")
+            pytest.fail(f"FastAPI exited early during startup:\n{_read_log()}")
         try:
             if requests.get(health_url, timeout=1).status_code == 200:
                 break
@@ -414,9 +446,9 @@ def fastapi_service(localstack_endpoint, s3_bucket):
         time.sleep(0.5)
     else:
         proc.terminate()
-        output = proc.stdout.read() if proc.stdout else ""
-        pytest.fail(f"FastAPI never became ready on {base_url}:\n{output}")
+        pytest.fail(f"FastAPI never became ready on {base_url}:\n{_read_log()}")
 
+    print(f"\n[e2e] FastAPI log: {log_path}")
     yield base_url
 
     proc.terminate()
@@ -424,15 +456,17 @@ def fastapi_service(localstack_endpoint, s3_bucket):
         proc.wait(timeout=5)
     except subprocess.TimeoutExpired:
         proc.kill()
+    log_file.close()
+    # Always print the FastAPI log at teardown so failing tests have evidence.
+    print(f"\n[e2e] FastAPI subprocess log ({log_path}):\n{_read_log()}")
 
 
 # ─────────────────── Helpers ───────────────────
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
 
-
 def upload_dummy_sagemaker_output(s3_client, bucket: str, key: str) -> str:
-    """Upload the canned AI output JSONL to S3, return s3:// URI."""
+    # Returns S3-formatted output from sample_ai_output.jsonl
     with open(FIXTURES_DIR / "sample_ai_output.jsonl", "rb") as f:
         s3_client.put_object(Bucket=bucket, Key=key, Body=f.read())
     return f"s3://{bucket}/{key}"

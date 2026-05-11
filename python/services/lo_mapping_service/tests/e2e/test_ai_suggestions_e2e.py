@@ -3,11 +3,6 @@ End-to-end test that simulates a SageMaker job completing for a course/program,
 drives the polling endpoint, and verifies the AI-suggested mappings render on
 Step 5 with the expected purple icons.
 
-Skips:
-  - The actual SageMaker run (LocalStack does not support batch transform).
-  - The Lambda invocation chain (we directly create the AWAITING_COMPLETION
-    DynamoDB record and place dummy output in S3).
-
 Covers:
   - LocalStack DynamoDB + S3 read by FastAPI
   - FastAPI process_records pipeline
@@ -15,10 +10,17 @@ Covers:
   - Postgres outcome_map_ai_suggestions writes
   - course_programs flag updates
   - Step 5 HTML response contains purple icons in the right cells
+Limitations:
+  - Skips the actual SageMaker run (LocalStack does not support batch transform).
+  - Skips the Lambda invocation chain (we directly create the AWAITING_COMPLETION
+    DynamoDB record and place dummy output in S3).
 """
+  
 import datetime as dt
+import tempfile
 import uuid
 import time
+from pathlib import Path
 
 import pytest
 import requests
@@ -28,6 +30,7 @@ from tests.e2e.conftest import (
     LARAVEL_URL,
     DYNAMO_TABLE_NAME,
     upload_dummy_sagemaker_output,
+    get_csrf_token,
 )
 
 
@@ -77,11 +80,15 @@ def test_ai_suggestions_render_on_step5(
     # 2. Inject AWAITING_COMPLETION DynamoDB record pointing at that output
     request_id = _put_awaiting_completion_record(dynamo_table, course_id, program_id, output_uri)
 
+    # web middleware group so POSTs need X-CSRF-TOKEN.
+    csrf_token = get_csrf_token(laravel_session, f"{LARAVEL_URL}/home")
+    post_headers = {"Accept": "application/json", "X-CSRF-TOKEN": csrf_token}
+
     # 3. Drive the polling endpoint - this should pick up the record, deliver to
     #    Laravel, write rows, set the flags, and delete the DynamoDB record.
     r = laravel_session.post(
         f"{LARAVEL_URL}/courseWizard/{course_id}/{program_id}/check-ai-results",
-        headers={"Accept": "application/json"},
+        headers=post_headers,
     )
     assert r.status_code == 200, r.text
 
@@ -91,7 +98,7 @@ def test_ai_suggestions_render_on_step5(
     for _ in range(15):
         r = laravel_session.post(
             f"{LARAVEL_URL}/courseWizard/{course_id}/{program_id}/check-ai-results",
-            headers={"Accept": "application/json"},
+            headers=post_headers,
         )
         if r.json().get("status") == "complete":
             completed = True
@@ -137,11 +144,31 @@ def test_ai_suggestions_render_on_step5(
     page = laravel_session.get(f"{LARAVEL_URL}/courseWizard/{course_id}/step5")
     assert page.status_code == 200, f"Step 5 returned {page.status_code}"
 
+    # Dump rendered HTML so failed assertions below can be inspected post-mortem.
+    html_dump = Path(tempfile.gettempdir()) / f"e2e-step5-{course_id}-{program_id}.html"
+    html_dump.write_text(page.text, encoding="utf-8")
+
+    def _ctx(msg: str) -> str:
+        return f"{msg}\n  Final URL: {page.url}\n  HTML dump: {html_dump}"
+
+    # Confirm we actually landed on step5 of OUR course (no silent redirect).
+    assert page.url.rstrip("/").endswith(f"/courseWizard/{course_id}/step5"), \
+        _ctx("Did not land on step5 of the test course")
+
+    # Drill-down: prove each loop is producing content.
+    assert "E2E Test Program" in page.text, _ctx("Program iteration produced no output")
+    assert ("Test CLO 1" in page.text or "clo1" in page.text), _ctx("CLO iteration produced no output")
+    assert ("Test PLO 1" in page.text or "plo1" in page.text), _ctx("PLO iteration produced no output")
+    assert "AISuggestionPurple.png" in page.text, _ctx(
+        "Page rendered programs/CLOs/PLOs but no AI suggestion icons at all - "
+        "the aiSuggestedOutcomeMap relation isn't matching the seeded rows."
+    )
+
     soup = BeautifulSoup(page.text, "html.parser")
     purple_imgs = [
         img for img in soup.find_all("img")
         if "AISuggestionPurple.png" in (img.get("src") or "")
     ]
-    assert len(purple_imgs) >= 4, (
+    assert len(purple_imgs) >= 4, _ctx(
         f"Expected at least 4 purple icons (one per mapped scale), found {len(purple_imgs)}"
     )

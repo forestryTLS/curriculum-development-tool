@@ -35,13 +35,11 @@ E2E_TEST_USER_EMAIL=<email>
 E2E_TEST_USER_PASSWORD=<password>
 ```
 
-If these are unset and stdin is a TTY, pytest prompts for them at the start of the session. Run pytest with `-s` to keep stdin connected for the prompt:
+If these are unset, pytest prompts for them at the start of the session. Run pytest with `-s` to keep stdin connected for the prompt:
 
 ```powershell
 pytest tests/e2e -v -s
 ```
-
-If stdin is not a TTY (e.g. CI), tests skip with a clear message.
 
 ## Run
 
