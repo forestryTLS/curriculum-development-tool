@@ -8,6 +8,7 @@ from app.services.lo_mapping_request_dynamo_db_request import LOMappingRequestDy
 
 TABLE_NAME = "test-lo-mapping-requests-table"
 AWS_REGION = "ca-central-1"
+OUTPUT_S3_URI = "s3://test-bucket/output/"
 
 
 @pytest.fixture(autouse=True)
@@ -17,6 +18,10 @@ def env_vars(monkeypatch):
     monkeypatch.setenv("AWS_REGION", AWS_REGION)
     monkeypatch.setenv("ACCESS_KEY", "fake-access-key")
     monkeypatch.setenv("SECRET_KEY", "fake-secret-key")
+    monkeypatch.setenv("OUTPUT_S3_URI", OUTPUT_S3_URI)
+    # Make sure a leaked AWS_ENDPOINT_URL from another test file doesn't
+    # redirect boto3 away from moto's mock.
+    monkeypatch.delenv("AWS_ENDPOINT_URL", raising=False)
 
 
 @pytest.fixture
@@ -117,7 +122,7 @@ class TestLOMappingRequestDynamoDBRecordCreateRequest:
         assert item["program_id"] == 202
         assert item["status"] == "PENDING"
         assert item["input_s3_path"] == "s3://bucket/batch_inputs/file.json"
-        assert item["output_s3_path"] == "s3://bucket/batch_outputs/file.json.out"
+        assert item["output_s3_path"] == f"{OUTPUT_S3_URI.rstrip('/')}/file.json.out"
         assert "created_at" in item
 
     @mock_aws

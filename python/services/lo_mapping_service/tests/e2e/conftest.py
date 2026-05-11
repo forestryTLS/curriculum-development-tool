@@ -62,25 +62,6 @@ def localstack_endpoint(localstack_container):
     return localstack_container.get_url()
 
 
-@pytest.fixture(scope="session", autouse=True)
-def localstack_env(localstack_endpoint):
-    """Force boto3 in this process (and child FastAPI requests via env) to LocalStack."""
-    overrides = {
-        "AWS_ENDPOINT_URL":    localstack_endpoint,
-        "AWS_REGION":          REGION,
-        "AWS_ACCESS_KEY_ID":   FAKE_AWS_KEY,
-        "AWS_SECRET_ACCESS_KEY": FAKE_AWS_SECRET,
-    }
-    original = {k: os.environ.get(k) for k in overrides}
-    os.environ.update(overrides)
-    yield
-    for k, v in original.items():
-        if v is None:
-            os.environ.pop(k, None)
-        else:
-            os.environ[k] = v
-
-
 @pytest.fixture(scope="session")
 def boto_session(localstack_endpoint):
     return boto3.Session(

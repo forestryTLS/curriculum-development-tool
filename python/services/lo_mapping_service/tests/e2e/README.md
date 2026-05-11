@@ -51,6 +51,10 @@ pytest tests/e2e -v
 
 The first run takes a while because testcontainers pulls the LocalStack Docker image.
 
+## Test isolation (E2E vs unit tests)
+
+Unit tests under `tests/test_*.py` use `moto` (`@mock_aws`); these E2E tests use LocalStack. To keep the two from clashing in a single pytest session, E2E fixtures route boto3 to LocalStack by passing `endpoint_url=` explicitly on every client/resource, and by injecting `AWS_ENDPOINT_URL` into the FastAPI subprocess via its own env dict. Do not set `AWS_ENDPOINT_URL` on the host `os.environ` — moto only intercepts the standard AWS URLs, so a leaked LocalStack endpoint would silently redirect unit-test boto3 calls at LocalStack.
+
 ## Test data
 
 A high-ID-range test course/program is created and torn down per test. IDs used:
