@@ -22,15 +22,15 @@ import psycopg2
 PG_DSN = os.environ.get("E2E_PG_DSN", "postgresql://root@localhost:5432/laravel")
 
 CLEANUP_STATEMENTS = [
-    "DELETE FROM outcome_map_ai_suggestions WHERE l_outcome_id BETWEEN 99001 AND 99002",
-    "DELETE FROM outcome_maps                WHERE l_outcome_id BETWEEN 99001 AND 99002",
+    "DELETE FROM outcome_map_ai_suggestions WHERE l_outcome_id BETWEEN 99001 AND 99099",
+    "DELETE FROM outcome_maps                WHERE l_outcome_id BETWEEN 99001 AND 99099",
     "DELETE FROM course_users                WHERE course_id = 99001",
     "DELETE FROM program_users               WHERE program_id = 99001",
     "DELETE FROM course_programs             WHERE course_id = 99001 AND program_id = 99001",
     "DELETE FROM mapping_scale_programs      WHERE program_id = 99001",
-    "DELETE FROM program_learning_outcomes   WHERE pl_outcome_id BETWEEN 99001 AND 99002",
-    "DELETE FROM learning_outcomes           WHERE l_outcome_id BETWEEN 99001 AND 99002",
-    "DELETE FROM mapping_scales              WHERE map_scale_id BETWEEN 99001 AND 99002",
+    "DELETE FROM program_learning_outcomes   WHERE pl_outcome_id BETWEEN 99001 AND 99099",
+    "DELETE FROM learning_outcomes           WHERE l_outcome_id BETWEEN 99001 AND 99099",
+    "DELETE FROM mapping_scales              WHERE map_scale_id BETWEEN 99001 AND 99099",
     "DELETE FROM programs                    WHERE program_id = 99001",
     "DELETE FROM courses                     WHERE course_id = 99001",
 ]

@@ -358,3 +358,97 @@ def test_all_unmapped_routes_to_na_scale(
     assert len(rows) == 4, f"Expected 4 rows (one per CLO/PLO pair), got {len(rows)}: {rows}"
     assert all(r[2] == 0 for r in rows), \
         f"All rows should route to N/A scale (map_scale_id=0). Got: {rows}"
+
+
+LATE_CLO_ID = 99003
+
+
+def _insert_late_clo(pg_conn, course_id):
+    cur = pg_conn.cursor()
+    try:
+        cur.execute(
+            """
+            INSERT INTO learning_outcomes (l_outcome_id, course_id, l_outcome, clo_shortphrase, created_at, updated_at)
+            VALUES (%s, %s, 'Late-added CLO', 'late', NOW(), NOW())
+            ON CONFLICT (l_outcome_id) DO NOTHING
+            """,
+            (LATE_CLO_ID, course_id),
+        )
+        pg_conn.commit()
+    except Exception:
+        pg_conn.rollback()
+        raise
+    finally:
+        cur.close()
+
+
+def _delete_late_clo(pg_conn):
+    cur = pg_conn.cursor()
+    cur.execute("DELETE FROM outcome_map_ai_suggestions WHERE l_outcome_id = %s", (LATE_CLO_ID,))
+    cur.execute("DELETE FROM outcome_maps WHERE l_outcome_id = %s", (LATE_CLO_ID,))
+    cur.execute("DELETE FROM learning_outcomes WHERE l_outcome_id = %s", (LATE_CLO_ID,))
+    pg_conn.commit()
+    cur.close()
+
+
+def _assert_late_clo_has_no_icons(pg_conn, laravel_session, course_id, program_id):
+    cur = pg_conn.cursor()
+    cur.execute("SELECT COUNT(*) FROM outcome_map_ai_suggestions WHERE l_outcome_id = %s", (LATE_CLO_ID,))
+    row_count = cur.fetchone()[0]
+    cur.close()
+    assert row_count == 0, f"Late-added CLO should have no suggestion rows; found {row_count}"
+
+    page = laravel_session.get(f"{LARAVEL_URL}/courseWizard/{course_id}/step5")
+    assert page.status_code == 200
+
+    soup = BeautifulSoup(page.text, "html.parser")
+    accordion = soup.find("div", id=f"accordionGroup{program_id}-{LATE_CLO_ID}")
+    assert accordion is not None, f"Step 5 should still render the late CLO accordion ({LATE_CLO_ID})"
+
+    purple = [
+        img for img in accordion.find_all("img")
+        if "AISuggestionPurple.png" in (img.get("src") or "")
+    ]
+    assert len(purple) == 0, f"Late-added CLO should have no purple icons; found {len(purple)}"
+
+
+def test_clo_added_after_results_processed_has_no_icons(
+    fastapi_service, seeded_course_program, s3_bucket, s3_client, dynamo_table, laravel_session, pg_conn,
+):
+    """CLO added after the AI pipeline has fully completed -> no purple icons for the new CLO."""
+    course_id  = seeded_course_program["course_id"]
+    program_id = seeded_course_program["program_id"]
+
+    _trigger_ai_pipeline(
+        s3_client, s3_bucket, dynamo_table, laravel_session,
+        course_id, program_id, "sample_ai_output.jsonl",
+    )
+    _insert_late_clo(pg_conn, course_id)
+
+    try:
+        _assert_late_clo_has_no_icons(pg_conn, laravel_session, course_id, program_id)
+    finally:
+        _delete_late_clo(pg_conn)
+
+
+def test_clo_added_while_request_in_flight_has_no_icons(
+    fastapi_service, seeded_course_program, s3_bucket, s3_client, dynamo_table, laravel_session, pg_conn,
+):
+    """CLO added after the request was submitted but before results are processed -> still no purple icons."""
+    course_id  = seeded_course_program["course_id"]
+    program_id = seeded_course_program["program_id"]
+
+    output_uri = upload_dummy_sagemaker_output(
+        s3_client, s3_bucket,
+        f"output/e2e-late-clo-inflight-{course_id}-{program_id}.jsonl.out",
+        fixture="sample_ai_output.jsonl",
+    )
+    _put_awaiting_completion_record(dynamo_table, course_id, program_id, output_uri)
+
+    _insert_late_clo(pg_conn, course_id)
+
+    try:
+        _drive_polling_to_complete(laravel_session, course_id, program_id)
+        _assert_late_clo_has_no_icons(pg_conn, laravel_session, course_id, program_id)
+    finally:
+        _delete_late_clo(pg_conn)
