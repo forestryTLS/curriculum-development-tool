@@ -7,10 +7,6 @@ from decimal import Decimal
 from pathlib import Path
 from dotenv import load_dotenv
 
-# Resolve .env from the service root (../../.env relative to this file) so it
-# works regardless of where uvicorn was launched from. override=False so explicit
-# env vars from the parent process (e.g. an E2E test launching this as a subprocess)
-# take precedence over .env defaults.
 _SERVICE_ROOT = Path(__file__).resolve().parents[2]
 load_dotenv(_SERVICE_ROOT / ".env", override=False)
 

@@ -80,7 +80,7 @@ def test_ai_suggestions_render_on_step5(
     # 2. Inject AWAITING_COMPLETION DynamoDB record pointing at that output
     request_id = _put_awaiting_completion_record(dynamo_table, course_id, program_id, output_uri)
 
-    # web middleware group so POSTs need X-CSRF-TOKEN.
+    # POSTs need X-CSRF-TOKEN.
     csrf_token = get_csrf_token(laravel_session, f"{LARAVEL_URL}/home")
     post_headers = {"Accept": "application/json", "X-CSRF-TOKEN": csrf_token}
 

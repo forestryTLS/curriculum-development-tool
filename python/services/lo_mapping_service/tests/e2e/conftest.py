@@ -24,9 +24,7 @@ from testcontainers.localstack import LocalStackContainer
 REGION              = "ca-central-1"
 FAKE_AWS_KEY        = "test"
 FAKE_AWS_SECRET     = "test"
-# Suffix table and bucket names with a per-session uuid so we can never collide
-# with a leftover resource from a crashed run, a concurrent run, or another
-# developer's LocalStack. Sidesteps delete-then-create races in LocalStack.
+# Session-unique names so we never collide with leftover resources from a prior run.
 _SESSION_TAG        = uuid.uuid4().hex[:8]
 DYNAMO_TABLE_NAME   = os.environ.get("E2E_DYNAMO_TABLE",  f"lo-mapping-requests-e2e-{_SESSION_TAG}")
 S3_BUCKET           = os.environ.get("E2E_S3_BUCKET",    f"curriculum-map-e2e-bucket-{_SESSION_TAG}")
@@ -117,15 +115,10 @@ def s3_bucket(s3_client):
 
 @pytest.fixture
 def dynamo_table(fastapi_service, dynamodb_resource):
-    """Yield the DynamoDB table FastAPI created in its lifespan hook
-    (ensure_table_exists). The depends-on-fastapi_service ordering guarantees
-    the table is ready before the test runs. At teardown we wipe items rather
-    than delete the table, so subsequent tests in the same session still find
-    it (FastAPI's lifespan only runs once)."""
+    """Adopt the table FastAPI's lifespan hook creates; wipe items between tests."""
     table = dynamodb_resource.Table(DYNAMO_TABLE_NAME)
     table.wait_until_exists()
     yield table
-    # Wipe all items so the next test starts clean.
     scan = table.scan(ProjectionExpression="request_id")
     with table.batch_writer() as batch:
         for item in scan.get("Items", []):
@@ -236,8 +229,7 @@ def seeded_course_program(pg_conn):
             (TEST_COURSE_ID, TEST_PROGRAM_ID),
         )
 
-        # Link the test login user to this course/program as Owner (permission=1),
-        # so HasAccessMiddleware doesn't redirect step5 to /home.
+        # HasAccessMiddleware redirects to /home unless the user owns the course/program.
         email, _ = _resolve_credentials()
         cur.execute("SELECT id FROM users WHERE email = %s", (email,))
         row = cur.fetchone()
@@ -297,32 +289,16 @@ def seeded_course_program(pg_conn):
 # ─────────────────── Laravel auth ───────────────────
 
 def _resolve_credentials() -> tuple[str, str]:
-    """Resolve test-user credentials. Defaults to the seeded admin user
-    (admintest@gmail.com / password from UserSeeder), so the test runs with
-    no extra setup on a freshly-seeded local DB. Override via env vars when
-    pointing at a different account."""
+    """Returns (email, password); defaults to the seeded admin user, override via env vars."""
     email    = os.environ.get("E2E_TEST_USER_EMAIL")    or "admintest@gmail.com"
     password = os.environ.get("E2E_TEST_USER_PASSWORD") or "password"
     return email, password
 
 
 @pytest.fixture(scope="session")
-def laravel_session(pg_conn):
-    """Login to Laravel and return a requests.Session with auth cookies + CSRF token helper."""
+def laravel_session():
+    """Returns an authenticated requests.Session, or fails loudly if the user can't be used."""
     email, password = _resolve_credentials()
-
-    # Laravel's MustVerifyEmail middleware redirects unverified users to /email/verify
-    # on every request. The seeded admin user has no email_verified_at, so mark it
-    # verified now. autocommit=False on pg_conn, so commit explicitly.
-    cur = pg_conn.cursor()
-    try:
-        cur.execute(
-            "UPDATE users SET email_verified_at = COALESCE(email_verified_at, NOW()) WHERE email = %s",
-            (email,),
-        )
-        pg_conn.commit()
-    finally:
-        cur.close()
 
     sess = requests.Session()
     login_page = sess.get(f"{LARAVEL_URL}/login")
@@ -330,17 +306,24 @@ def laravel_session(pg_conn):
     import re
     m = re.search(r'name="_token"\s+value="([^"]+)"', login_page.text)
     if not m:
-        pytest.skip("Could not parse CSRF token from /login page")
+        pytest.fail("Could not parse CSRF token from /login page")
     token = m.group(1)
 
-    # POST credentials
     r = sess.post(
         f"{LARAVEL_URL}/login",
         data={"email": email, "password": password, "_token": token},
         allow_redirects=True,
     )
     if r.status_code >= 400 or "/login" in r.url:
-        pytest.skip("Login failed - check credentials")
+        pytest.fail(f"Login failed for {email!r} — check credentials")
+
+    # This means the user exists but their email hasn't been veified yet
+    probe = sess.get(f"{LARAVEL_URL}/home", allow_redirects=True)
+    if "/email/verify" in probe.url:
+        pytest.fail(
+            f"Test user {email!r} is not email-verified — Laravel will redirect every request to /email/verify.\n"
+            f"Fix: UPDATE users SET email_verified_at = NOW() WHERE email = '{email}';"
+        )
 
     return sess
 
