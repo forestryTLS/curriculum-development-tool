@@ -580,11 +580,27 @@
         "This is taking longer than usual. Click Refresh to check again, " +
         "or come back later - your suggestions will appear automatically when ready.";
 
+    function closeModal(modalEl) {
+        if (!modalEl) return;
+        modalEl.classList.remove('show');
+        modalEl.style.display = 'none';
+        modalEl.setAttribute('aria-hidden', 'true');
+        modalEl.removeAttribute('aria-modal');
+        modalEl.removeAttribute('role');
+        document.body.classList.remove('modal-open');
+        document.body.style.removeProperty('padding-right');
+        document.body.style.removeProperty('overflow');
+        document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
+    }
+
+    document.addEventListener('click', function (e) {
+        const trigger = e.target.closest('[data-dismiss="modal"], [data-bs-dismiss="modal"]');
+        if (!trigger) return;
+        closeModal(trigger.closest('.modal'));
+    });
+
     function hideAiModal(courseId, programId) {
-        const modalEl = document.getElementById(`AiSuggestionConfirmation${courseId}${programId}`);
-        if (modalEl && window.jQuery) {
-            jQuery(modalEl).modal('hide');
-        }
+        closeModal(document.getElementById(`AiSuggestionConfirmation${courseId}${programId}`));
     }
 
     function setHidden(el, hidden) {
