@@ -94,12 +94,13 @@
                                                     </button>
 
                                                     <!-- AI Suggestion button -->
-                                                    @if(!$courseProgram->pivot->ai_suggestion_status and $courseProgram->pivot->manual_map_status)
+                                                    @if(!$courseProgram->pivot->ai_suggestion_status)
                                                         @php
-                                                            $_inFlight = isset($aiSuggestionInFlight) && !empty($aiSuggestionInFlight[$courseProgram->program_id]);
-                                                            $_aiBtnClass     = $_inFlight ? 'd-none' : 'd-flex';
-                                                            $_aiStatusClass  = $_inFlight ? 'd-flex' : 'd-none';
-                                                            $_pollAttrs      = $_inFlight ? sprintf('data-poll-on-load="true" data-course-id="%d" data-program-id="%d"', $course->course_id, $courseProgram->program_id) : '';
+                                                            $_inFlight         = isset($aiSuggestionInFlight) && !empty($aiSuggestionInFlight[$courseProgram->program_id]);
+                                                            $_manualMapStarted = (bool) $courseProgram->pivot->manual_map_status;
+                                                            $_aiBtnClass     = ($_manualMapStarted && !$_inFlight) ? 'd-flex' : 'd-none';
+                                                            $_aiStatusClass  = ($_manualMapStarted && $_inFlight)  ? 'd-flex' : 'd-none';
+                                                            $_pollAttrs      = ($_manualMapStarted && $_inFlight)  ? sprintf('data-poll-on-load="true" data-course-id="%d" data-program-id="%d"', $course->course_id, $courseProgram->program_id) : '';
                                                         @endphp
                                                         <span id="buttonAISuggestionHeader-{{$course->course_id}}-{{$courseProgram->program_id}}"
                                                               class="btn btn-sm btn-primary {{ $_aiBtnClass }} me-3 col-2 justify-content-center"
@@ -544,6 +545,12 @@
                 div.classList.remove('d-flex');
 
                 document.getElementById(`ManualMapBody-${course_id}-${program_id}`).style.display = "block";
+
+                const inFlight = div.getAttribute('data-poll-on-load') === 'true';
+                const headerBtn    = document.getElementById(`buttonAISuggestionHeader-${course_id}-${program_id}`);
+                const headerStatus = document.getElementById(`aiStatusHeader-${course_id}-${program_id}`);
+                setHidden(headerBtn,    inFlight);
+                setHidden(headerStatus, !inFlight);
             }).catch(error => {
                 console.error('Unable to enable manual mapping:', error);
                 alert('We could not open manual mapping right now. Please try again later.');
