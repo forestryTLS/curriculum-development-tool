@@ -58,6 +58,47 @@ def _put_awaiting_completion_record(
     return request_id
 
 
+def _drive_polling_to_complete(laravel_session, course_id, program_id, timeout_s: int = 15) -> None:
+    """Poll /check-ai-results until status==complete or fail after timeout_s seconds."""
+    csrf_token = get_csrf_token(laravel_session, f"{LARAVEL_URL}/home")
+    headers = {"Accept": "application/json", "X-CSRF-TOKEN": csrf_token}
+    url = f"{LARAVEL_URL}/courseWizard/{course_id}/{program_id}/check-ai-results"
+
+    r = laravel_session.post(url, headers=headers)
+    assert r.status_code == 200, r.text
+    for _ in range(timeout_s):
+        r = laravel_session.post(url, headers=headers)
+        if r.json().get("status") == "complete":
+            return
+        time.sleep(1)
+    raise AssertionError(f"Polling never reported 'complete' within {timeout_s}s")
+
+
+def _trigger_ai_pipeline(s3_client, s3_bucket, dynamo_table, laravel_session,
+                         course_id, program_id, fixture: str) -> None:
+    """Upload fixture JSONL to S3, inject AWAITING_COMPLETION record, drive polling to complete."""
+    output_uri = upload_dummy_sagemaker_output(
+        s3_client, s3_bucket,
+        f"output/e2e-{fixture}-{course_id}-{program_id}.jsonl.out",
+        fixture=fixture,
+    )
+    _put_awaiting_completion_record(dynamo_table, course_id, program_id, output_uri)
+    _drive_polling_to_complete(laravel_session, course_id, program_id)
+
+
+def _suggestions_for_clos(pg_conn, clo_ids) -> list[tuple]:
+    """Return [(l_outcome_id, pl_outcome_id, map_scale_id), ...] sorted, for given CLOs."""
+    cur = pg_conn.cursor()
+    cur.execute(
+        "SELECT l_outcome_id, pl_outcome_id, map_scale_id FROM outcome_map_ai_suggestions "
+        "WHERE l_outcome_id = ANY(%s) ORDER BY l_outcome_id, pl_outcome_id, map_scale_id",
+        (clo_ids,),
+    )
+    rows = cur.fetchall()
+    cur.close()
+    return rows
+
+
 def test_ai_suggestions_render_on_step5(
     fastapi_service,
     seeded_course_program,
@@ -172,3 +213,148 @@ def test_ai_suggestions_render_on_step5(
     assert len(purple_imgs) >= 4, _ctx(
         f"Expected at least 4 purple icons (one per mapped scale), found {len(purple_imgs)}"
     )
+
+
+def test_malformed_jsonl_lines_are_skipped(
+    fastapi_service, seeded_course_program, s3_bucket, s3_client, dynamo_table, laravel_session, pg_conn,
+):
+    """Malformed JSONL lines should be skipped; valid lines should still produce rows."""
+    course_id  = seeded_course_program["course_id"]
+    program_id = seeded_course_program["program_id"]
+
+    _trigger_ai_pipeline(
+        s3_client, s3_bucket, dynamo_table, laravel_session,
+        course_id, program_id, "malformed_ai_output.jsonl",
+    )
+
+    rows = set(_suggestions_for_clos(pg_conn, seeded_course_program["clo_ids"]))
+    # malformed_ai_output.jsonl has 2 valid lines: clo-99001/plo-99001/I and clo-99002/plo-99001/D.
+    assert (99001, 99001, 99001) in rows, f"Valid 'I' line missing. Got: {rows}"
+    assert (99002, 99001, 99002) in rows, f"Valid 'D' line missing. Got: {rows}"
+    # The 4 malformed lines should produce nothing.
+    assert len(rows) == 2, f"Malformed lines produced extra rows: {rows}"
+
+
+def test_unknown_scale_abbreviation_is_skipped(
+    fastapi_service, seeded_course_program, s3_bucket, s3_client, dynamo_table, laravel_session, pg_conn,
+):
+    """Labels not in the program's mapping scales should be skipped; valid ones should still write."""
+    course_id  = seeded_course_program["course_id"]
+    program_id = seeded_course_program["program_id"]
+
+    _trigger_ai_pipeline(
+        s3_client, s3_bucket, dynamo_table, laravel_session,
+        course_id, program_id, "unknown_scale_ai_output.jsonl",
+    )
+
+    rows = set(_suggestions_for_clos(pg_conn, seeded_course_program["clo_ids"]))
+    # Fixture: clo-99001/plo-99001 has only 'P' (unknown) -> 0 rows.
+    #          clo-99002/plo-99001 has 'D' -> 1 row at scale 99002.
+    #          clo-99002/plo-99002 has 'I' (valid) and 'Q' (unknown) -> 1 row at scale 99001.
+    assert (99002, 99001, 99002) in rows
+    assert (99002, 99002, 99001) in rows
+    assert not any(r[0] == 99001 and r[1] == 99001 for r in rows), \
+        f"clo-99001/plo-99001 had only an unknown label; expected 0 rows. Got: {rows}"
+    assert all(r[2] in {99001, 99002} for r in rows), \
+        f"All scale_ids must be from the program's seeded scales. Got: {rows}"
+
+
+def test_idempotent_delivery_no_duplicate_rows(
+    fastapi_service, seeded_course_program, s3_bucket, s3_client, dynamo_table, laravel_session, pg_conn,
+):
+    """Re-delivering the same payload via the API must not duplicate outcome_map_ai_suggestions rows."""
+    course_id  = seeded_course_program["course_id"]
+    program_id = seeded_course_program["program_id"]
+
+    _trigger_ai_pipeline(
+        s3_client, s3_bucket, dynamo_table, laravel_session,
+        course_id, program_id, "sample_ai_output.jsonl",
+    )
+    rows_before = sorted(_suggestions_for_clos(pg_conn, seeded_course_program["clo_ids"]))
+    assert len(rows_before) > 0, "First delivery wrote no rows; cannot validate idempotency"
+
+    # Replay the same payload directly to Laravel (bypasses FastAPI dedup; tests Laravel-side idempotency).
+    payload = {
+        "request_id": "e2e-replay",
+        "course_id":  course_id,
+        "program_id": program_id,
+        "status":     "AWAITING_COMPLETION",
+        "results": [
+            {"clo_id": 99001, "plo_id": 99001, "is_mapped": True,  "map_labels": ["I"]},
+            {"clo_id": 99001, "plo_id": 99002, "is_mapped": False, "map_labels": []},
+            {"clo_id": 99002, "plo_id": 99001, "is_mapped": True,  "map_labels": ["D"]},
+            {"clo_id": 99002, "plo_id": 99002, "is_mapped": True,  "map_labels": ["I", "D"]},
+        ],
+    }
+    r = requests.post(
+        f"{LARAVEL_URL}/api/microservices/lo-mapping/ai-suggestions/store",
+        json=payload, timeout=10,
+    )
+    assert r.status_code == 200, r.text
+
+    rows_after = sorted(_suggestions_for_clos(pg_conn, seeded_course_program["clo_ids"]))
+    assert rows_after == rows_before, (
+        f"Replay produced extra/different rows.\nBefore: {rows_before}\nAfter:  {rows_after}"
+    )
+
+
+def test_categorized_plos_render_with_icons(
+    fastapi_service, seeded_course_program, s3_bucket, s3_client, dynamo_table, laravel_session, pg_conn,
+):
+    """The categorized-PLO branch of step5.blade.php should render purple icons too."""
+    course_id  = seeded_course_program["course_id"]
+    program_id = seeded_course_program["program_id"]
+    CATEGORY_ID = 99001
+    CATEGORY_LABEL = "E2E Test Category"
+
+    cur = pg_conn.cursor()
+    try:
+        cur.execute(
+            "INSERT INTO p_l_o_categories (plo_category_id, program_id, plo_category, created_at, updated_at) "
+            "VALUES (%s, %s, %s, NOW(), NOW())",
+            (CATEGORY_ID, program_id, CATEGORY_LABEL),
+        )
+        # Assign PLO 99001 to the category; leave 99002 uncategorized so both branches render.
+        cur.execute(
+            "UPDATE program_learning_outcomes SET plo_category_id = %s WHERE pl_outcome_id = 99001",
+            (CATEGORY_ID,),
+        )
+        pg_conn.commit()
+    except Exception:
+        pg_conn.rollback()
+        raise
+    finally:
+        cur.close()
+
+    _trigger_ai_pipeline(
+        s3_client, s3_bucket, dynamo_table, laravel_session,
+        course_id, program_id, "sample_ai_output.jsonl",
+    )
+
+    page = laravel_session.get(f"{LARAVEL_URL}/courseWizard/{course_id}/step5")
+    assert page.status_code == 200
+    assert CATEGORY_LABEL in page.text, "Categorized branch never rendered the category"
+    assert "Uncategorized PLOs" in page.text, "Uncategorized section is missing"
+    assert "AISuggestionPurple.png" in page.text, "No purple icons rendered for the categorized PLO"
+    # PLO 99001 is in the seeded fixture's mapped results, so its row should include at least one icon.
+    soup = BeautifulSoup(page.text, "html.parser")
+    purple_imgs = [img for img in soup.find_all("img") if "AISuggestionPurple.png" in (img.get("src") or "")]
+    assert len(purple_imgs) >= 1, f"Expected at least one purple icon, found {len(purple_imgs)}"
+
+
+def test_all_unmapped_routes_to_na_scale(
+    fastapi_service, seeded_course_program, s3_bucket, s3_client, dynamo_table, laravel_session, pg_conn,
+):
+    """When is_mapped is false for every entry, all rows route to the pre-seeded N/A scale (id=0)."""
+    course_id  = seeded_course_program["course_id"]
+    program_id = seeded_course_program["program_id"]
+
+    _trigger_ai_pipeline(
+        s3_client, s3_bucket, dynamo_table, laravel_session,
+        course_id, program_id, "all_unmapped_ai_output.jsonl",
+    )
+
+    rows = _suggestions_for_clos(pg_conn, seeded_course_program["clo_ids"])
+    assert len(rows) == 4, f"Expected 4 rows (one per CLO/PLO pair), got {len(rows)}: {rows}"
+    assert all(r[2] == 0 for r in rows), \
+        f"All rows should route to N/A scale (map_scale_id=0). Got: {rows}"

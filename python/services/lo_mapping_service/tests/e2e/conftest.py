@@ -448,8 +448,8 @@ def fastapi_service(localstack_endpoint, s3_bucket):
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
 
-def upload_dummy_sagemaker_output(s3_client, bucket: str, key: str) -> str:
-    # Returns S3-formatted output from sample_ai_output.jsonl
-    with open(FIXTURES_DIR / "sample_ai_output.jsonl", "rb") as f:
+def upload_dummy_sagemaker_output(s3_client, bucket: str, key: str, fixture: str = "sample_ai_output.jsonl") -> str:
+    """Upload a JSONL fixture to S3; returns the s3:// URI."""
+    with open(FIXTURES_DIR / fixture, "rb") as f:
         s3_client.put_object(Bucket=bucket, Key=key, Body=f.read())
     return f"s3://{bucket}/{key}"
