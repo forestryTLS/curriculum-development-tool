@@ -10,6 +10,7 @@ use App\Http\Controllers\CourseUserController;
 use App\Http\Controllers\CourseWizardController;
 use App\Http\Controllers\CustomAssessmentMethodsController;
 use App\Http\Controllers\CustomLearningActivitiesController;
+use App\Http\Controllers\CourseTopicController;
 use App\Http\Controllers\FAQController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\InviteController;
@@ -251,6 +252,9 @@ Route::get('/courseWizard/{course}/step5', [CourseWizardController::class, 'step
 Route::get('/courseWizard/{course}/step6', [CourseWizardController::class, 'step6'])->name('courseWizard.step6');
 Route::get('/courseWizard/{course}/step7', [CourseWizardController::class, 'step7'])->name('courseWizard.step7');
 Route::get('/courseWizard/{course}/step8', [CourseWizardController::class, 'step8'])->name('courseWizard.step8');
+Route::get('/courseWizard/{course}/step9', [CourseWizardController::class, 'step9'])->name('courseWizard.step9');
+//lets blade form submit to courseTopicController@store
+Route::post('/courseTopics/store', [CourseTopicController::class, 'store'])->name('courseTopics.store');
 Route::post('courseWizard/{courseId}/{programId}/manualMap', [CourseProgramController::class, 'updateManualMapStatus']);
 Route::post('courseWizard/{courseId}/{programId}/aiSuggestion', [CourseProgramController::class, 'updateAiSuggestionStatus']);
 
