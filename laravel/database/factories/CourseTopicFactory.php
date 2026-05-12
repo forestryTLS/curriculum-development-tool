@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
+use App\Models\Course;
 
 /**
  * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\CourseTopic>
@@ -19,7 +20,7 @@ class CourseTopicFactory extends Factory
         return [
             'course_id' => Course::factory(),
             'topic' => $this->faker->sentence(5),
-            'description' => $this->faler->optional()->paragraph(),
+            'description' => $this->faker->optional()->paragraph(),
             'position' => $this->faker->numberBetween(0, 100),
         ];
     }
