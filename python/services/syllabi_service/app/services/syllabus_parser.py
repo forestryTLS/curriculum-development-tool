@@ -453,14 +453,15 @@ def get_encoded_term_of_offering(term: str| None) -> str:
         return termWithCode[term]
     else:
         currentMonth = datetime.now().month
-        if currentMonth in ("January", 'February', 'March', 'April'):
+        if currentMonth < 5: #Jan -Apr
             return "W2"
-        elif currentMonth in ('September', 'October', 'November', 'December'):
+        elif currentMonth > 8: #Sept - Dec
             return "W1"
-        elif currentMonth in ("May", "June"):
+        elif currentMonth > 4 and currentMonth < 7: #May - Jun
             return "S1"
         else:
-            return "S2"
+            return "S2" #July - Aug
+        
     
 
 def normalize_header_footer(text: str) -> str:
