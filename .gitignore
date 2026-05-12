@@ -32,5 +32,6 @@ experiments/llm-evaluation/venv
 .pytest_cache/
 .idea/
 python/services/logs/
+python/services/*/env/
 python/services/lo_mapping_service/app/services/batch_inputs/**
 **.env
