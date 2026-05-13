@@ -254,7 +254,7 @@ Route::get('/courseWizard/{course}/step6', [CourseWizardController::class, 'step
 Route::get('/courseWizard/{course}/step7', [CourseWizardController::class, 'step7'])->name('courseWizard.step7');
 Route::get('/courseWizard/{course}/step8', [CourseWizardController::class, 'step8'])->name('courseWizard.step8');
 Route::get('/courseWizard/{course}/step9', [CourseWizardController::class, 'step9'])->name('courseWizard.step9');
-Route::get('/courseWizard/{course}/step9', [CourseWizardController::class, 'step10'])->name('courseWizard.step10');
+Route::get('/courseWizard/{course}/step10', [CourseWizardController::class, 'step10'])->name('courseWizard.step10');
 //lets blade form submit to courseTopicController@store
 Route::post('/courseTopics/store', [CourseTopicController::class, 'store'])->name('courseTopics.store');
 Route::post('/courseMaterials/store', [CourseMaterialController::class, 'store'])->name('courseMaterials.store');

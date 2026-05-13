@@ -34,7 +34,7 @@
                                     <div class="row justify-content-between align-items-end m-2">
                                         <div class="col-10">
                                             <label for="courseTopic" class="form-label fs-6"><b>Course Topic</b></label>
-                                            <input id="courseTopic" class="form-control" oninput="validateMaxlength()" onpaste="validateMaxlength()" maxlength="191" placeholder="Type to search or add your own..." required>
+                                            <input id="courseTopic" class="form-control" oninput="validateMaxlength()" onpaste="validateMaxlength()" maxlength="191" placeholder="Type your course topic..." required>
                                             <div class="invalid-tooltip">
                                                 Please provide a Course Topic.
                                             </div>                                            
@@ -142,7 +142,7 @@
                         <a href="{{route('courseWizard.step8', $course->course_id)}}">
                             <button class="btn btn-sm btn-primary col-3 float-left"><i class="bi bi-arrow-left mr-2"></i> Course Description</button>
                         </a>
-                        <a href="{{route('courseWizard.step1', $course->course_id)}}">
+                        <a href="{{route('courseWizard.step10', $course->course_id)}}">
                             <button class="btn btn-sm btn-primary col-3 float-right">Course Learning Outcomes <i class="bi bi-arrow-right ml-2"></i></button>
                         </a>
                     </div>
