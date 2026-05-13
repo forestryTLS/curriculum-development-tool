@@ -112,6 +112,38 @@
 
                     <div class="card mt-4 mb-4">
                         <h5 class="card-header">
+                            Course Materials
+                        </h5>
+                        <div class="body m-4 mb-2">
+                            @if(count($course->courseMaterials)<1)
+                                <div class="alert alert-warning wizard">
+                                    <i class="bi bi-exclamation-circle-fill"></i>There are no course materials set for this course. <a class="alert-link" href="{{route('courseWizard.step10', $course->course_id)}}">Add course materials.</a>
+                                </div>
+                            @else
+                                <table class="table table-light table-bordered table" >
+                                    <tr class="table-primary">
+                                        <th class="text-center">#</th>
+                                        <th>Course Materials</th>
+                                    </tr>
+
+                                    @foreach($course->courseMaterials->sortBy('position')->values() as $index => $courseMaterial)
+                                    <tr>
+                                        <td class="text-center fw-bold" style="width:5%" >{{$index+1}}</td>
+                                        <td>
+                                            <b>{{$courseMaterial->name}} </b><br>
+                                            {{$courseMaterial->type}}
+                                        </td>
+                                    </tr>
+                                    @endforeach
+
+
+                                </table>
+                            @endif
+                        </div>
+                    </div>
+
+                    <div class="card mt-4 mb-4">
+                        <h5 class="card-header">
                             Course Learning Outcomes
                         </h5>
                         <div class="body m-4 mb-2">
