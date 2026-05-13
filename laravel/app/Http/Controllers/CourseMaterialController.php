@@ -72,7 +72,7 @@ class CourseMaterialController extends Controller
                     $material->type = $materialData['type'];
                     $material->description = $materialData['description'];
                     $material->is_required = isset($materialData['is_required']);
-                    $material->url = $materialData["url"];
+                    $material->url = $materialData["url"] ?? null;
                     
                     $material->save();
 
@@ -96,7 +96,7 @@ class CourseMaterialController extends Controller
                     $newCourseMaterial->type = $newmat['type'];
                     $newCourseMaterial->description = $newmat['description'];
                     $newCourseMaterial->is_required = isset($newmat['is_required']);
-                    $newCourseMaterial->url = $newmat['url'];
+                    $newCourseMaterial->url = $newmat['url'] ?? null;
                     $newCourseMaterial->course_id = $courseId;
                     $newCourseMaterial->position = $index + 1;
                     $newCourseMaterial->save();

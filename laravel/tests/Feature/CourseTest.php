@@ -215,6 +215,78 @@ class CourseTest extends TestCase
 
     }
 
+    public function test_create_course_topics(): void
+    {
+        $user = User::where('email', 'test-course@ubc.ca')->first();
+        $course = Course::where('course_title', 'Intro to Unit Testing')->orderBy('course_id', 'DESC')->first();
+
+        $response = $this->actingAs($user)->post(route('courseTopics.store'), [
+            'current_topics' => [
+
+            ],
+            'new_topics' => [
+                0 => 'Climate Change',
+                1 => 'Forest Management',
+            ],
+            'course_id' => $course->course_id,
+        ]);
+
+        $this->assertDatabaseHas('course_topics', [
+            'topic' => 'Climate Change',
+            'course_id' => $course->course_id,
+        ]);
+
+        $this->assertDatabaseHas('course_topics', [
+            'topic' => 'Forest Management',
+            'course_id' => $course->course_id,
+        ]);
+    }
+
+    public function test_create_course_materials(): void
+    {
+        $user = User::where('email', 'test-course@ubc.ca')->first();
+        $course = Course::where('course_title', 'Intro to Unit Testing')->orderBy('course_id', 'DESC')->first();
+
+        $response = $this->actingAs($user)->post(route('courseMaterials.store'), [
+            'current_material' => [
+
+            ],
+            'new_material' => [
+                0 => [
+                    'name' => 'Forest Ecology',
+                    'type' => 'textbook',
+                    'description' => 'Required textbook',
+                    'url' => 'https://example.com/forest-ecology',
+                    'is_required' => '1',
+                ],
+                1 => [
+                    'name' => 'Climate Change Lecture',
+                    'type' => 'video',
+                    'description' => 'Recommended lecture video',
+                ],
+            ],
+            'course_id' => $course->course_id,
+        ]);
+
+        $this->assertDatabaseHas('course_materials', [
+            'name' => 'Forest Ecology',
+            'type' => 'textbook',
+            'description' => 'Required textbook',
+            'url' => 'https://example.com/forest-ecology',
+            'is_required' => true,
+            'course_id' => $course->course_id,
+        ]);
+
+        $this->assertDatabaseHas('course_materials', [
+            'name' => 'Climate Change Lecture',
+            'type' => 'video',
+            'description' => 'Recommended lecture video',
+            'url' => null,
+            'is_required' => false,
+            'course_id' => $course->course_id,
+        ]);
+    }
+
     public function test_course_alignment(): void
     {
         $user = User::where('email', 'test-course@ubc.ca')->first();
@@ -499,6 +571,46 @@ class CourseTest extends TestCase
             'course_id' => $course->course_id,
         ]);
 
+    }
+
+    public function test_delete_course_topics(): void
+    {
+        $user = User::where('email', 'test-course@ubc.ca')->first();
+        $course = Course::where('course_title', 'Intro to Unit Testing')->orderBy('course_id', 'DESC')->first();
+
+        $response = $this->actingAs($user)->post(route('courseTopics.store'), [
+            'current_topics' => [
+
+            ],
+            'new_topics' => [
+
+            ],
+            'course_id' => $course->course_id,
+        ]);
+
+        $this->assertDatabaseMissing('course_topics', [
+            'course_id' => $course->course_id,
+        ]);
+    }
+
+    public function test_delete_course_materials(): void
+    {
+        $user = User::where('email', 'test-course@ubc.ca')->first();
+        $course = Course::where('course_title', 'Intro to Unit Testing')->orderBy('course_id', 'DESC')->first();
+
+        $response = $this->actingAs($user)->post(route('courseMaterials.store'), [
+            'current_material' => [
+
+            ],
+            'new_material' => [
+
+            ],
+            'course_id' => $course->course_id,
+        ]);
+
+        $this->assertDatabaseMissing('course_materials', [
+            'course_id' => $course->course_id,
+        ]);
     }
 
     public function test_standardsOutcomeMap_store(): void
