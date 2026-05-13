@@ -830,4 +830,91 @@ public function step9($course_id, Request $request)
         ->with('hasNonAlignedCLO', $hasNonAlignedCLO);
 }
 
+public function step10($course_id, Request $request)
+{
+    $isEditor = false;
+    if ($request->isEditor) {
+        $isEditor = true;
+    }
+
+    // return to summary if viewer
+    $isViewer = false;
+    if ($request->isViewer) {
+        return redirect()->route('courseWizard.step7', $course_id);
+    }
+
+    // for header
+    $user = User::where('id', Auth::id())->first();
+    $campuses = Campus::all();
+    $faculties = Faculty::all();
+    $departments = Department::all();
+
+    // returns a collection of courses associated with users
+    $myCourses = $user->courses;
+    $courseUsers = [];
+    foreach ($myCourses as $course) {
+        $coursesUsers = $course->users()->get();
+        $courseUsers[$course->course_id] = $coursesUsers;
+    }
+
+    $course = Course::find($course_id);
+
+    $oAct = LearningActivity::join('outcome_activities', 'learning_activities.l_activity_id', '=', 'outcome_activities.l_activity_id')
+        ->join('learning_outcomes', 'outcome_activities.l_outcome_id', '=', 'learning_outcomes.l_outcome_id')
+        ->select('outcome_activities.l_activity_id', 'learning_activities.l_activity', 'outcome_activities.l_outcome_id', 'learning_outcomes.l_outcome')
+        ->where('learning_activities.course_id', '=', $course_id)->count();
+
+    $oAss = AssessmentMethod::join('outcome_assessments', 'assessment_methods.a_method_id', '=', 'outcome_assessments.a_method_id')
+        ->join('learning_outcomes', 'outcome_assessments.l_outcome_id', '=', 'learning_outcomes.l_outcome_id')
+        ->select('assessment_methods.a_method_id', 'assessment_methods.a_method', 'outcome_assessments.l_outcome_id', 'learning_outcomes.l_outcome')
+        ->where('assessment_methods.course_id', '=', $course_id)->count();
+
+    $outcomeMapsCount = ProgramLearningOutcome::join('outcome_maps', 'program_learning_outcomes.pl_outcome_id', '=', 'outcome_maps.pl_outcome_id')
+        ->join('learning_outcomes', 'outcome_maps.l_outcome_id', '=', 'learning_outcomes.l_outcome_id')
+        ->select('outcome_maps.map_scale_id', 'outcome_maps.pl_outcome_id', 'program_learning_outcomes.pl_outcome', 'outcome_maps.l_outcome_id', 'learning_outcomes.l_outcome')
+        ->where('learning_outcomes.course_id', '=', $course_id)->count();
+
+    $standardsOutcomeMapCount = StandardsOutcomeMap::where('course_id', $course_id)->count();
+    $expectedStandardOutcomeMapCount = StandardCategory::find($course->standard_category_id)->standards->count();
+
+    $numClos = LearningOutcome::where('course_id', $course_id)->count();
+
+    $coursePrograms = $course->programs;
+    $expectedProgramOutcomeMapCount = 0;
+    foreach ($coursePrograms as $program) {
+        $expectedProgramOutcomeMapCount += $program->programLearningOutcomes->count() * $numClos;
+    }
+
+    $l_outcomes = LearningOutcome::where('course_id', $course_id)->get();
+    $hasNonAlignedCLO = false;
+    foreach ($l_outcomes as $clo) {
+        if (
+            (! OutcomeAssessment::where('l_outcome_id', $clo->l_outcome_id)->exists()) ||
+            (! OutcomeActivity::where('l_outcome_id', $clo->l_outcome_id)->exists())
+        ) {
+            $hasNonAlignedCLO = true;
+            break;
+        }
+    }
+
+    $courseMaterials = $course->courseMaterials->sortBy('position')->values();
+
+    $standard_categories = DB::table('standard_categories')->get();
+
+    if ($course->courseDescription) {
+        $description = $course->courseDescription->description;
+    } else {
+        $description = "";
+    }
+
+    return view('courses.wizard.step10')->with('courseMaterials', $courseMaterials)->with('course', $course)->with('courseDescription', $description)
+        ->with('faculties', $faculties)->with('departments', $departments)->with('campuses', $campuses)
+        ->with('courseUsers', $courseUsers)->with('user', $user)->with('oAct', $oAct)->with('oAss', $oAss)
+        ->with('outcomeMapsCount', $outcomeMapsCount)->with('isEditor', $isEditor)->with('isViewer', $isViewer)
+        ->with('standard_categories', $standard_categories)->with('standardsOutcomeMapCount', $standardsOutcomeMapCount)
+        ->with('expectedStandardOutcomeMapCount', $expectedStandardOutcomeMapCount)
+        ->with('expectedProgramOutcomeMapCount', $expectedProgramOutcomeMapCount)
+        ->with('hasNonAlignedCLO', $hasNonAlignedCLO);
+}
+
 }
