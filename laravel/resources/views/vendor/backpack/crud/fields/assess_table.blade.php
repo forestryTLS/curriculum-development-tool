@@ -43,7 +43,7 @@
             data-maxErrorTitle="{{trans('backpack::crud.table_cant_add', ['entity' => $item_name])}}"
             data-maxErrorMessage="{{trans('backpack::crud.table_max_reached', ['max' => $max])}}">
 
-    <div class="array-container form-group">
+    <div class="array-container mb-3">
 
         <table class="table table-sm table-striped m-b-0">
 

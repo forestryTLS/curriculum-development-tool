@@ -11,8 +11,8 @@
             <div class="modal-body">
                 <div class="form-text text-muted mb-4">
                     <p>Give others access to this syllabus and assign them roles.</p>
-                    <li class="mb-1 mr-4 ml-4"><b>Editors</b> have access to edit and view your syllabus but cannot delete your syllabus or add/remove collaborators.</li>
-                    <li class="mb-3 mr-4 ml-4"><b>Viewers</b> have access to view your syllabus but cannot edit or delete your syllabus or add/remove collaborators.</li>
+                    <li class="mb-1 me-4 ms-4"><b>Editors</b> have access to edit and view your syllabus but cannot delete your syllabus or add/remove collaborators.</li>
+                    <li class="mb-3 me-4 ms-4"><b>Viewers</b> have access to view your syllabus but cannot edit or delete your syllabus or add/remove collaborators.</li>
                 </div>
 
                 @if ($syllabusPermission->pivot->permission == 1)
@@ -88,7 +88,7 @@
                                     @endif
                                     @if ($syllabusCollaborator->email == $user->email)
                                         <td class="text-center align-middle" colspan="2">
-                                            <button type="button" class="btn btn-danger btn" data-toggle="modal" data-target="#leaveSyllabusConfirmation{{$syllabus->id}}">Leave</button>
+                                            <button type="button" class="btn btn-danger btn" data-bs-toggle="modal" data-bs-target="#leaveSyllabusConfirmation{{$syllabus->id}}">Leave</button>
                                         </td>
 
                                         <!-- Leave Confirmation Modal -->
@@ -97,18 +97,16 @@
                                                 <div class="modal-content">
                                                     <div class="modal-header">
                                                         <h5 class="modal-title" id="exampleModalLabel">Leave Syllabus Confirmation</h5>
-                                                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                                            <span aria-hidden="true">&times;</span>
-                                                        </button>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                                     </div>
                                                     <div class="modal-body">Are you sure you want to leave {{$syllabus->course_title}} syllabus?</div>
-                                                    <form action="{{ action([\App\Http\Controllers\SyllabusUserController::class, 'leave']) }}" method="post" class="float-right">
+                                                    <form action="{{ action([\App\Http\Controllers\SyllabusUserController::class, 'leave']) }}" method="post" class="float-end">
                                                         @csrf
 
                                                         <input type="hidden" class="form-check-input " name="syllabus_id" value={{$syllabus->id}}>
                                                         <input type="hidden" class="form-check-input " name="syllabusCollaboratorId" value={{$syllabusCollaborator->id}}>
                                                         <div class="modal-footer">
-                                                            <button style="width:60px" type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Cancel</button>
+                                                            <button style="width:60px" type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
                                                             <button style="width:60px" type="submit" class="btn btn-danger btn-sm">Leave</button>
                                                         </div>
                                                     </form>
@@ -119,7 +117,7 @@
                                         @if ($syllabusPermission->pivot->permission == 1)
                                             <td class="text-center align-middle">
 
-                                                <button type="input" class="btn btn-primary" data-toggle="modal" data-target="#transferSyllabusConfirmation{{$syllabus->id}}">Transfer Ownership</button>
+                                                <button type="input" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#transferSyllabusConfirmation{{$syllabus->id}}">Transfer Ownership</button>
                                                 <!--
                                                 <form style='display:inline' action="{{ action([\App\Http\Controllers\SyllabusUserController::class, 'transferOwnership']) }}">
                                                             @csrf
@@ -129,7 +127,7 @@
                                                             <button type="input" class="btn btn-primary">Transfer Ownership</button>
                                                         </form>
 
-                                                <span class="ml-2 mr-2"></span>
+                                                <span class="ms-2 me-2"></span>
                                                 -->
                                                 <button type="input" class="btn btn-danger btn" onclick="deleteSyllabusCollab(this)">Remove</button>
                                                 
@@ -141,9 +139,7 @@
                                                     <div class="modal-content">
                                                         <div class="modal-header">
                                                             <h5 class="modal-title" id="exampleModalLabel">Transfer Syllabus Confirmation</h5>
-                                                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                                                <span aria-hidden="true">&times;</span>
-                                                            </button>
+                                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                                         </div>
                                                         <div class="modal-body">Are you sure you want to give ownership of the syllabus: {{$syllabus->course_title}} to the user: {{$syllabusCollaborator->name}}?</div>
                                                         <form action="{{ action([\App\Http\Controllers\SyllabusUserController::class, 'transferOwnership']) }}" method="post">
@@ -153,7 +149,7 @@
                                                             <input type="hidden" class="form-check-input " name="oldOwnerId" value={{$user->id}}>
 
                                                             <div class="modal-footer">
-                                                                <button style="width:60px" type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Cancel</button>
+                                                                <button style="width:60px" type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
                                                                 <button type="input" class="btn btn-primary btn-sm">Transfer Ownership</button>
                                                             </div>
                                                         </form>

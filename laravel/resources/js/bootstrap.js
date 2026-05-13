@@ -1,18 +1,28 @@
-import _ from 'lodash';
-window._ = _;
-
-/**
- * We'll load jQuery and the Bootstrap jQuery plugin which provides support
- * for JavaScript based Bootstrap features such as modals and tabs. This
- * code may be modified to fit the specific needs of your application.
- */
-import Popper from 'popper.js';
+import * as Popper from '@popperjs/core';
 import $ from 'jquery';
+import * as bootstrap from 'bootstrap';
 
 window.Popper = Popper;
 window.$ = window.jQuery = $;
+window.bootstrap = bootstrap;
 
-import 'bootstrap';
+// Bootstrap 5 dropped its jQuery plugin layer. Existing call sites use the
+// `$('#x').modal('show')` style, so map each component back onto $.fn via
+// the BS5 vanilla API. Calls like `.tooltip()` (no args) create an instance;
+// `.modal('show')` invokes the method on the cached instance.
+['Alert', 'Carousel', 'Collapse', 'Dropdown', 'Modal', 'Offcanvas',
+ 'Popover', 'ScrollSpy', 'Tab', 'Toast', 'Tooltip'].forEach((name) => {
+    const Component = bootstrap[name];
+    if (!Component) return;
+    $.fn[name.toLowerCase()] = function (action, ...args) {
+        return this.each(function () {
+            const instance = Component.getOrCreateInstance(this);
+            if (typeof action === 'string' && typeof instance[action] === 'function') {
+                instance[action](...args);
+            }
+        });
+    };
+});
 
 /**
  * We'll load the axios HTTP library which allows us to easily issue requests

@@ -15,7 +15,7 @@
                                 <i class="bi bi-question-circle" style="color:#002145;"></i>
                             </button>
                         </div>
-                        <div class="text-left">
+                        <div class="text-start">
                             @include('layouts.guide')
                         </div>
                     </h3>
@@ -23,7 +23,7 @@
 
                 <div class="card-body">
                     <div class="alert alert-primary d-flex align-items-center" role="alert" style="text-align:justify">
-                        <i class="bi bi-info-circle-fill pr-2 fs-3"></i>                        
+                        <i class="bi bi-info-circle-fill pe-2 fs-3"></i>                        
                         <div>
                             Input all <a href="https://ctlt.ubc.ca/resources/webliography/assessmentevaluation/" target="_blank" rel="noopener noreferrer" class="alert-link">
                                 <i class="bi bi-box-arrow-up-right"></i> assessment methods
@@ -46,8 +46,8 @@
 
                     <div class="row mb-1">
                         <div class="col">
-                            <button type="button" class="btn btn-primary col-4 float-right bg-primary text-white fs-5"  data-bs-toggle="modal" data-bs-target="#addAssessmentMethodModal">
-                                <i class="bi bi-plus mr-2"></i>Student Assessment Methods
+                            <button type="button" class="btn btn-primary col-4 float-end bg-primary text-white fs-5"  data-bs-toggle="modal" data-bs-target="#addAssessmentMethodModal">
+                                <i class="bi bi-plus me-2"></i>Student Assessment Methods
                             </button>
                         </div>
                     </div>
@@ -87,7 +87,7 @@
                                                 Edit
                                             </button>
                                             <!-- Removed Delete Button Modal Not Working -->
-                                            <!-- <button style="width:60px;" type="button" class="btn btn-danger btn-sm btn btn-danger btn-sm m-1" data-toggle="modal" data-target="#deleteAMethod{{$a_method->a_method_id}}">
+                                            <!-- <button style="width:60px;" type="button" class="btn btn-danger btn-sm btn btn-danger btn-sm m-1" data-bs-toggle="modal" data-bs-target="#deleteAMethod{{$a_method->a_method_id}}">
                                                 Delete
                                             </button> -->
                                             <input type="hidden" name="course_id" value="{{$course->course_id}}">
@@ -106,7 +106,7 @@
                         </table>
                         <!-- End Table -->
                         <div class="mt-4">
-                            <button type="submit" class="btn btn-success float-right col-2">Save Order</button>
+                            <button type="submit" class="btn btn-success float-end col-2">Save Order</button>
                         </div>
                     </form>
 
@@ -115,7 +115,7 @@
                         <div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-centered" role="document">
                             <div class="modal-content">
                                 <div class="modal-header">
-                                    <h5 class="modal-title" id="addAssessmentMethodModalLabel"><i class="bi bi-pencil-fill btn-icon mr-2"></i> Student Assessment Methods</h5>
+                                    <h5 class="modal-title" id="addAssessmentMethodModalLabel"><i class="bi bi-pencil-fill btn-icon me-2"></i> Student Assessment Methods</h5>
                                 </div>
 
                                 <div class="modal-body">
@@ -241,10 +241,10 @@
                 <div class="card-footer">
                     <div class="card-body mb-4">
                         <a href="{{route('courseWizard.step1', $course->course_id)}}">
-                            <button class="btn btn-sm btn-primary col-3 float-left"><i class="bi bi-arrow-left mr-2"></i> Course Learning Outcomes</button>
+                            <button class="btn btn-sm btn-primary col-3 float-start"><i class="bi bi-arrow-left me-2"></i> Course Learning Outcomes</button>
                         </a>
                         <a href="{{route('courseWizard.step3', $course->course_id)}}">
-                            <button class="btn btn-sm btn-primary col-3 float-right">Teaching and Learning Activities <i class="bi bi-arrow-right ml-2"></i></button>
+                            <button class="btn btn-sm btn-primary col-3 float-end">Teaching and Learning Activities <i class="bi bi-arrow-right ms-2"></i></button>
                         </a>
                     </div>
                 </div>            

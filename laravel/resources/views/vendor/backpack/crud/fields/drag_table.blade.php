@@ -43,7 +43,7 @@
             data-maxErrorTitle="{{trans('backpack::crud.table_cant_add', ['entity' => $item_name])}}"
             data-maxErrorMessage="{{trans('backpack::crud.table_max_reached', ['max' => $max])}}">
 
-    <div ondrop="drop(event)" ondragover="allowDrop(event)" class="array-container form-group">
+    <div ondrop="drop(event)" ondragover="allowDrop(event)" class="array-container mb-3">
 
         <table  class="table table-sm table-striped m-b-0 dragtable">
 
@@ -245,7 +245,7 @@
               var data = ev.dataTransfer.getData("Text");
               let trg = 0;
               if(ev.target.classList.contains('form_group'))trg = ev.target;
-              else trg = $(ev.target).closest('div.form-group')[0];
+              else trg = $(ev.target).closest('div.mb-3')[0];
               trg.children[0].children[1].appendChild(document.getElementById(data));
               ev.preventDefault();
               let field_name = "ProgramOC";

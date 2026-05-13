@@ -20,7 +20,7 @@
                                 <i class="bi bi-question-circle" style="color:#002145;"></i>
                             </button>
                         </div>
-                        <div class="text-left">
+                        <div class="text-start">
                             @include('layouts.guide')
                     </div>
                 </h3>
@@ -33,7 +33,7 @@
 
                     @else
                         <div class="alert alert-primary d-flex align-items-center" role="alert" style="text-align:justify">
-                            <i class="bi bi-info-circle-fill pr-2 fs-3"></i>
+                            <i class="bi bi-info-circle-fill pe-2 fs-3"></i>
                             <div>
                                 Now that you have inputted your course information, you are ready to map it to program learning outcomes (PLOs). Using the mapping scale provided by each program, identify the alignment between each of your course learning outcomes (CLOs) and PLOs.
                             </div>
@@ -47,7 +47,7 @@
 
                             @if (count($course->programs) < 1)
                                 <div class="alert alert-warning text-center">
-                                    <i class="bi bi-exclamation-circle-fill pr-2 fs-3"></i>
+                                    <i class="bi bi-exclamation-circle-fill pe-2 fs-3"></i>
                                     <br>
                                     <p>This course does not belong to any programs yet. Please move ahead to the next step.</p>
                                     <p>If you would like to define program learning outcomes to map this course, please create a program first. <a class="alert-link" href="{{route('home')}}">Create a Program.</a></p>
@@ -63,15 +63,13 @@
                                                 <div class="modal-content">
                                                     <div class="modal-header">
                                                         <h5 class="modal-title" id="exampleModalLabel"><strong>AI Suggestion</strong></h5>
-                                                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                                            <span aria-hidden="true">&times;</span>
-                                                        </button>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                                     </div>
                                                         <div class="modal-body">
                                                             <p>Are you sure you want to proceed? AI Suggestions can only generated once.</p>
                                                         </div>
                                                         <div class="modal-footer">
-                                                            <button style="width:60px" type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">No</button>
+                                                            <button style="width:60px" type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">No</button>
                                                             <button style="width:80px" type="button" class="btn btn-success btn-sm">Yes</button>
                                                         </div>
                                                 </div>
@@ -98,7 +96,7 @@
                                                     <span id="buttonAISuggestion[{{$course->course_id}}][{{$courseProgram->program_id}}]"
                                                           class="btn btn-sm btn-primary d-flex me-3 col-2 justify-content-center"
                                                           role="button"
-                                                          data-toggle="modal" data-target="#AiSuggestionConfirmation{{$course->course_id}}{{$courseProgram->program_id}}">
+                                                          data-bs-toggle="modal" data-bs-target="#AiSuggestionConfirmation{{$course->course_id}}{{$courseProgram->program_id}}">
                                                             <img src="{{ asset('img/AISuggestionWhite.png') }}" alt="icon" style="height: 1em; width: auto;" class="me-1">
                                                             AI Suggestion
                                                         </span>
@@ -145,7 +143,7 @@
                                                                 <div id="mappingOptions-{{$course->course_id}}-{{$courseProgram->program_id}}" class="justify-content-center gap-2 @if($courseProgram->pivot->manual_map_status) d-none @else d-flex @endif">
                                                                     <button id="buttonManualMap[{{$course->course_id}}][{{$courseProgram->program_id}}]" type="button" class="btn btn-sm btn-primary col-3 py-2" onclick="showManualMapDiv({{$course->course_id}}, {{$courseProgram->program_id}})">Create Manually</button>
                                                                     <button id="buttonAISuggestion[{{$course->course_id}}][{{$courseProgram->program_id}}]" type="button" class="btn btn-sm btn-primary col-3 py-2"
-                                                                            data-toggle="modal" data-target="#AiSuggestionConfirmation{{$course->course_id}}{{$courseProgram->program_id}}">
+                                                                            data-bs-toggle="modal" data-bs-target="#AiSuggestionConfirmation{{$course->course_id}}{{$courseProgram->program_id}}">
                                                                         <img src="{{asset('img/AISuggestionWhite.png')}}" alt="icon" style="height: 1.5em; width: auto;" class="me-2">AI Suggestions</button>
                                                                 </div>
                                                                 <!-- list of course learning outcome accordions with mapping form -->
@@ -180,11 +178,11 @@
                                                                                                                         <th>Program Learning Outcomes or Competencies</th>
                                                                                                                         <!-- Mapping Table Levels -->
                                                                                                                         @foreach($courseProgram->mappingScaleLevels as $programMappingScaleLevel)
-                                                                                                                            <th data-toggle="tooltip" title="{{$programMappingScaleLevel->title}}: {{$programMappingScaleLevel->description}}">
+                                                                                                                            <th data-bs-toggle="tooltip" title="{{$programMappingScaleLevel->title}}: {{$programMappingScaleLevel->description}}">
                                                                                                                                 {{$programMappingScaleLevel->abbreviation}}
                                                                                                                             </th>
                                                                                                                         @endforeach
-                                                                                                                        <th data-toggle="tooltip" title="Not Aligned">N/A</th>
+                                                                                                                        <th data-bs-toggle="tooltip" title="Not Aligned">N/A</th>
                                                                                                                     </tr>
                                                                                                                 </thead>
 
@@ -315,7 +313,7 @@
                                                                                                                 </tbody>
                                                                                                             </table>
 
-                                                                                                            <!-- <button type="submit" class="btn btn-success my-3 btn-sm float-right col-2" >Save</button> -->
+                                                                                                            <!-- <button type="submit" class="btn btn-success my-3 btn-sm float-end col-2" >Save</button> -->
 
                                                                                                 </div>
                                                                                             </div>
@@ -328,12 +326,12 @@
                                                                 </div>
                                                             @else
                                                                 <div class="alert alert-warning text-center">
-                                                                    <i class="bi bi-exclamation-circle-fill pr-2 fs-5"></i>Program learning outcomes have not been set for this program
+                                                                    <i class="bi bi-exclamation-circle-fill pe-2 fs-5"></i>Program learning outcomes have not been set for this program
                                                                 </div>
                                                             @endif
                                                         @else
                                                             <div class="alert alert-warning text-center">
-                                                                <i class="bi bi-exclamation-circle-fill pr-2 fs-5"></i>A mapping scale has not been set for this program.
+                                                                <i class="bi bi-exclamation-circle-fill pe-2 fs-5"></i>A mapping scale has not been set for this program.
                                                             </div>
                                                         @endif
                                                     </div>
@@ -343,7 +341,7 @@
                                         <!-- End of Program Accordion -->
                                     @endforeach
                                 </div>
-                                <button type="submit" class="btn btn-success my-3 btn-sm float-right col-2" >Save</button>
+                                <button type="submit" class="btn btn-success my-3 btn-sm float-end col-2" >Save</button>
                             @endif
                             </form>
                         </div>
@@ -354,10 +352,10 @@
                 <div class="card-footer">
                     <div class="card-body mb-4">
                         <a href="{{route('courseWizard.step4', $course->course_id)}}">
-                            <button class="btn btn-sm btn-primary col-3 float-left"><i class="bi bi-arrow-left mr-2"></i> Course Alignment</button>
+                            <button class="btn btn-sm btn-primary col-3 float-start"><i class="bi bi-arrow-left me-2"></i> Course Alignment</button>
                         </a>
                         <a href="{{route('courseWizard.step6', $course->course_id)}}">
-                            <button class="btn btn-sm btn-primary col-3 float-right">Standards and Strategic Priorities<i class="bi bi-arrow-right ml-2"></i></button>
+                            <button class="btn btn-sm btn-primary col-3 float-end">Standards and Strategic Priorities<i class="bi bi-arrow-right ms-2"></i></button>
                         </a>
                     </div>
                 </div>
@@ -369,7 +367,7 @@
 
 <script>
     $(document).ready(function () {
-        $('[data-toggle="tooltip"]').tooltip();
+        $('[data-bs-toggle="tooltip"]').tooltip();
 
         $("form").submit(function () {
         // prevent duplicate form submissions

@@ -29,9 +29,9 @@
                         <div id="assign-role-card-body">
                             <div class="form-text text-muted mb-4">
                                     <p>Enter the email address and the role you would like to assign to a person.</p>
-                                        <li class="mb-1 mr-4 ml-4"><strong>Admin</strong> can view, edit and manage collaborators and content for all courses and programs.</li>
-                                        <li class="mb-1 mr-4 ml-4"><b>Department Head</b> can view, edit and manage collaborators and content for all courses and program within assigned department.</li>
-                                        <li class="mb-3 mr-4 ml-4"><b>Program Director</b> can view, edit and manage collaborators and content for assigned program and its associated courses.</li>
+                                        <li class="mb-1 me-4 ms-4"><strong>Admin</strong> can view, edit and manage collaborators and content for all courses and programs.</li>
+                                        <li class="mb-1 me-4 ms-4"><b>Department Head</b> can view, edit and manage collaborators and content for all courses and program within assigned department.</li>
+                                        <li class="mb-3 me-4 ms-4"><b>Program Director</b> can view, edit and manage collaborators and content for assigned program and its associated courses.</li>
                             </div>
                             <form action="{{ route('admin.assignRole') }}" method="POST">
                                 @csrf
@@ -130,7 +130,7 @@
                             <form class="form-inline my-2 my-lg-0 w-100" method="GET" action="{{ route('admin.getUserRoles') }}">
                                 @csrf
                                 <div class="d-flex w-100">
-                                    <input name='userEmail' class="form-control flex-grow-1 mr-2" placeholder="john.doe@ubc.ca" aria-label="email" required>
+                                    <input name='userEmail' class="form-control flex-grow-1 me-2" placeholder="john.doe@ubc.ca" aria-label="email" required>
                                     <div class="invalid-tooltip">
                                         Please provide a valid email.
                                     </div>
@@ -284,7 +284,7 @@
                                             <div class="modal-header">
                                                 <h5 class="modal-title" id="exampleModalLabel">Remove Role
                                                     Confirmation</h5>
-{{--                                                <button type="button" class="close" data-dismiss="modal"--}}
+{{--                                                <button type="button" class="btn-close" data-bs-dismiss="modal"--}}
 {{--                                                        aria-label="Close">--}}
 {{--                                                    <span aria-hidden="true">&times;</span>--}}
 {{--                                                </button>--}}

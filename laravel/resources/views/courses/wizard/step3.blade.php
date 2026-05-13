@@ -15,7 +15,7 @@
                                 <i class="bi bi-question-circle" style="color:#002145;"></i>
                             </button>
                         </div>
-                        <div class="text-left">
+                        <div class="text-start">
                             @include('layouts.guide')
                         </div>
                     </h3>
@@ -26,7 +26,7 @@
                     <div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-centered" role="document">
                         <div class="modal-content">
                             <div class="modal-header">
-                                <h5 class="modal-title" id="addLearningActivitiesModalLabel"><i class="bi bi-pencil-fill btn-icon mr-2"></i> Teaching and Learning Activities</h5>
+                                <h5 class="modal-title" id="addLearningActivitiesModalLabel"><i class="bi bi-pencil-fill btn-icon me-2"></i> Teaching and Learning Activities</h5>
                             </div>
 
                             <div class="modal-body">
@@ -119,7 +119,7 @@
 
                 <div class="card-body">
                     <div class="alert alert-primary d-flex align-items-center" role="alert" style="text-align:justify">
-                        <i class="bi bi-info-circle-fill pr-2 fs-3"></i>                        
+                        <i class="bi bi-info-circle-fill pe-2 fs-3"></i>                        
                         <div class="col mb-6">
                             Input all teaching and learning activities or <a class="alert-link" target="_blank" rel="noopener noreferrer" href="https://teaching.cornell.edu/teaching-resources/teaching-cornell-guide/instructional-strategies"><i class="bi bi-box-arrow-up-right"></i> instructional strategies</a> of the course individually. Consider approaches to enhance inclusion in your classroom:
                             <ul>
@@ -138,8 +138,8 @@
                     </div>
                     <div class="row">
                         <div class="col mb-1">
-                            <button type="button" class="btn btn-primary col-3 float-right bg-primary text-white fs-5"  data-bs-toggle="modal" data-bs-target="#addLearningActivitiesModal">
-                                <i class="bi bi-plus mr-2"></i>Learning Activities
+                            <button type="button" class="btn btn-primary col-3 float-end bg-primary text-white fs-5"  data-bs-toggle="modal" data-bs-target="#addLearningActivitiesModal">
+                                <i class="bi bi-plus me-2"></i>Learning Activities
                             </button>
                         </div>
                     </div>
@@ -180,7 +180,7 @@
                                 @endif
                             </table>
                             <div class="mt-4">
-                                <button type="submit" class="btn btn-success float-right col-2">Save Order</button>
+                                <button type="submit" class="btn btn-success float-end col-2">Save Order</button>
                             </div>
                         </form>
                     </div>
@@ -190,10 +190,10 @@
                 <div class="card-footer">
                     <div class="card-body mb-4">
                         <a href="{{route('courseWizard.step2', $course->course_id)}}">
-                            <button class="btn btn-sm btn-primary col-3 float-left"><i class="bi bi-arrow-left mr-2"></i> Student Assessment Methods</button>
+                            <button class="btn btn-sm btn-primary col-3 float-start"><i class="bi bi-arrow-left me-2"></i> Student Assessment Methods</button>
                         </a>
                         <a href="{{route('courseWizard.step4', $course->course_id)}}">
-                            <button class="btn btn-sm btn-primary col-3 float-right">Course Alignment <i class="bi bi-arrow-right ml-2"></i></button>
+                            <button class="btn btn-sm btn-primary col-3 float-end">Course Alignment <i class="bi bi-arrow-right ms-2"></i></button>
                         </a>
                     </div>
                 </div>            

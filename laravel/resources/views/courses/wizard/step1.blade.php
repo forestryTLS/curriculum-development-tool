@@ -13,24 +13,24 @@
                                 <i class="bi bi-question-circle" style="color:#002145;"></i>
                             </button>
                         </div>
-                        <div class="text-left">
+                        <div class="text-start">
                             @include('layouts.guide')
                         </div>
                     </h3>
                     
                     <!-- Add CLO Modal: Bloom’s Taxonomy of Learning Modal -->
-                    <div class="modal fade" data-backdrop="static" data-keyboard="false" id="addLearningOutcomeModal" tabindex="-1" role="dialog"
+                    <div class="modal fade" data-bs-backdrop="static" data-bs-keyboard="false" id="addLearningOutcomeModal" tabindex="-1" role="dialog"
                         aria-labelledby="addLearningOutcomeModalLabel" aria-hidden="true">
                         <div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-centered" role="document">
                             <div class="modal-content">
                                 <div class="modal-header">
-                                    <h5 class="modal-title" id="addLearningOutcomeModalLabel"><i class="bi bi-pencil-fill btn-icon mr-2"></i> Course Learning Outcomes or Competencies
+                                    <h5 class="modal-title" id="addLearningOutcomeModalLabel"><i class="bi bi-pencil-fill btn-icon me-2"></i> Course Learning Outcomes or Competencies
                                     </h5>
                                 </div>
 
-                                <div class="modal-body text-left">
+                                <div class="modal-body text-start">
                                         <form id="addCLOForm" class="needs-validation" novalidate>
-                                            <div class="form-group row align-items-end">
+                                            <div class="mb-3 row align-items-end">
                                                 <div class="col-6">
                                                     <label for="l_outcome" class="form-label fs-6">
                                                         <span class="requiredField">* </span>
@@ -66,8 +66,8 @@
                                             <table id="addCLOTbl" class="table table-light table-borderless">
                                                 <thead>
                                                     <tr class="table-primary">
-                                                        <th class="text-left">Course Learning Outcomes or Competencies</th>
-                                                        <th class="text-left">Short Phrase</th>
+                                                        <th class="text-start">Course Learning Outcomes or Competencies</th>
+                                                        <th class="text-start">Short Phrase</th>
                                                         <th class="text-center">Actions</th>
                                                     </tr>
                                                 </thead>
@@ -96,7 +96,7 @@
                                     @csrf
                                         <div class="modal-footer">
                                             <input type="hidden" name="course_id" value="{{$course->course_id}}" form="saveCLOChanges">
-                                            <button id="cancel" type="button" class="btn btn-secondary col-3" data-dismiss="modal">Cancel</button>
+                                            <button id="cancel" type="button" class="btn btn-secondary col-3" data-bs-dismiss="modal">Cancel</button>
                                             <button type="submit" class="btn btn-success col-3">Save Changes</button>
                                         </div>
                                     </form>
@@ -110,7 +110,7 @@
 
                 <div class="card-body">
                     <div class="alert alert-primary d-flex align-items-center" role="alert" style="text-align:justify">
-                        <i class="bi bi-info-circle-fill pr-2 fs-3"></i>                        
+                        <i class="bi bi-info-circle-fill pe-2 fs-3"></i>                        
                         <div>
                             <a href="https://ctl.ok.ubc.ca/teaching-development/classroom-practices/learning-outcomes/" target="_blank" rel="noopener noreferrer" class="alert-link">
                                 <i class="bi bi-box-arrow-up-right"></i> Course Learning Outcomes (CLOs)
@@ -136,12 +136,12 @@
                             <div class="input-group">
                                 <input type="hidden" name="course_id" value="{{$course->course_id}}">
                                 <input type="file" name="upload" class="form-control" aria-label="Upload" required accept=".xlsx, .csv">
-                                <button class="btn bg-primary text-white" type="submit" ><b>Import CLOs</b><i class="bi bi-box-arrow-in-down-left pl-2"></i></button>
+                                <button class="btn bg-primary text-white" type="submit" ><b>Import CLOs</b><i class="bi bi-box-arrow-in-down-left ps-2"></i></button>
                             </div>
                         </form>
-                        <div class="col-6 text-right">
-                            <button type="button" class="btn btn-primary btn-lg col-4 fs-5 bg-primary text-white"  data-toggle="modal" data-target="#addLearningOutcomeModal">
-                                <b ><i class="bi bi-plus mr-2"></i>CLO</b>
+                        <div class="col-6 text-end">
+                            <button type="button" class="btn btn-primary btn-lg col-4 fs-5 bg-primary text-white"  data-bs-toggle="modal" data-bs-target="#addLearningOutcomeModal">
+                                <b ><i class="bi bi-plus me-2"></i>CLO</b>
                             </button>
                         </div>
                     </div>
@@ -169,11 +169,11 @@
                                                 {{$l_outcome->l_outcome}}
                                             </td>
                                             <td class="text-center align-middle">
-                                                <button type="button" style="width:60px;" class="btn btn-secondary btn-sm m-1" data-toggle="modal" data-target="#addLearningOutcomeModal">
+                                                <button type="button" style="width:60px;" class="btn btn-secondary btn-sm m-1" data-bs-toggle="modal" data-bs-target="#addLearningOutcomeModal">
                                                     Edit
                                                 </button>
                                                 <!-- <button style="width:60px;" type="button" class="btn btn-danger btn-sm btn btn-danger btn-sm m-1"
-                                                data-toggle="modal" data-target="#CLOdeleteConfirmation{{$l_outcome->l_outcome_id}}">
+                                                data-bs-toggle="modal" data-bs-target="#CLOdeleteConfirmation{{$l_outcome->l_outcome_id}}">
                                                     Delete
                                                 </button> -->
                                             </td>
@@ -183,7 +183,7 @@
                                 </table>
 
                                 <div class="mt-4">
-                                    <button type="submit" class="btn btn-success float-right col-2">Save Order</button>
+                                    <button type="submit" class="btn btn-success float-end col-2">Save Order</button>
                                 </div>
                             </form>
 
@@ -193,19 +193,17 @@
                                     <div class="modal-content">
                                         <div class="modal-header">
                                             <h5 class="modal-title" id="CLOdeleteConfirmation">Delete Confirmation</h5>
-                                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                                <span aria-hidden="true">&times;</span>
-                                            </button>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                         </div>
-                                        <div class="modal-body text-left">
+                                        <div class="modal-body text-start">
                                         Are you sure you want to delete {{$l_outcome->l_outcome}}
                                         </div>
-                                        <form class="float-right ml-2" action="{{route('lo.destroy', $l_outcome->l_outcome_id)}}" method="POST">
+                                        <form class="float-end ms-2" action="{{route('lo.destroy', $l_outcome->l_outcome_id)}}" method="POST">
                                             @csrf
                                             {{method_field('DELETE')}}
                                             <input type="hidden" name="course_id" value="{{$course->course_id}}">
                                             <div class="modal-footer">
-                                                <button style="width:60px" type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Cancel</button>
+                                                <button style="width:60px" type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
                                                 <button style="width:60px;" type="submit" class="btn btn-danger btn-sm ">Delete</button>
                                             </div>
                                         </form>
@@ -221,11 +219,11 @@
                 <div class="card-footer">
                     <div class="card-body mb-4">
                         <a href="{{route('courseWizard.step8', $course->course_id)}}">
-                            <button class="btn btn-sm btn-primary col-3 float-left"><i class="bi bi-arrow-left mr-2"></i> Course Description</button>
+                            <button class="btn btn-sm btn-primary col-3 float-start"><i class="bi bi-arrow-left me-2"></i> Course Description</button>
                         </a>
 
                         <a href="{{route('courseWizard.step2', $course->course_id)}}">
-                            <button class="btn btn-sm btn-primary col-3 float-right">Student Assessment Methods <i class="bi bi-arrow-right mr-2"></i></button>
+                            <button class="btn btn-sm btn-primary col-3 float-end">Student Assessment Methods <i class="bi bi-arrow-right me-2"></i></button>
                         </a>
                     </div>
                 </div>            

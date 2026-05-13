@@ -43,7 +43,7 @@
     @push('before_scripts')
     <div class="col-md-12 well repeatable-element row m-1 p-2" data-repeatable-identifier="{{ $field['name'] }}">
       @if (isset($field['fields']) && is_array($field['fields']) && count($field['fields']))
-        <button type="button" class="close delete-element"><span aria-hidden="true">×</span></button>
+        <button type="button" class="btn-close delete-element"></button>
         @foreach($field['fields'] as $subfield)
           @php
               $subfield = $crud->makeSureFieldHasNecessaryAttributes($subfield);
@@ -62,7 +62,7 @@
   </div>
 
 
-  <button type="button" class="btn btn-outline-primary btn-sm ml-1 add-repeatable-element-button">+ {{ $field['new_item_label'] ?? trans('backpack::crud.new_item') }}</button>
+  <button type="button" class="btn btn-outline-primary btn-sm ms-1 add-repeatable-element-button">+ {{ $field['new_item_label'] ?? trans('backpack::crud.new_item') }}</button>
 
 @include('crud::fields.inc.wrapper_end')
 
