@@ -40,9 +40,12 @@ $h6-font-size: $font-size-base;
 $lead-font-size: 1.125rem;
 $lead-font-weight: 300;
 
-// Links
+// Links (BS5 underlines links by default; the legacy build had no underline
+// at rest and underlined only on hover).
 $link-color: #0055b7;
 $link-hover-color: #2f5d7c;
+$link-decoration: none;
+$link-hover-decoration: underline;
 
 // Colors
 $blue: #40B4E5;
@@ -58,8 +61,14 @@ $cyan: #6EC4E8;
 
 // Theme color overrides (UBC branding). Matches the colors that the old
 // Mix build baked into public/css/app.css before the Vite migration.
+// Note: $secondary is intentionally NOT overridden here even though the
+// legacy CSS had `:root { --secondary: #fff }`. In BS4 the runtime CSS
+// variable only affected `.bg-secondary` (which used `var(--secondary)`)
+// while `.btn-secondary` kept its compile-time gray. BS5 generates both
+// from the same Sass variable, so overriding at this layer would also
+// turn `.btn-secondary` white. The white `.bg-secondary` is recreated via
+// a targeted rule in app.scss instead.
 $primary: #002145;
-$secondary: #fff;
 $success: $green;
 $info: $cyan;
 $warning: $yellow;

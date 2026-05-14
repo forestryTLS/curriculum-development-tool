@@ -24,6 +24,16 @@ h1,
     outline: none;
 }
 
+// The legacy build had `:root { --secondary: #fff }` and `.bg-secondary`
+// used `var(--secondary)`, so the utility rendered white even though
+// `.btn-secondary` kept its compile-time gray. BS5 generates both from
+// the same Sass variable, so we keep $secondary at the BS5 default and
+// override `.bg-secondary` here. Use !important to match BS5's own
+// utility specificity.
+.bg-secondary {
+    background-color: #fff !important;
+}
+
 // App-specific rules carried over verbatim from the legacy
 // public/css/app.css. These were not in any prior SCSS source file we have
 // access to; they appear to have been edited directly into the Mix output
