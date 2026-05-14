@@ -55,7 +55,7 @@
         @foreach ($field['options']['categories'] as $catname => $category)
         <div class="col-sm-12 category"><h5 style="margin:5px 0 0 0;">{{ $catname }}</h5>
             <div class="bg-light">
-                <label class="font-weight-normal">
+                <label class="fw-normal">
                     <input type="checkbox" name="select_all"> Select all
                 </label>
             </div>
@@ -77,7 +77,7 @@
                 <div class="col-sm-3">
                     <div class="checkbox" style="padding:0 5px;">
                         <input type="checkbox" value="{{ $pKey }}"><br>
-                        <label class="font-weight-normal">{!! $disp !!}</label>      
+                        <label class="fw-normal">{!! $disp !!}</label>      
                     </div>
                 </div>
             @endforeach

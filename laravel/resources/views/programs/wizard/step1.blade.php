@@ -99,7 +99,7 @@
                             </label>
                             <input type="text" id="ploShortphrase" class="form-control mb-1" name="title" autofocus placeholder="E.g. Experimental Design..." maxlength="50" style="resize:none">
                             <div class="form-floating">
-                                <select class="form-select custom-select" style="font-size:12px;" name="category" id="ploCategory">
+                                <select class="form-select form-select" style="font-size:12px;" name="category" id="ploCategory">
                                     <option value="" selected>None</option>
                                     @foreach($ploCategories as $c)
                                         <option value="{{$c->plo_category_id}}">{{$c->plo_category}}</option>

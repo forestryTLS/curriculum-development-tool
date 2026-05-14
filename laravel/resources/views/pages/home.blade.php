@@ -477,7 +477,7 @@
                                         @include('courses.courseCollabs')
 
                                         <!-- Delete Confirmation Modal -->
-                                        <div class="modal fade show" id="deleteCourseConfirmation{{$course->course_id}}" tabindex="-1" role="dialog" aria-labelledby="deleteCourseConfirmation{{$course->course_id}}" aria-hidden="true">
+                                        <div class="modal fade" id="deleteCourseConfirmation{{$course->course_id}}" tabindex="-1" role="dialog" aria-labelledby="deleteCourseConfirmation{{$course->course_id}}" aria-hidden="true">
                                             <div class="modal-dialog" role="document">
                                                 <div class="modal-content">
                                                     <div class="modal-header">
@@ -1315,7 +1315,7 @@
                     <div class="mb-3 row">
                         <label for="campus" class="col-md-3 col-form-label text-md-end">Campus</label>
                         <div class="col-md-8">
-                            <select id="campus" class="custom-select" name="campus">
+                            <select id="campus" class="form-select" name="campus">
                                 <option disabled selected hidden>Open list of campuses</option>
                                 @foreach ($campuses as $campus)
                                     <option value="{{$campus->campus}}">{{$campus->campus}}</option>
@@ -1335,7 +1335,7 @@
                     <div class="mb-3 row">
                         <label for="faculty" class="col-md-3 col-form-label text-md-end">Faculty/School</label>
                         <div class="col-md-8">
-                            <select id="faculty" class="custom-select" name="faculty" disabled>
+                            <select id="faculty" class="form-select" name="faculty" disabled>
                                 <option disabled selected hidden>Open list of faculties/schools</option>
                             </select>
                             <input id='faculty-text' class="form-control faculty_text" name="faculty" type="text" placeholder="(Optional) Enter the faculty/school" disabled hidden></input>
@@ -1351,7 +1351,7 @@
                     <div class="mb-3 row">
                         <label for="department" class="col-md-3 col-form-label text-md-end">Department</label>
                         <div class="col-md-8">
-                            <select id="department" class="custom-select department_select" name="department" disabled>
+                            <select id="department" class="form-select department_select" name="department" disabled>
                                 <option disabled selected hidden>Open list of departments</option>
                             </select>
                             <input id='department-text' class="form-control" name="department" type="text" placeholder="(Optional) Enter the department" disabled hidden></input>
@@ -1527,7 +1527,7 @@
                         <div class="mb-3 row">
                             <label for="campus" class="col-md-3 col-form-label text-md-end">Campus</label>
                             <div class="col-md-8">
-                                <select id="campus-course" class="custom-select" name="campus">
+                                <select id="campus-course" class="form-select" name="campus">
                                     <option disabled selected hidden>Open list of campuses</option>
                                     @foreach ($campuses as $campus)
                                         <option value="{{$campus->campus}}">{{$campus->campus}}</option>
@@ -1547,7 +1547,7 @@
                         <div class="mb-3 row">
                             <label for="faculty" class="col-md-3 col-form-label text-md-end">Faculty/School</label>
                             <div class="col-md-8">
-                                <select id="faculty-course" class="custom-select" name="faculty" disabled>
+                                <select id="faculty-course" class="form-select" name="faculty" disabled>
                                     <option disabled selected hidden>Open list of faculties/schools</option>
                                 </select>
                                 <input id='faculty-text-course' class="form-control faculty_text" name="faculty" type="text" placeholder="(Optional) Enter the faculty/school" disabled hidden></input>
@@ -1563,7 +1563,7 @@
                         <div class="mb-3 row">
                             <label for="department" class="col-md-3 col-form-label text-md-end">Department</label>
                             <div class="col-md-8">
-                                <select id="department-course" class="custom-select department_select" name="department" disabled>
+                                <select id="department-course" class="form-select department_select" name="department" disabled>
                                     <option disabled selected hidden>Open list of departments</option>
                                 </select>
                                 <input id='department-text-course' class="form-control" name="department" type="text" placeholder="(Optional) Enter the department" disabled hidden></input>

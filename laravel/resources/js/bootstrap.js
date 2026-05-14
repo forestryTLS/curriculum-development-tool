@@ -1,28 +1,29 @@
 import * as Popper from '@popperjs/core';
-import $ from 'jquery';
 import * as bootstrap from 'bootstrap';
 
 window.Popper = Popper;
-window.$ = window.jQuery = $;
 window.bootstrap = bootstrap;
 
-// Bootstrap 5 dropped its jQuery plugin layer. Existing call sites use the
-// `$('#x').modal('show')` style, so map each component back onto $.fn via
-// the BS5 vanilla API. Calls like `.tooltip()` (no args) create an instance;
-// `.modal('show')` invokes the method on the cached instance.
-['Alert', 'Carousel', 'Collapse', 'Dropdown', 'Modal', 'Offcanvas',
- 'Popover', 'ScrollSpy', 'Tab', 'Toast', 'Tooltip'].forEach((name) => {
-    const Component = bootstrap[name];
-    if (!Component) return;
-    $.fn[name.toLowerCase()] = function (action, ...args) {
-        return this.each(function () {
-            const instance = Component.getOrCreateInstance(this);
-            if (typeof action === 'string' && typeof instance[action] === 'function') {
-                instance[action](...args);
-            }
-        });
-    };
-});
+// jQuery is loaded as a classic script in layouts/app.blade.php so inline
+// blade scripts can use $(...) during HTML parsing. Re-attach the legacy
+// $('#x').modal('show')-style API onto that same jQuery via the BS5 vanilla
+// API, since BS5 dropped its jQuery plugin layer.
+const $ = window.jQuery;
+if ($) {
+    ['Alert', 'Carousel', 'Collapse', 'Dropdown', 'Modal', 'Offcanvas',
+     'Popover', 'ScrollSpy', 'Tab', 'Toast', 'Tooltip'].forEach((name) => {
+        const Component = bootstrap[name];
+        if (!Component) return;
+        $.fn[name.toLowerCase()] = function (action, ...args) {
+            return this.each(function () {
+                const instance = Component.getOrCreateInstance(this);
+                if (typeof action === 'string' && typeof instance[action] === 'function') {
+                    instance[action](...args);
+                }
+            });
+        };
+    });
+}
 
 /**
  * We'll load the axios HTTP library which allows us to easily issue requests

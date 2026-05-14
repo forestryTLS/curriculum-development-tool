@@ -110,7 +110,7 @@
 
                                                             <!-- Mapping scale for this program -->
                                                             <p>Using the mapping scale provided, identify the alignment between each of your course learning outcomes (CLOs) and the program learning outcomes (PLOs).</p>
-                                                            <p class="form-text text-primary container font-weight-bold ">Note: Remember to click save once you are done.</p>
+                                                            <p class="form-text text-primary container fw-bold ">Note: Remember to click save once you are done.</p>
                                                             <div class="container row mb-2">
                                                                 <div class="col">
                                                                     <table class="table table-bordered table-sm">

@@ -67,7 +67,7 @@
                 ?>
                 <div class="col-sm-4">
                     <div class="checkbox">
-                      <label class="font-weight-normal">
+                      <label class="fw-normal">
                         <input type="checkbox" value="{{ $pKey }}"> {!! $disp !!}
                       </label>
                     </div>

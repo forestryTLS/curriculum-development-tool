@@ -52,7 +52,7 @@
                                 </div>
                                 <div id="campus-div" class="row m-2 position-relative" hidden>
                                     <div class="col-12">
-                                        <select id="campus" class="custom-select" name="campus">
+                                        <select id="campus" class="form-select" name="campus">
                                             <option disabled selected hidden>Open list of campuses</option>
                                             @foreach ($campuses as $campus)
                                                 <option value="{{$campus->campus}}">{{$campus->campus}}</option>
@@ -69,7 +69,7 @@
                                 </div>
                                 <div id="faculty-div" class="row m-2 position-relative" hidden>
                                     <div class="col-12">
-                                        <select id="faculty" class="custom-select" name="faculty" disabled>
+                                        <select id="faculty" class="form-select" name="faculty" disabled>
                                             <option disabled selected hidden>Open list of faculties/schools</option>
                                         </select>
                                         <input id='faculty-text' class="form-control faculty_text" name="faculty" type="text" placeholder="Enter the faculty/school" disabled hidden></input>
@@ -82,7 +82,7 @@
                                 </div>
                                 <div id="department-div" class="row m-2 position-relative" hidden>
                                     <div class="col-12">
-                                        <select id="department" class="custom-select department_select" name="department" disabled>
+                                        <select id="department" class="form-select department_select" name="department" disabled>
                                             <option disabled selected hidden>Open list of departments</option>
                                         </select>
                                         <input id='department-text' class="form-control" name="department" type="text" placeholder="Enter the department" disabled hidden></input>
@@ -95,7 +95,7 @@
                                 </div>
                                 <div id="program-div" class="row m-2 position-relative" hidden>
                                     <div class="col-12">
-                                        <select id="program" class="custom-select department_select" name="program">
+                                        <select id="program" class="form-select department_select" name="program">
                                             <option disabled selected hidden>Open list of programs</option>
                                             @foreach ($programs as $program)
                                                 <option value="{{$program->program}}">{{$program->program}}</option>

@@ -175,7 +175,7 @@
                                                 <label for="campus" class="col-md-3 col-form-label text-md-end">Campus</label>
 
                                                 <div class="col-md-8">
-                                                    <select id='campus' class="custom-select" name="campus">
+                                                    <select id='campus' class="form-select" name="campus">
 
                                                     </select>
                                                     <input id='campus-text' class="form-control" name="campus" type="text" placeholder="(Optional) Enter the Campus" disabled hidden></input>
@@ -190,7 +190,7 @@
                                             <div class="mb-3 row">
                                                 <label for="faculty" class="col-md-3 col-form-label text-md-end">Faculty/School</label>
                                                 <div class="col-md-8">
-                                                    <select id='faculty' class="custom-select" name="faculty">
+                                                    <select id='faculty' class="form-select" name="faculty">
                                                         <!-- @for($i =0; $i<count($faculties) ; $i++)
                                                             @if($faculties[$i]==$course->faculty)
                                                                 <option value="{{$course->faculty}}" selected>{{$course->faculty}}</option>
@@ -211,7 +211,7 @@
                                             <div class="mb-3 row">
                                                 <label for="department" class="col-md-3 col-form-label text-md-end">Department</label>
                                                 <div class="col-md-8">
-                                                    <select id='department' class="custom-select" name="department">
+                                                    <select id='department' class="form-select" name="department">
                                                     </select>
                                                     <input id='department-text' class="form-control" name="department" type="text" placeholder="(Optional) Enter the department" disabled hidden></input>
                                                     @error('department')
