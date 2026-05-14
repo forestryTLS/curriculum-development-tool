@@ -4,7 +4,9 @@ namespace Tests\Feature;
 
 use App\Models\AssessmentMethod;
 use App\Models\Course;
+use App\Models\CourseMaterial;
 use App\Models\CourseProgram;
+use App\Models\CourseTopic;
 use App\Models\LearningActivity;
 use App\Models\LearningOutcome;
 use App\Models\MappingScaleProgram;
@@ -281,6 +283,88 @@ class CourseTest extends TestCase
             'name' => 'Climate Change Lecture',
             'type' => 'video',
             'description' => 'Recommended lecture video',
+            'url' => null,
+            'is_required' => false,
+            'course_id' => $course->course_id,
+        ]);
+    }
+
+    public function test_update_course_topics(): void
+    {
+        $user = User::where('email', 'test-course@ubc.ca')->first();
+        $course = Course::where('course_title', 'Intro to Unit Testing')->orderBy('course_id', 'DESC')->first();
+        $courseTopic = CourseTopic::where('course_id', $course->course_id)->where('topic', 'Climate Change')->first();
+
+        $response = $this->actingAs($user)->post(route('courseTopics.store'), [
+            'current_topics' => [
+                $courseTopic->course_topic_id => 'Climate Change Adaptation',
+            ],
+            'new_topics' => [
+
+            ],
+            'course_id' => $course->course_id,
+        ]);
+
+        $this->assertDatabaseHas('course_topics', [
+            'course_topic_id' => $courseTopic->course_topic_id,
+            'topic' => 'Climate Change Adaptation',
+            'course_id' => $course->course_id,
+        ]);
+    }
+
+    public function test_update_course_materials(): void
+    {
+        $user = User::where('email', 'test-course@ubc.ca')->first();
+        $course = Course::where('course_title', 'Intro to Unit Testing')->orderBy('course_id', 'DESC')->first();
+        $courseMaterial = CourseMaterial::where('course_id', $course->course_id)->where('name', 'Forest Ecology')->first();
+
+        $response = $this->actingAs($user)->post(route('courseMaterials.store'), [
+            'current_material' => [
+                $courseMaterial->course_material_id => [
+                    'name' => 'Forest Ecology, 3rd ed.',
+                    'type' => 'textbook',
+                    'description' => 'Updated required textbook',
+                    'url' => 'https://example.com/forest-ecology-updated',
+                ],
+            ],
+            'new_material' => [
+
+            ],
+            'course_id' => $course->course_id,
+        ]);
+
+        $this->assertDatabaseHas('course_materials', [
+            'course_material_id' => $courseMaterial->course_material_id,
+            'name' => 'Forest Ecology, 3rd ed.',
+            'type' => 'textbook',
+            'description' => 'Updated required textbook',
+            'url' => 'https://example.com/forest-ecology-updated',
+            'is_required' => false,
+            'course_id' => $course->course_id,
+        ]);
+    }
+
+    public function test_create_course_material_without_optional_fields(): void
+    {
+        $user = User::where('email', 'test-course@ubc.ca')->first();
+        $course = Course::where('course_title', 'Intro to Unit Testing')->orderBy('course_id', 'DESC')->first();
+
+        $response = $this->actingAs($user)->post(route('courseMaterials.store'), [
+            'current_material' => [
+
+            ],
+            'new_material' => [
+                0 => [
+                    'name' => 'Course Website',
+                ],
+            ],
+            'course_id' => $course->course_id,
+        ]);
+
+        $this->assertDatabaseHas('course_materials', [
+            'name' => 'Course Website',
+            'type' => null,
+            'description' => null,
             'url' => null,
             'is_required' => false,
             'course_id' => $course->course_id,

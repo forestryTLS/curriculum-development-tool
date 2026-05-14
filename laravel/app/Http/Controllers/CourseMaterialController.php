@@ -69,8 +69,8 @@ class CourseMaterialController extends Controller
                     $materialData = $currentMaterial[$material->course_material_id];
 
                     $material->name = $materialData['name'];
-                    $material->type = $materialData['type'];
-                    $material->description = $materialData['description'];
+                    $material->type = $materialData['type'] ?? null;
+                    $material->description = $materialData['description'] ?? null;
                     $material->is_required = isset($materialData['is_required']);
                     $material->url = $materialData["url"] ?? null;
                     
@@ -93,8 +93,8 @@ class CourseMaterialController extends Controller
 
                     $newCourseMaterial = new CourseMaterial;
                     $newCourseMaterial->name = $newmat['name'];
-                    $newCourseMaterial->type = $newmat['type'];
-                    $newCourseMaterial->description = $newmat['description'];
+                    $newCourseMaterial->type = $newmat['type'] ?? null;
+                    $newCourseMaterial->description = $newmat['description'] ?? null;
                     $newCourseMaterial->is_required = isset($newmat['is_required']);
                     $newCourseMaterial->url = $newmat['url'] ?? null;
                     $newCourseMaterial->course_id = $courseId;
