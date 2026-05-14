@@ -1,6 +1,10 @@
 {
     "private": true,
     "scripts": {
+        "copy-vendor": "node -e \"const fs=require('fs');fs.mkdirSync('public/vendor',{recursive:true});fs.copyFileSync('node_modules/jquery/dist/jquery.min.js','public/vendor/jquery.min.js')\"",
+        "postinstall": "npm run copy-vendor",
+        "predev": "npm run copy-vendor",
+        "prebuild": "npm run copy-vendor",
         "dev": "vite",
         "build": "vite build"
     },
