@@ -4,7 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Invite;
 use App\Models\User;
-use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
 use Tests\TestCase;
 
 class UserTest extends TestCase
@@ -23,7 +23,6 @@ class UserTest extends TestCase
     */
     public function test_register_user(): void
     {
-
         $response = $this->post(route('register'), [
             'name' => 'Test Register',
             'email' => 'test.register@ubc.ca',
@@ -35,70 +34,71 @@ class UserTest extends TestCase
             'name' => 'Test Register',
             'email' => 'test.register@ubc.ca',
         ]);
-
     }
+
+    public function test_login_user(): void
+    {
+        $response = $this->post(route('login'), [
+            'email' => 'test.register@ubc.ca',
+            'password' => 'password',
+        ]);
+
+        $user = User::where('email', 'test.register@ubc.ca')->first();
+
+        $response->assertStatus(302);
+        $response->assertRedirect('home');
+        $this->assertAuthenticatedAs($user);
+    }
+
+    public function test_user_invite(): void
+    {
+        // InviteController has middleware(['auth', 'verified']) and its store()
+        // method requires user_id in the request body. The user created via the
+        // public register route does not have email_verified_at set, so mark
+        // them verified here before invoking the protected endpoint.
+        $user = User::where('email', 'test.register@ubc.ca')->first();
+        $user->email_verified_at = Carbon::now();
+        $user->save();
+
+        $response = $this->actingAs($user)->post(route('storeInvitation'), [
+            'email' => 'test.register-invite@ubc.ca',
+            'user_id' => $user->id,
+        ]);
+
+        $this->assertDatabaseHas('invites', [
+            'email' => 'test.register-invite@ubc.ca',
+        ]);
+    }
+
     /*
-        public function test_recover_password()
-        {
-            $response=$this->post(route('password.email'), [
-                "email" => "test.register@ubc.ca"
-            ]);
-        }
-
-        public function test_login_user(){
-            $response=$this->post(route('login'), [
-                "email" => "test.register@ubc.ca",
-                "password" => "password",
-            ]);
-
-            $user= User::where('email', 'test.register@ubc.ca')->first();
-
-            $response->assertStatus(302);
-            $response->assertRedirect('home');
-
-            if(Auth::id() == $user->id){
-                $this->assertTrue(true);
-            }else $this->assertTrue(false);
-
-          //  User::where('email', 'test.register@ubc.ca')->delete();
-            //$this->followRedirects($response)->assertSee('.success-message');
-        }
-        public function test_user_invite()
-        {
-            $response=$this->post(route('storeInvitation'), [
-                "email" => "test.register-invite@ubc.ca"
-            ]);
-
-            $user= User::where('email', 'test.register@ubc.ca')->first();
-
-            $this->assertDatabaseHas('invites', [
-                'email' => 'test.register-invite@ubc.ca'
-            ]);
-
-        }
+    public function test_recover_password(): void
+    {
+        // No assertions yet; needs assertions about response status and
+        // the password_resets table before being useful.
+        $response = $this->post(route('password.email'), [
+            'email' => 'test.register@ubc.ca',
+        ]);
+    }
     */
+
     /*
     public function testVerifyEmailValidatesUser(): void
     {
-        // VerifyEmail extends Illuminate\Auth\Notifications\VerifyEmail in this example
+        // Broken: $notification->toMail() requires a Notification class;
+        // App\Models\Invite is an Eloquent model with no toMail() method.
         $notification = new Invite();
         $user = User::where('email', 'test.register@ubc.ca')->first();
 
-        // New user should not has verified their email yet
         $this->assertFalse($user->hasVerifiedEmail());
 
         $mail = $notification->toMail($user);
         $uri = $mail->actionUrl;
 
-        // Simulate clicking on the validation link
-        $this->actingAs($user)
-            ->get($uri);
+        $this->actingAs($user)->get($uri);
 
-        // User should have verified their email
         $this->assertTrue(User::find($user->id)->hasVerifiedEmail());
 
         User::where('email', 'test.register@ubc.ca')->delete();
     }
     */
-
 }

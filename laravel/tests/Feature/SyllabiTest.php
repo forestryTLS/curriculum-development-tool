@@ -164,33 +164,33 @@ class SyllabiTest extends TestCase
         ]);
     }
 
-    //commenting out unfinished tests
-    /*
-    public function test_syllabus_download()
+    public function test_syllabus_duplicate(): void
     {
-        $user = User::where('email', 'test-syllabi@ubc.ca')->first();
-        $syllabus = Syllabus::where('course_title', 'Intro to Greatness')->orderBy('id', 'DESC')->first();
-        $response = $this->actingAs($user)->get(route('syllabus.download', $syllabus->id, 'word'))->assertStatus(200);
-
-    }
-
-    public function test_syllabus_duplicate()
-    {
-        $user = User::where('email', 'test-syllabi@ubc.ca')->first();
+        $user2 = User::where('email', 'test-syllabi-collab@ubc.ca')->first();
         $syllabus = Syllabus::where('course_title', 'Intro to Greatness')->orderBy('id', 'DESC')->first();
 
-        $response = $this->actingAs($user)->post(route('syllabus.duplicate', $syllabus->id), [
-            '_method' => 'GET',
+        $response = $this->actingAs($user2)->get(route('syllabus.duplicate', [
+            'syllabusId' => $syllabus->id,
             'course_code' => 'CPSC',
             'course_num' => '111',
             'course_title' => 'Intro to Greatness - Copy',
-            // "program_id" => $program->program_id
-        ]);
+        ]));
 
         $this->assertDatabaseHas('syllabi', [
             'course_title' => 'Intro to Greatness - Copy',
         ]);
+    }
 
+    /*
+    public function test_syllabus_download(): void
+    {
+        // Skipped: the route() call passes 'word' as a third positional arg
+        // which is not how Laravel's route() helper accepts parameters.
+        // Also depends on PHPWord generating a valid document which requires
+        // a fully-populated syllabus. Needs a rewrite before being useful.
+        $user = User::where('email', 'test-syllabi@ubc.ca')->first();
+        $syllabus = Syllabus::where('course_title', 'Intro to Greatness')->orderBy('id', 'DESC')->first();
+        $response = $this->actingAs($user)->get(route('syllabus.download', $syllabus->id, 'word'))->assertStatus(200);
     }
     */
 
