@@ -1,7 +1,3 @@
-// Fonts (CSS @import must come before any other rules in the compiled
-// stylesheet; otherwise browsers silently drop the @import).
-@import url('https://fonts.googleapis.com/css?family=Open+Sans:wght@300;400;500;600;700');
-
 // Variables (must come before Bootstrap so its $primary !default etc.
 // pick up the overrides defined in _variables.scss).
 @import 'variables';
