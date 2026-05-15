@@ -181,18 +181,27 @@ class SyllabiTest extends TestCase
         ]);
     }
 
-    /*
     public function test_syllabus_download(): void
     {
-        // Skipped: the route() call passes 'word' as a third positional arg
-        // which is not how Laravel's route() helper accepts parameters.
-        // Also depends on PHPWord generating a valid document which requires
-        // a fully-populated syllabus. Needs a rewrite before being useful.
-        $user = User::where('email', 'test-syllabi@ubc.ca')->first();
+        // syllabus.download is POST /syllabi/{syllabusId}/{ext}. user2 is the
+        // current owner (test_syllabus_transfer) so the hasAccess middleware
+        // lets the request through.
+        $user2 = User::where('email', 'test-syllabi-collab@ubc.ca')->first();
         $syllabus = Syllabus::where('course_title', 'Intro to Greatness')->orderBy('id', 'DESC')->first();
-        $response = $this->actingAs($user)->get(route('syllabus.download', $syllabus->id, 'word'))->assertStatus(200);
+
+        $originalCwd = getcwd();
+        chdir(public_path());
+        try {
+            $response = $this->actingAs($user2)->post(route('syllabus.download', [
+                'syllabusId' => $syllabus->id,
+                'ext' => 'word',
+            ]));
+            $response->assertStatus(200);
+        } finally {
+            chdir($originalCwd);
+        }
     }
-    */
+
 
     public function test_syllabus_leave(): void
     {

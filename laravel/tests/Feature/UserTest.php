@@ -2,25 +2,23 @@
 
 namespace Tests\Feature;
 
-use App\Models\Invite;
 use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Auth\Notifications\ResetPassword;
+use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\URL;
 use Tests\TestCase;
 
 class UserTest extends TestCase
 {
-    /**
-     * A basic feature test example.
-     */
-
-    /*
-    public function test_example()
+    public function test_landing_page_renders(): void
     {
         $response = $this->get('/');
 
         $response->assertStatus(200);
+        $response->assertSee('Curriculum MAP');
     }
-    */
+
     public function test_register_user(): void
     {
         $response = $this->post(route('register'), [
@@ -70,35 +68,38 @@ class UserTest extends TestCase
         ]);
     }
 
-    /*
     public function test_recover_password(): void
     {
-        // No assertions yet; needs assertions about response status and
-        // the password_resets table before being useful.
-        $response = $this->post(route('password.email'), [
-            'email' => 'test.register@ubc.ca',
-        ]);
-    }
-    */
+        // Replaced real outbound notifications with a fake collector so the
+        // test does not depend on the mail driver and can assert what the
+        // controller dispatched.
+        Notification::fake();
 
-    /*
-    public function testVerifyEmailValidatesUser(): void
-    {
-        // Broken: $notification->toMail() requires a Notification class;
-        // App\Models\Invite is an Eloquent model with no toMail() method.
-        $notification = new Invite();
         $user = User::where('email', 'test.register@ubc.ca')->first();
 
-        $this->assertFalse($user->hasVerifiedEmail());
+        $this->post(route('password.email'), [
+            'email' => 'test.register@ubc.ca',
+        ]);
 
-        $mail = $notification->toMail($user);
-        $uri = $mail->actionUrl;
-
-        $this->actingAs($user)->get($uri);
-
-        $this->assertTrue(User::find($user->id)->hasVerifiedEmail());
-
-        User::where('email', 'test.register@ubc.ca')->delete();
+        Notification::assertSentTo($user, ResetPassword::class);
     }
-    */
+
+    public function test_verify_email_validates_user(): void
+    {
+        $user = User::where('email', 'test.register@ubc.ca')->first();
+        $user->email_verified_at = null;
+        $user->save();
+
+        $this->assertFalse($user->fresh()->hasVerifiedEmail());
+
+        $verificationUrl = URL::temporarySignedRoute(
+            'verification.verify',
+            Carbon::now()->addMinutes(60),
+            ['id' => $user->id, 'hash' => sha1($user->email)]
+        );
+
+        $this->actingAs($user)->get($verificationUrl);
+
+        $this->assertTrue($user->fresh()->hasVerifiedEmail());
+    }
 }
