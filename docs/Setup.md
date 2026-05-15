@@ -32,6 +32,19 @@ npm install
 cp .env.example .env
 ```
 
+The committed `.env.example` is the template every developer starts from. Its relevant database section is:
+
+```
+DB_CONNECTION=pgsql
+DB_HOST=127.0.0.1
+DB_PORT=5432
+DB_DATABASE=laravel
+DB_USERNAME=root
+DB_PASSWORD=
+```
+
+The instructions below assume these defaults. If you change any of them in `.env`, substitute your values into the commands accordingly.
+
 ### Application Key
 
 ```
@@ -48,7 +61,7 @@ Check whether you already have a PostgreSQL cluster set up and running:
 psql -U postgres -l
 ```
 
-If you see a table of databases (`postgres`, `template0`, `template1`), the cluster is initialized and running. Skip ahead to **Create the application database**.
+If you see a table of databases (`postgres`, `template0`, `template1`), the cluster is initialized and running. Skip ahead to **Create the `root` role**.
 
 If you see `psql: could not connect to server`, the cluster either has not been created or is not running. Pick a directory to hold the cluster data (substitute your own path), then:
 
@@ -61,25 +74,21 @@ To stop the server later, use `pg_ctl -D <path-to-data-directory> stop`.
 
 If you see `psql: command not found`, PostgreSQL is not installed; install it first.
 
-#### Create a `root` role (if your `.env` uses `DB_USERNAME=root`)
+#### Create the `root` role
 
-If your `.env` uses `postgres` as the user, you can skip this step.
-
-The `postgres` superuser is created during `initdb`, but `root` is not. If your `.env` is set to `DB_USERNAME=root` (the project default), create that role once:
+`initdb` creates the `postgres` superuser but not `root`. Since `.env.example` ships with `DB_USERNAME=root`, create that role once:
 
 ```
 psql -U postgres -h 127.0.0.1 -c "CREATE ROLE root LOGIN PASSWORD '';"
 ```
 
-Adjust the password to match `DB_PASSWORD` in your `.env`.
+The empty password matches `DB_PASSWORD=` in the template. // TODO Check this
 
 #### Create the application database
 
 ```
 psql -U postgres -h 127.0.0.1 -c "CREATE DATABASE laravel OWNER root;"
 ```
-
-Replace `laravel` and `root` with whatever you have in `DB_DATABASE` and `DB_USERNAME` in your `.env`.
 
 
 ### Storage Setup
@@ -134,23 +143,40 @@ Access the application at [http://localhost:8000](http://localhost:8000). If you
 
 ### Running Tests
 
-The project uses a separate `.env.testing` file and a dedicated test database so that running tests don't interfere with the development/production data.
+The project uses a separate `.env.testing` file and a dedicated test database so that running tests do not interfere with the development data.
+
+The committed `.env.testing.example` template is:
+
+```
+APP_NAME=Laravel
+APP_ENV=testing
+APP_KEY=
+APP_DEBUG=true
+APP_URL=http://127.0.0.1:8000
+
+DB_CONNECTION=pgsql
+DB_HOST=127.0.0.1
+DB_PORT=5432
+DB_DATABASE=laravel_test
+DB_USERNAME=root
+DB_PASSWORD=
+```
+
+The instructions below assume these defaults.
 
 **First-time setup**:
 
-1. Create a separate test database. Replacing `laravel_test` and `root` to match your .env.testing setup:
+1. Create the test database:
 
    ```
    psql -U postgres -h 127.0.0.1 -c "CREATE DATABASE laravel_test OWNER root;"
    ```
 
-2. Copy the test environment template and edit as needed:
+2. Copy the test environment template:
 
    ```
    cp .env.testing.example .env.testing
    ```
-
-   The committed template defaults to `DB_DATABASE=laravel_test` and `pgsql` on `127.0.0.1:5432`. Adjust if your local Postgres configuration differs.
 
 3. Generate a separate app key for the testing environment:
 
