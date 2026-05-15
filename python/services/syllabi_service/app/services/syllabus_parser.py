@@ -44,6 +44,8 @@ def get_course_from_text_file(filePath: str, originalFileName: str) -> dict:
             "description": "",
             "goals": [],
             "assessments": [],
+            "topics": [],
+            "materials": [],
     }
     
     doc_without_header = remove_header_and_footer(doc)
