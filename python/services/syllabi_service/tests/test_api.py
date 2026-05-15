@@ -77,3 +77,25 @@ def test_valid_file_create_course_from_syllabi():
                                    ['Test participation', 3], 
                                    ['Test Midterm', 40], 
                                    ['Test Individual final Exam', 30]]
+    assert data["topics"] == [
+        "topics 1",
+        "topic 2",
+        "topic 3",
+        "topic 4",
+        "topic 5",
+        "topic 6",
+        "topic 7",
+        "topic 8",
+        "topic 9",
+        "topic 10",
+        "topic 11",
+        "topic 12",
+        "topic 13",
+    ]
+    assert data["materials"] == [
+        {
+            "name": "Textbook 1",
+            "type": "textbook",
+            "description": "Testing. This id the test textbook for the test syllabus",
+        }
+    ]

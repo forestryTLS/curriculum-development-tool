@@ -5,6 +5,30 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).parent
 
+EXPECTED_TEST_TOPICS = [
+    "topics 1",
+    "topic 2",
+    "topic 3",
+    "topic 4",
+    "topic 5",
+    "topic 6",
+    "topic 7",
+    "topic 8",
+    "topic 9",
+    "topic 10",
+    "topic 11",
+    "topic 12",
+    "topic 13",
+]
+
+EXPECTED_TEST_MATERIALS = [
+    {
+        "name": "Textbook 1",
+        "type": "textbook",
+        "description": "Testing. This id the test textbook for the test syllabus",
+    }
+]
+
 def test_syllabi_word_template_with_tabular_assessments():
     file_path = BASE_DIR /"data"/"syllabi"/"TEST101_2025W1_Word_Tabular_Assessments.docx"
     file_name = "TEST101_2025W1_Word_Tabular_Assessments.docx"
@@ -28,7 +52,7 @@ def test_syllabi_word_template_with_tabular_assessments():
                                               ('Test Midterm', 40), 
                                               ('Test Individual final Exam', 30)] # Tests the clean_assessment_and_weights function to remove multiple "\n" in assessment names
     assert course_instance['topics'] == []
-    assert course_instance['materials'] == [] #fill these in later, work with pdfs for now
+    assert course_instance['materials'] == []
 
 def test_syllabi_word_template_with_assessments_with_brackets():
     file_path = BASE_DIR /"data"/"syllabi"/"TEST101_2025W1_Word_Assessments_with_brackets.docx"
@@ -53,7 +77,7 @@ def test_syllabi_word_template_with_assessments_with_brackets():
                                               ('Test Midterm', 40), 
                                               ('Test Individual final Exam', 30)]
     assert course_instance['topics'] == []
-    assert course_instance['materials'] == [] #fill these in later, work with pdfs for now
+    assert course_instance['materials'] == []
 
 
 
@@ -78,8 +102,8 @@ def test_syllabi_pdf_template_with_tabular_assessments():
                                               ('Test participation', 3), 
                                               ('Test Midterm', 40), 
                                               ('Test Individual final Exam', 30)]
-    assert course_instance['topics'] == [('topics 1'), ('topic 2'), ('topic 3'), ('topic 4'), ('topic 5'), ('topic 6'), ('topic 7'), ('topic 8'), ('topic 9'), ('topic 10'), ('topic 11'), ('topic 12'), ('topic 13')] #this is without module names, check if they should be added
-    assert course_instance['materials'] == [('Textbook 1'), ('Textbook 1: Testing. This id the test textbook for the test syllabus')] #might only need to include one of these entries
+    assert course_instance['topics'] == EXPECTED_TEST_TOPICS
+    assert course_instance['materials'] == EXPECTED_TEST_MATERIALS
 
 
 def test_syllabi_pdf_template_CLOs_without_bullets():
@@ -103,8 +127,8 @@ def test_syllabi_pdf_template_CLOs_without_bullets():
                                               ('Test participation', 3), 
                                               ('Test Midterm', 40), 
                                               ('Test Individual final Exam', 30)]
-    assert course_instance['topics'] == [('topics 1'), ('topic 2'), ('topic 3'), ('topic 4'), ('topic 5'), ('topic 6'), ('topic 7'), ('topic 8'), ('topic 9'), ('topic 10'), ('topic 11'), ('topic 12'), ('topic 13')] #this is without module names, check if they should be added
-    assert course_instance['materials'] == [('Textbook 1'), ('Textbook 1: Testing. This id the test textbook for the test syllabus')] #might only need to include one of these entries
+    assert course_instance['topics'] == EXPECTED_TEST_TOPICS
+    assert course_instance['materials'] == EXPECTED_TEST_MATERIALS
     
 
 def test_syllabi_pdf_template_without_course_title_table():
@@ -128,8 +152,8 @@ def test_syllabi_pdf_template_without_course_title_table():
                                               ('Test participation', 3), 
                                               ('Test Midterm', 40), 
                                               ('Test Individual final Exam', 30)]
-    assert course_instance['topics'] == [('topics 1'), ('topic 2'), ('topic 3'), ('topic 4'), ('topic 5'), ('topic 6'), ('topic 7'), ('topic 8'), ('topic 9'), ('topic 10'), ('topic 11'), ('topic 12'), ('topic 13')] #this is without module names, check if they should be added
-    assert course_instance['materials'] == [('Textbook 1'), ('Textbook 1: Testing. This id the test textbook for the test syllabus')] #might only need to include one of these entries
+    assert course_instance['topics'] == EXPECTED_TEST_TOPICS
+    assert course_instance['materials'] == EXPECTED_TEST_MATERIALS
     
 def test_syllabi_file_name_without_course_code_number_and_term():
     file_path = BASE_DIR /"data"/"syllabi"/"FileNameWithoutCode&Term.pdf"
@@ -152,8 +176,8 @@ def test_syllabi_file_name_without_course_code_number_and_term():
                                               ('Test participation', 3), 
                                               ('Test Midterm', 40), 
                                               ('Test Individual final Exam', 30)]
-    assert course_instance['topics'] == [('topics 1'), ('topic 2'), ('topic 3'), ('topic 4'), ('topic 5'), ('topic 6'), ('topic 7'), ('topic 8'), ('topic 9'), ('topic 10'), ('topic 11'), ('topic 12'), ('topic 13')] #this is without module names, check if they should be added
-    assert course_instance['materials'] == [('Textbook 1'), ('Textbook 1: Testing. This id the test textbook for the test syllabus')] #might only need to include one of these entries
+    assert course_instance['topics'] == EXPECTED_TEST_TOPICS
+    assert course_instance['materials'] == EXPECTED_TEST_MATERIALS
 
 
 def test_syllabi_file_name_without_course_code_number_term_and_multiple_codes_in_file():
@@ -177,8 +201,8 @@ def test_syllabi_file_name_without_course_code_number_term_and_multiple_codes_in
                                               ('Test participation', 3), 
                                               ('Test Midterm', 40), 
                                               ('Test Individual final Exam', 30)]
-    assert course_instance['topics'] == [('topics 1'), ('topic 2'), ('topic 3'), ('topic 4'), ('topic 5'), ('topic 6'), ('topic 7'), ('topic 8'), ('topic 9'), ('topic 10'), ('topic 11'), ('topic 12'), ('topic 13')] #this is without module names, check if they should be added
-    assert course_instance['materials'] == [('Textbook 1'), ('Textbook 1: Testing. This id the test textbook for the test syllabus')] #might only need to include one of these entries
+    assert course_instance['topics'] == EXPECTED_TEST_TOPICS
+    assert course_instance['materials'] == EXPECTED_TEST_MATERIALS
     
     
 def test_syllabi_different_layout():
@@ -202,8 +226,8 @@ def test_syllabi_different_layout():
                                               ('Test participation', 3), 
                                               ('Test Midterm', 40), 
                                               ('Test Individual final Exam', 30)]
-    assert course_instance['topics'] == [('topics 1'), ('topic 2'), ('topic 3'), ('topic 4'), ('topic 5'), ('topic 6'), ('topic 7'), ('topic 8'), ('topic 9'), ('topic 10'), ('topic 11'), ('topic 12'), ('topic 13')] #this is without module names, check if they should be added
-    assert course_instance['materials'] == [] #no material mentioned
+    assert course_instance['topics'] == EXPECTED_TEST_TOPICS
+    assert course_instance['materials'] == []
     
     
 def test_syllabi_different_layout_assessments_percentage_seperated():
@@ -227,8 +251,8 @@ def test_syllabi_different_layout_assessments_percentage_seperated():
                                               ('test participation', 3), 
                                               ('test midterm', 40), 
                                               ('test individual final exam', 30)]
-    assert course_instance['topics'] == [('topics 1'), ('topic 2'), ('topic 3'), ('topic 4'), ('topic 5'), ('topic 6'), ('topic 7'), ('topic 8'), ('topic 9'), ('topic 10'), ('topic 11'), ('topic 12'), ('topic 13')] #this is without module names, check if they should be added
-    assert course_instance['materials'] == [] #no material incldued in syl
+    assert course_instance['topics'] == EXPECTED_TEST_TOPICS
+    assert course_instance['materials'] == []
     
 
 def test_syllabi_description_with_additional_section():
@@ -252,8 +276,8 @@ def test_syllabi_description_with_additional_section():
                                               ('Test participation', 3), 
                                               ('Test Midterm', 40), 
                                               ('Test Individual final Exam', 30)]
-    assert course_instance['topics'] == [('topics 1'), ('topic 2'), ('topic 3'), ('topic 4'), ('topic 5'), ('topic 6'), ('topic 7'), ('topic 8'), ('topic 9'), ('topic 10'), ('topic 11'), ('topic 12'), ('topic 13')] #this is without module names, check if they should be added
-    assert course_instance['materials'] == [('Textbook 1'), ('Textbook 1: Testing. This id the test textbook for the test syllabus')] #might only need to include one of these entries
+    assert course_instance['topics'] == EXPECTED_TEST_TOPICS
+    assert course_instance['materials'] == EXPECTED_TEST_MATERIALS
     
 
 
@@ -278,7 +302,6 @@ def test_syllabi_CLOs_with_prefixed():
                                               ('Test participation', 3), 
                                               ('Test Midterm', 40), 
                                               ('Test Individual final Exam', 30)]
-    assert course_instance['topics'] == [('topics 1'), ('topic 2'), ('topic 3'), ('topic 4'), ('topic 5'), ('topic 6'), ('topic 7'), ('topic 8'), ('topic 9'), ('topic 10'), ('topic 11'), ('topic 12'), ('topic 13')] #this is without module names, check if they should be added
-    assert course_instance['materials'] == [('Textbook 1'), ('Textbook 1: Testing. This id the test textbook for the test syllabus')] #might only need to include one of these entries
+    assert course_instance['topics'] == EXPECTED_TEST_TOPICS
+    assert course_instance['materials'] == EXPECTED_TEST_MATERIALS
     
-
