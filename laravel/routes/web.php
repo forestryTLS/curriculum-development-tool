@@ -253,6 +253,9 @@ Route::get('/courseWizard/{course}/step7', [CourseWizardController::class, 'step
 Route::get('/courseWizard/{course}/step8', [CourseWizardController::class, 'step8'])->name('courseWizard.step8');
 Route::post('courseWizard/{courseId}/{programId}/manualMap', [CourseProgramController::class, 'updateManualMapStatus']);
 Route::post('courseWizard/{courseId}/{programId}/aiSuggestion', [CourseProgramController::class, 'updateAiSuggestionStatus']);
+Route::post('courseWizard/{courseId}/{programId}/generate-ai-suggestions', [CourseProgramController::class, 'generateAiSuggestions']);
+Route::post('courseWizard/{courseId}/{programId}/check-ai-results', [CourseProgramController::class, 'checkAiResults']);
+Route::post('courseWizard/{courseId}/{programId}/check-in-flight', [CourseProgramController::class, 'checkInFlight']);
 
 Route::post('/courseDescription/{course}/store', [\App\Http\Controllers\CourseDescriptionController::class, 'store'])->name('courseDescription.store');
 

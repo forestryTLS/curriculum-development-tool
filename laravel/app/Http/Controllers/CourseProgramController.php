@@ -9,6 +9,7 @@ use App\Models\CourseProgram;
 use App\Models\CourseUser;
 use App\Models\Department;
 use App\Models\Faculty;
+use App\Models\OutcomeMapAiSuggestion;
 use App\Models\Program;
 use App\Models\Role;
 use App\Models\User;
@@ -16,6 +17,9 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class CourseProgramController extends Controller
 {
@@ -183,5 +187,265 @@ class CourseProgramController extends Controller
         // Mark mapping as hidden
         $courseProgram->ai_suggestion_status = !$courseProgram->ai_suggestion_status;
         $courseProgram->save();
+    }
+
+    public function generateAiSuggestions(Request $request, $courseId, $programId)
+    {
+        $USE_MOCK_DATA = false;
+
+        if ($USE_MOCK_DATA) {
+            Log::info("Generating AI suggestions (MOCK MODE) for course_id=$courseId, program_id=$programId");
+
+            return response()->json([
+                'status' => 'mock',
+                'message' => 'Mock AI suggestions generated successfully',
+                'request_id' => 'mock_request_' . uniqid(),
+                'course_id' => $courseId,
+                'program_id' => $programId,
+            ]);
+        }
+
+        try {
+            $course = Course::findOrFail($courseId);
+            $program = Program::findOrFail($programId);
+
+            $clos = $course->learningOutcomes()->get();
+            $plos = $program->programLearningOutcomes()->get();
+            $scales = $program->mappingScaleLevels()->get();
+
+            $payload = [
+                'course_id' => $courseId,
+                'program_id' => $programId,
+                'course_learning_outcomes' => $clos->map(function ($clo) {
+                    return [
+                        'l_outcome_id' => $clo->l_outcome_id,
+                        'l_outcome' => $clo->l_outcome,
+                    ];
+                })->toArray(),
+                'program_learning_outcomes' => $plos->map(function ($plo) {
+                    return [
+                        'pl_outcome_id' => $plo->pl_outcome_id,
+                        'pl_outcome' => $plo->pl_outcome,
+                    ];
+                })->toArray(),
+                'mapping_scales' => $scales->map(function ($scale) {
+                    return [
+                        'map_scale_id' => $scale->map_scale_id,
+                        'title' => $scale->title,
+                        'abbreviation' => $scale->abbreviation,
+                        'description' => $scale->description,
+                    ];
+                })->toArray(),
+            ];
+
+            $loMappingServiceUrl = config('services.lo_mapping.base_url');
+            Log::info("Calling lo_mapping_service at: $loMappingServiceUrl/map-program-outcomes");
+
+            $response = Http::post($loMappingServiceUrl . '/map-program-outcomes', $payload);
+
+            if ($response->failed()) {
+                Log::error('lo_mapping_service returned an error: ' . $response->body());
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Failed to generate AI suggestions',
+                ], 500);
+            }
+
+            $data = $response->json();
+            Log::info('AI suggestion request submitted successfully: ' . json_encode($data));
+
+            return response()->json([
+                'status' => 'success',
+                'request_id' => $data['startedForRecordId'] ?? null,
+                'job_name' => $data['jobName'] ?? null,
+                'message' => $data['message'] ?? 'Request submitted',
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error generating AI suggestions: ' . $e->getMessage());
+            return response()->json([
+                'status' => 'error',
+                'message' => 'An error occurred while processing the request',
+            ], 500);
+        }
+    }
+
+    /**
+     * Query the lo_mapping_service for in-flight status of multiple (course, program) pairs.
+     * Returns ['<programId>' => bool, ...] for the given course/program pairs.
+     * Used at Step 5 render time and for pre-click race checks.
+     */
+    public static function getInFlightStatuses(int $courseId, array $programIds): array
+    {
+        $pairs = array_map(fn($pid) => ['course_id' => $courseId, 'program_id' => (int) $pid], $programIds);
+
+        try {
+            $loMappingServiceUrl = config('services.lo_mapping.base_url');
+            $response = Http::timeout(10)->post(
+                $loMappingServiceUrl . '/in-flight-status',
+                ['pairs' => $pairs]
+            );
+
+            if ($response->failed()) {
+                Log::warning('getInFlightStatuses: lo_mapping_service returned an error: ' . $response->body());
+                return array_fill_keys($programIds, false);
+            }
+
+            $statuses = $response->json('statuses') ?? [];
+            $result = array_fill_keys($programIds, false);
+            foreach ($statuses as $entry) {
+                $pid = (int) ($entry['program_id'] ?? 0);
+                $result[$pid] = (bool) ($entry['in_flight'] ?? false);
+            }
+            return $result;
+        } catch (\Exception $e) {
+            Log::warning('getInFlightStatuses exception: ' . $e->getMessage());
+            return array_fill_keys($programIds, false);
+        }
+    }
+
+    public function checkInFlight(Request $request, $courseId, $programId)
+    {
+        $statuses = self::getInFlightStatuses((int) $courseId, [(int) $programId]);
+        return response()->json([
+            'in_flight' => $statuses[(int) $programId] ?? false,
+        ]);
+    }
+
+    public function checkAiResults(Request $request, $courseId, $programId)
+    {
+        // 1. Local DB is the source of truth for "is this complete?". Once
+        // storeAiSuggestions has run, ai_suggestion_status is true and we are done.
+        $courseProgram = CourseProgram::where(['course_id' => $courseId, 'program_id' => $programId])->first();
+        if ($courseProgram && $courseProgram->ai_suggestion_status) {
+            return response()->json(['status' => 'complete']);
+        }
+
+        // 2. Not yet complete. Ask FastAPI to poll for and trigger processing of any
+        // ready record. /process-pending-results returns immediately (background
+        // task), so this does not deadlock when artisan serve is single-threaded.
+        try {
+            $loMappingServiceUrl = config('services.lo_mapping.base_url');
+            $payload = [
+                'course_id'  => (string) $courseId,
+                'program_id' => (string) $programId,
+            ];
+
+            $statusRes = Http::timeout(10)->post(
+                $loMappingServiceUrl . '/poll-results-status',
+                $payload
+            );
+
+            if ($statusRes->ok() && ($statusRes->json('status') ?? null) === 'ready_to_process') {
+                Http::timeout(5)->post(
+                    $loMappingServiceUrl . '/process-pending-results',
+                    $payload
+                );
+            }
+        } catch (\Exception $e) {
+            Log::warning('checkAiResults: trigger error (will retry next poll): ' . $e->getMessage());
+        }
+
+        return response()->json(['status' => 'pending']);
+    }
+
+    public function storeAiSuggestions(Request $request)
+    {
+        $courseId  = $request->input('course_id');
+        $programId = $request->input('program_id');
+        $status    = $request->input('status');
+        $results   = $request->input('results', []);
+
+        Log::info("Receiving AI suggestions: course_id=$courseId program_id=$programId status=$status results_count=" . count($results));
+
+        if ($status !== 'AWAITING_COMPLETION') {
+            Log::warning("AI suggestion job did not complete successfully (status=$status). Skipping suggestion storage.");
+            return response()->json([
+                'status'  => 'skipped',
+                'message' => "Job status was '$status', no suggestions to store.",
+            ]);
+        }
+
+        $program = Program::find($programId);
+        if (!$program) {
+            return response()->json(['status' => 'error', 'message' => "Program $programId not found"], 404);
+        }
+
+        $abbreviationToScaleId = $program->mappingScaleLevels
+            ->pluck('map_scale_id', 'abbreviation')
+            ->toArray();
+
+        // Look up the "Not Applicable" scale (used to record AI's "is_mapped: false"
+        // suggestions on the N/A column). May not exist in every deployment, so guard.
+        $notApplicableScaleId = \App\Models\MappingScale::where('map_scale_id', 0)
+            ->orWhere('abbreviation', 'N/A')
+            ->value('map_scale_id');
+
+        DB::beginTransaction();
+        try {
+            $rowsWritten = 0;
+
+            foreach ($results as $result) {
+                $cloId     = isset($result['clo_id']) ? (int) $result['clo_id'] : null;
+                $ploId     = isset($result['plo_id']) ? (int) $result['plo_id'] : null;
+                $isMapped  = $result['is_mapped']  ?? false;
+                $mapLabels = $result['map_labels'] ?? [];
+
+                if ($cloId === null || $ploId === null) {
+                    Log::warning("Skipping result with missing clo_id or plo_id: " . json_encode($result));
+                    continue;
+                }
+
+                if (!$isMapped || empty($mapLabels)) {
+                    if ($notApplicableScaleId !== null) {
+                        OutcomeMapAiSuggestion::updateOrCreate([
+                            'l_outcome_id'  => $cloId,
+                            'pl_outcome_id' => $ploId,
+                            'map_scale_id'  => $notApplicableScaleId,
+                        ]);
+                        $rowsWritten++;
+                    }
+                    continue;
+                }
+
+                foreach ($mapLabels as $label) {
+                    if (!isset($abbreviationToScaleId[$label])) {
+                        Log::warning("Unknown mapping scale abbreviation '$label' for program $programId. Skipping.");
+                        continue;
+                    }
+                    OutcomeMapAiSuggestion::updateOrCreate([
+                        'l_outcome_id'  => $cloId,
+                        'pl_outcome_id' => $ploId,
+                        'map_scale_id'  => $abbreviationToScaleId[$label],
+                    ]);
+                    $rowsWritten++;
+                }
+            }
+
+            $courseProgram = CourseProgram::where(['course_id' => $courseId, 'program_id' => $programId])->first();
+            if ($courseProgram) {
+                $courseProgram->ai_suggestion_status = true;
+                $courseProgram->manual_map_status    = true;
+                $courseProgram->save();
+            } else {
+                Log::warning("CourseProgram pivot not found for course_id=$courseId program_id=$programId. ai_suggestion_status not updated.");
+            }
+
+            DB::commit();
+            Log::info("AI suggestions stored: $rowsWritten rows.");
+
+            return response()->json([
+                'status'       => 'ok',
+                'rows_written' => $rowsWritten,
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error storing AI suggestions: ' . $e->getMessage());
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Failed to store AI suggestions',
+            ], 500);
+        }
     }
 }

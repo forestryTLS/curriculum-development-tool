@@ -70,7 +70,7 @@
                                                         </div>
                                                         <div class="modal-footer">
                                                             <button style="width:60px" type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">No</button>
-                                                            <button style="width:80px" type="button" class="btn btn-success btn-sm">Yes</button>
+                                                            <button style="width:80px" type="button" class="btn btn-success btn-sm" onclick="generateAiSuggestions({{$course->course_id}}, {{$courseProgram->program_id}})">Yes</button>
                                                         </div>
                                                 </div>
                                             </div>
@@ -92,14 +92,35 @@
                                                     </button>
 
                                                     <!-- AI Suggestion button -->
-                                                    @if(!$courseProgram->pivot->ai_suggestion_status and $courseProgram->pivot->manual_map_status)
-                                                    <span id="buttonAISuggestion[{{$course->course_id}}][{{$courseProgram->program_id}}]"
-                                                          class="btn btn-sm btn-primary d-flex me-3 col-2 justify-content-center"
-                                                          role="button"
-                                                          data-bs-toggle="modal" data-bs-target="#AiSuggestionConfirmation{{$course->course_id}}{{$courseProgram->program_id}}">
+                                                    @if(!$courseProgram->pivot->ai_suggestion_status)
+                                                        @php
+                                                            $_inFlight         = isset($aiSuggestionInFlight) && !empty($aiSuggestionInFlight[$courseProgram->program_id]);
+                                                            $_manualMapStarted = (bool) $courseProgram->pivot->manual_map_status;
+                                                            $_aiBtnClass     = ($_manualMapStarted && !$_inFlight) ? 'd-flex' : 'd-none';
+                                                            $_aiStatusClass  = ($_manualMapStarted && $_inFlight)  ? 'd-flex' : 'd-none';
+                                                            $_pollAttrs      = ($_manualMapStarted && $_inFlight)  ? sprintf('data-poll-on-load="true" data-course-id="%d" data-program-id="%d"', $course->course_id, $courseProgram->program_id) : '';
+                                                        @endphp
+                                                        <span id="buttonAISuggestionHeader-{{$course->course_id}}-{{$courseProgram->program_id}}"
+                                                              class="btn btn-sm btn-primary {{ $_aiBtnClass }} me-3 col-2 justify-content-center"
+                                                              role="button"
+                                                              data-bs-toggle="modal" data-bs-target="#AiSuggestionConfirmation{{$course->course_id}}{{$courseProgram->program_id}}">
                                                             <img src="{{ asset('img/AISuggestionWhite.png') }}" alt="icon" style="height: 1em; width: auto;" class="me-1">
                                                             AI Suggestion
                                                         </span>
+                                                        <!-- AI status container (shown while polling for results) -->
+                                                        <div id="aiStatusHeader-{{$course->course_id}}-{{$courseProgram->program_id}}"
+                                                             class="{{ $_aiStatusClass }} align-items-center me-3"
+                                                             {!! $_pollAttrs !!}>
+                                                            <button id="aiCheckingHeader-{{$course->course_id}}-{{$courseProgram->program_id}}" type="button" class="btn btn-sm btn-secondary" disabled>
+                                                                <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                                                                Waiting for AI suggestions...
+                                                            </button>
+                                                            <button id="aiRefreshHeader-{{$course->course_id}}-{{$courseProgram->program_id}}" type="button" class="btn btn-sm btn-warning d-none"
+                                                                    onclick="refreshAiSuggestions({{$course->course_id}}, {{$courseProgram->program_id}})">
+                                                                <i class="bi bi-arrow-clockwise me-1"></i>
+                                                                Refresh AI Suggestions
+                                                            </button>
+                                                        </div>
                                                     @endif
                                                 </h2>
                                                 <!-- Program Accordion body -->
@@ -140,12 +161,36 @@
                                                             </div>
                                                             @if ($courseProgram->programLearningOutcomes->count() > 0)
 
-                                                                <div id="mappingOptions-{{$course->course_id}}-{{$courseProgram->program_id}}" class="justify-content-center gap-2 @if($courseProgram->pivot->manual_map_status) d-none @else d-flex @endif">
+                                                                @php
+                                                                    $_inFlightCenter      = isset($aiSuggestionInFlight) && !empty($aiSuggestionInFlight[$courseProgram->program_id]);
+                                                                    $_mappingOptionsClass = $courseProgram->pivot->manual_map_status ? 'd-none' : 'd-flex';
+                                                                    // All four buttons live in one flex row; toggle visibility per-button so
+                                                                    // they sit side-by-side instead of stacking vertically.
+                                                                    $_aiSuggestionsBtnHidden = $_inFlightCenter;
+                                                                    $_checkingBtnHidden      = !$_inFlightCenter;
+                                                                    $_refreshBtnHidden       = true; // JS shows this only after a polling timeout
+                                                                    $_pollAttrs              = $_inFlightCenter ? sprintf('data-poll-on-load="true" data-course-id="%d" data-program-id="%d"', $course->course_id, $courseProgram->program_id) : '';
+                                                                    $_msgClass               = $_inFlightCenter ? 'small text-muted text-center mt-2 mb-0' : 'd-none small text-muted text-center mt-2 mb-0';
+                                                                    $_msgText                = $_inFlightCenter ? 'An AI suggestion request is already in progress for this course/program. You can leave this page - results will appear automatically when ready.' : '';
+                                                                @endphp
+                                                                <div id="mappingOptions-{{$course->course_id}}-{{$courseProgram->program_id}}"
+                                                                     class="{{ $_mappingOptionsClass }} justify-content-center gap-2"
+                                                                     {!! $_pollAttrs !!}>
                                                                     <button id="buttonManualMap[{{$course->course_id}}][{{$courseProgram->program_id}}]" type="button" class="btn btn-sm btn-primary col-3 py-2" onclick="showManualMapDiv({{$course->course_id}}, {{$courseProgram->program_id}})">Create Manually</button>
-                                                                    <button id="buttonAISuggestion[{{$course->course_id}}][{{$courseProgram->program_id}}]" type="button" class="btn btn-sm btn-primary col-3 py-2"
+                                                                    <button id="buttonAISuggestionCenter-{{$course->course_id}}-{{$courseProgram->program_id}}" type="button" class="btn btn-sm btn-primary col-3 py-2 {{ $_aiSuggestionsBtnHidden ? 'd-none' : '' }}"
                                                                             data-bs-toggle="modal" data-bs-target="#AiSuggestionConfirmation{{$course->course_id}}{{$courseProgram->program_id}}">
                                                                         <img src="{{asset('img/AISuggestionWhite.png')}}" alt="icon" style="height: 1.5em; width: auto;" class="me-2">AI Suggestions</button>
+                                                                    <button id="aiCheckingCenter-{{$course->course_id}}-{{$courseProgram->program_id}}" type="button" class="btn btn-sm btn-secondary col-3 py-2 {{ $_checkingBtnHidden ? 'd-none' : '' }}" disabled>
+                                                                        <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                                                        Waiting for AI suggestions...
+                                                                    </button>
+                                                                    <button id="aiRefreshCenter-{{$course->course_id}}-{{$courseProgram->program_id}}" type="button" class="btn btn-sm btn-warning col-3 py-2 {{ $_refreshBtnHidden ? 'd-none' : '' }}"
+                                                                            onclick="refreshAiSuggestions({{$course->course_id}}, {{$courseProgram->program_id}})">
+                                                                        <i class="bi bi-arrow-clockwise me-2"></i>
+                                                                        Refresh AI Suggestions
+                                                                    </button>
                                                                 </div>
+                                                                <p id="aiStatusMessage-{{$course->course_id}}-{{$courseProgram->program_id}}" class="{{ $_msgClass }}">{{ $_msgText }}</p>
                                                                 <!-- list of course learning outcome accordions with mapping form -->
                                                                 <div id= "ManualMapBody-{{$course->course_id}}-{{$courseProgram->program_id}}" class="cloAccordions mb-4" @if(!$courseProgram->pivot->manual_map_status) style="display: none;" @endif>
                                                                     @foreach($l_outcomes as $index => $courseLearningOutcome)
@@ -367,7 +412,7 @@
 
 <script>
     $(document).ready(function () {
-        $('[data-bs-toggle="tooltip"]').tooltip();
+        document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => new bootstrap.Tooltip(el));
 
         $("form").submit(function () {
         // prevent duplicate form submissions
@@ -390,6 +435,22 @@
 
         $('#btnAdd').click(function() {
             add();
+        });
+
+        // Auto-resume polling for any (course, program) that was rendered with an
+        // in-flight AI suggestion request (rendered in the "Checking..." state by Blade).
+        // This handles: same-user-navigated-back, different-user-on-same-page.
+        const startedPairs = new Set();
+        document.querySelectorAll('[data-poll-on-load="true"]').forEach((el) => {
+            const courseId = el.getAttribute('data-course-id');
+            const programId = el.getAttribute('data-program-id');
+            if (!courseId || !programId) return;
+            const key = `${courseId}-${programId}`;
+            if (startedPairs.has(key)) return;
+            startedPairs.add(key);
+            // Both the header and center status containers can carry the same data
+            // attributes; Set dedupes so we only kick off one polling loop per pair.
+            pollForResults(parseInt(courseId, 10), parseInt(programId, 10));
         });
 
         // $("form").submit(function (e) {
@@ -482,6 +543,12 @@
                 div.classList.remove('d-flex');
 
                 document.getElementById(`ManualMapBody-${course_id}-${program_id}`).style.display = "block";
+
+                const inFlight = div.getAttribute('data-poll-on-load') === 'true';
+                const headerBtn    = document.getElementById(`buttonAISuggestionHeader-${course_id}-${program_id}`);
+                const headerStatus = document.getElementById(`aiStatusHeader-${course_id}-${program_id}`);
+                setHidden(headerBtn,    inFlight);
+                setHidden(headerStatus, !inFlight);
             }).catch(error => {
                 console.error('Unable to enable manual mapping:', error);
                 alert('We could not open manual mapping right now. Please try again later.');
@@ -504,6 +571,190 @@
             </tr>`;
             var container = $('#highOpportunityTable tbody');
             container.append(element);
+    }
+
+    const AI_POLL_INTERVAL_MS = 5000;
+    const AI_POLL_MAX_ATTEMPTS = 120; // ~10 minutes
+
+    const AI_MSG_CHECKING =
+        "Generating AI suggestions can take some time depending on how many PLOs and CLOs there are. " +
+        "You can safely leave this page - your suggestions will be saved when ready " +
+        "and will appear automatically the next time you open this page.";
+
+    const AI_MSG_TIMED_OUT =
+        "This is taking longer than usual. Click Refresh to check again, " +
+        "or come back later - your suggestions will appear automatically when ready.";
+
+    function hideAiModal(courseId, programId) {
+        const modalEl = document.getElementById(`AiSuggestionConfirmation${courseId}${programId}`);
+        if (!modalEl) return;
+        bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+    }
+
+    function setHidden(el, hidden) {
+        if (!el) return;
+        if (hidden) {
+            el.classList.add('d-none');
+            el.classList.remove('d-flex');
+        } else {
+            el.classList.remove('d-none');
+            el.classList.add('d-flex');
+        }
+    }
+
+    function enterCheckingState(courseId, programId, message) {
+        const aiBtnHeader = document.getElementById(`buttonAISuggestionHeader-${courseId}-${programId}`);
+        const aiBtnCenter = document.getElementById(`buttonAISuggestionCenter-${courseId}-${programId}`);
+        if (aiBtnHeader) aiBtnHeader.classList.add('d-none');
+        if (aiBtnCenter) aiBtnCenter.classList.add('d-none');
+
+        setHidden(document.getElementById(`aiStatusHeader-${courseId}-${programId}`), false);
+
+        ['Header', 'Center'].forEach(loc => {
+            const checking = document.getElementById(`aiChecking${loc}-${courseId}-${programId}`);
+            const refresh  = document.getElementById(`aiRefresh${loc}-${courseId}-${programId}`);
+            if (checking) checking.classList.remove('d-none');
+            if (refresh)  refresh.classList.add('d-none');
+        });
+
+        const msgEl = document.getElementById(`aiStatusMessage-${courseId}-${programId}`);
+        if (msgEl) {
+            msgEl.textContent = message;
+            msgEl.classList.remove('d-none');
+        }
+    }
+
+    function enterTimedOutState(courseId, programId) {
+        ['Header', 'Center'].forEach(loc => {
+            const checking = document.getElementById(`aiChecking${loc}-${courseId}-${programId}`);
+            const refresh  = document.getElementById(`aiRefresh${loc}-${courseId}-${programId}`);
+            if (checking) checking.classList.add('d-none');
+            if (refresh)  refresh.classList.remove('d-none');
+        });
+
+        const msgEl = document.getElementById(`aiStatusMessage-${courseId}-${programId}`);
+        if (msgEl) {
+            msgEl.textContent = AI_MSG_TIMED_OUT;
+            msgEl.classList.remove('d-none');
+        }
+    }
+
+    function refreshAiSuggestions(courseId, programId) {
+        enterCheckingState(courseId, programId, AI_MSG_CHECKING);
+        pollForResults(courseId, programId);
+    }
+
+    async function generateAiSuggestions(courseId, programId) {
+        const yesButton = event.target;
+        yesButton.disabled = true;
+        const originalText = yesButton.innerHTML;
+        yesButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Submitting...';
+
+        // Pre-click in-flight check: catches the race where another user (or this user
+        // in another tab) already submitted in the seconds between page render and click.
+        try {
+            const checkRes = await fetch(`/courseWizard/${courseId}/${programId}/check-in-flight`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                },
+                body: JSON.stringify({}),
+            });
+            if (checkRes.ok) {
+                const checkData = await checkRes.json();
+                if (checkData.in_flight) {
+                    hideAiModal(courseId, programId);
+                    enterCheckingState(courseId, programId,
+                        "An AI suggestion request was already submitted (possibly by another user). " +
+                        "Polling for results - this can take some time.");
+                    pollForResults(courseId, programId);
+                    yesButton.disabled = false;
+                    yesButton.innerHTML = originalText;
+                    return;
+                }
+            }
+        } catch (err) {
+            console.warn('Pre-click in-flight check failed, proceeding with submission:', err);
+        }
+
+        fetch(`/courseWizard/${courseId}/${programId}/generate-ai-suggestions`, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+            },
+            body: JSON.stringify({
+                course_id: courseId,
+                program_id: programId,
+            })
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('AI suggestion response:', data);
+
+            if (data.status === 'mock' || data.status === 'success') {
+                hideAiModal(courseId, programId);
+                enterCheckingState(courseId, programId, AI_MSG_CHECKING);
+                pollForResults(courseId, programId);
+            } else {
+                throw new Error(data.message || 'Unknown error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error generating AI suggestions: ' + error.message + '\n\nPlease try again.');
+        })
+        .finally(() => {
+            yesButton.disabled = false;
+            yesButton.innerHTML = originalText;
+        });
+    }
+
+    function pollForResults(courseId, programId) {
+        let attempts = 0;
+
+        const interval = setInterval(async () => {
+            attempts++;
+            try {
+                const response = await fetch(`/courseWizard/${courseId}/${programId}/check-ai-results`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify({ course_id: courseId, program_id: programId }),
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (data.status === 'complete') {
+                    clearInterval(interval);
+                    window.location.reload();
+                } else if (attempts >= AI_POLL_MAX_ATTEMPTS) {
+                    clearInterval(interval);
+                    enterTimedOutState(courseId, programId);
+                }
+            } catch (err) {
+                console.error('Polling error:', err);
+                if (attempts >= AI_POLL_MAX_ATTEMPTS) {
+                    clearInterval(interval);
+                    enterTimedOutState(courseId, programId);
+                }
+            }
+        }, AI_POLL_INTERVAL_MS);
     }
 
 </script>
