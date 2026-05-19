@@ -34,6 +34,22 @@ from tests.e2e.conftest import (
 )
 
 
+def _put_pending_record(dynamo_table, course_id: int, program_id: int) -> str:
+    """Inject a record that looks like a freshly-submitted, not-yet-running request."""
+    request_id = dt.datetime.utcnow().strftime("%Y%m%d-%H%M%S-") + str(uuid.uuid4())
+    dynamo_table.put_item(Item={
+        "request_id":      request_id,
+        "course_id":       course_id,
+        "program_id":      program_id,
+        "status":          "PENDING",
+        "input_s3_path":   "s3://e2e-fake/input.jsonl",
+        "output_s3_path":  "s3://e2e-fake/output.jsonl.out",
+        "created_at":      dt.datetime.utcnow().isoformat(),
+        "updated_at":      dt.datetime.utcnow().isoformat(),
+    })
+    return request_id
+
+
 def _put_awaiting_completion_record(
     dynamo_table,
     course_id: int,
@@ -452,3 +468,85 @@ def test_clo_added_while_request_in_flight_has_no_icons(
         _assert_late_clo_has_no_icons(pg_conn, laravel_session, course_id, program_id)
     finally:
         _delete_late_clo(pg_conn)
+
+
+def test_check_in_flight_returns_true_when_pending_record_exists(
+    fastapi_service, seeded_course_program, dynamo_table, laravel_session,
+):
+    """Pre-click guard: Laravel's /check-in-flight should report in_flight=true when a PENDING record exists."""
+    course_id  = seeded_course_program["course_id"]
+    program_id = seeded_course_program["program_id"]
+
+    _put_pending_record(dynamo_table, course_id, program_id)
+
+    csrf_token = get_csrf_token(laravel_session, f"{LARAVEL_URL}/home")
+    r = laravel_session.post(
+        f"{LARAVEL_URL}/courseWizard/{course_id}/{program_id}/check-in-flight",
+        headers={"Accept": "application/json", "X-CSRF-TOKEN": csrf_token},
+    )
+    assert r.status_code == 200, r.text
+    assert r.json().get("in_flight") is True
+
+
+def test_step5_renders_waiting_state_when_request_in_flight(
+    fastapi_service, seeded_course_program, dynamo_table, laravel_session,
+):
+    """Server-side rendering: any user opening Step 5 mid-request should see Waiting + auto-poll attrs."""
+    course_id  = seeded_course_program["course_id"]
+    program_id = seeded_course_program["program_id"]
+
+    _put_pending_record(dynamo_table, course_id, program_id)
+
+    page = laravel_session.get(f"{LARAVEL_URL}/courseWizard/{course_id}/step5")
+    assert page.status_code == 200
+
+    soup = BeautifulSoup(page.text, "html.parser")
+
+    ai_btn = soup.find(id=f"buttonAISuggestionCenter-{course_id}-{program_id}")
+    assert ai_btn is not None
+    assert "d-none" in (ai_btn.get("class") or []), \
+        "AI Suggestion button should be hidden while a request is in flight"
+
+    waiting_btn = soup.find(id=f"aiCheckingCenter-{course_id}-{program_id}")
+    assert waiting_btn is not None
+    assert "d-none" not in (waiting_btn.get("class") or []), \
+        "Waiting button should be visible while a request is in flight"
+
+    mapping_options = soup.find(id=f"mappingOptions-{course_id}-{program_id}")
+    assert mapping_options is not None
+    assert mapping_options.get("data-poll-on-load") == "true", \
+        "mappingOptions div should carry data-poll-on-load so JS auto-resumes polling on page load"
+    assert mapping_options.get("data-course-id") == str(course_id)
+    assert mapping_options.get("data-program-id") == str(program_id)
+
+
+def test_fastapi_dedupe_skips_creating_duplicate_record(
+    fastapi_service, seeded_course_program, dynamo_table,
+):
+    """FastAPI /map-program-outcomes should detect an existing in-flight record and return deduplicated=true."""
+    course_id  = seeded_course_program["course_id"]
+    program_id = seeded_course_program["program_id"]
+
+    existing_id = _put_pending_record(dynamo_table, course_id, program_id)
+
+    payload = {
+        "course_id":  course_id,
+        "program_id": program_id,
+        "course_learning_outcomes": [{"l_outcome_id": 99001, "l_outcome": "Test CLO 1"}],
+        "program_learning_outcomes": [{"pl_outcome_id": 99001, "pl_outcome": "Test PLO 1"}],
+        "mapping_scales": [
+            {"map_scale_id": 99001, "title": "Introduced", "abbreviation": "I", "description": "Intro"},
+        ],
+    }
+
+    r = requests.post(f"{fastapi_service}/map-program-outcomes", json=payload, timeout=10)
+    assert r.status_code == 200, r.text
+
+    data = r.json()
+    assert data.get("deduplicated") is True, f"Expected deduplicated=true, got: {data}"
+    assert data.get("startedForRecordId") == existing_id, \
+        f"Dedup response should reuse the existing record id ({existing_id}), got: {data.get('startedForRecordId')}"
+
+    item_count = dynamo_table.scan()["Count"]
+    assert item_count == 1, \
+        f"Dedup should not create a new DynamoDB record; expected 1 item, found {item_count}"
