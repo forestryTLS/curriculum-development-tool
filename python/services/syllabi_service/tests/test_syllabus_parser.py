@@ -1,6 +1,7 @@
 from datetime import date
 
 import app.services.syllabus_parser as sp
+import pytest
 from pathlib import Path
 
 BASE_DIR = Path(__file__).parent
@@ -28,6 +29,13 @@ EXPECTED_TEST_MATERIALS = [
         "description": "Testing. This id the test textbook for the test syllabus",
     }
 ]
+
+def test_syllabi_bad_file_raises_error():
+    file_path = BASE_DIR / "data" / "badFileExample.pdf"
+    file_name = "badFileExample.pdf"
+
+    with pytest.raises(Exception, match="Error opening file"):
+        sp.get_course_from_text_file(file_path, file_name)
 
 def test_syllabi_word_template_with_tabular_assessments():
     file_path = BASE_DIR /"data"/"syllabi"/"TEST101_2025W1_Word_Tabular_Assessments.docx"
@@ -304,4 +312,265 @@ def test_syllabi_CLOs_with_prefixed():
                                               ('Test Individual final Exam', 30)]
     assert course_instance['topics'] == EXPECTED_TEST_TOPICS
     assert course_instance['materials'] == EXPECTED_TEST_MATERIALS
-    
+
+
+def test_syllabi_no_topics_and_material():
+    file_path = BASE_DIR /"data"/"syllabi"/"Test_Syllabus_no_topics_and_materials.pdf"
+    file_name = "Test_Syllabus_no_topics_and_materials.pdf"
+    course_instance = sp.get_course_from_text_file(file_path, file_name)
+
+    assert course_instance['topics'] == [] #concrete topics not included, either leave blank or use fallback 
+    assert course_instance['materials'] == [] #no material
+
+def test_syllabi_with_topic_num_and_title():
+    file_path = BASE_DIR /"data"/"syllabi"/"Test_Syllabus_with_topic#_name_and_module.pdf"
+    file_name = "Test_Syllabus_with_topic#_name_and_module.pdf"
+    course_instance = sp.get_course_from_text_file(file_path, file_name)
+
+    assert course_instance['topics'] == [
+        "Introduction to urban ecosystems",
+        "Cities, biodiversity and ecological systems",
+        "Urban forests and green corridors",
+        "Climate resilience in cities",
+        "Stormwater systems and water management",
+        "Green roofs and sustainable design",
+        "Transportation systems and sustainability",
+        "Land-use planning and environmental policy",
+        "Environmental monitoring and indicators",
+        "Community engagement and urban planning",
+        "Environmental communication strategies",
+        "Public outreach and sustainability campaigns",
+        "Communicating scientific uncertainty",
+        "Research and scholarly communication",
+        "Ethics and professionalism",
+        "Collaborative problem solving",
+    ]
+    assert course_instance['materials'] == [
+        {
+            "name": "Foster, R. & Nguyen, T. (2022). Urban Ecology and Sustainable Landscapes: Environmental Systems in Modern Cities. West Coast Academic Press.",
+            "type": "textbook",
+            "description": "The course textbook is", #removable depending on implementaiton, since this is not an actual description, revisit this assertion 
+        }
+    ]
+
+def test_syllabi_with_course_and_lab_topics():
+    file_path = BASE_DIR /"data"/"syllabi"/"Test_Syllabus_with_course_and_lab_topics.pdf"
+    file_name = "Test_Syllabus_with_course_and_lab_topics.pdf"
+    course_instance = sp.get_course_from_text_file(file_path, file_name)
+
+    assert course_instance['topics'] == [
+        "Introduction to urban ecology",
+        "Cities, biodiversity & ecosystems",
+        "Urban Vegetation I - Trees & shrubs",
+        "Environmental monitoring methods",
+        "Urban Vegetation II - Ground cover",
+        "Climate resilience and adaptation",
+        "Urban biodiversity assessment",
+        "Green infrastructure systems",
+        "Field activity week",
+        "Urban water systems",
+        "Landscape planning & sustainability",
+        "Urban planning workshop",
+        "Environmental policy and governance",
+        "Community engagement activity",
+        "Ecological restoration",
+        "Urban ecology field observations",
+        "Environmental communication",
+        "Future cities and sustainability",
+        "Final lab activity",
+    ]
+    assert course_instance['materials'] == [
+        {
+            "name": "Sanders, P. & Hill, J. 2021. Urban Ecology and Sustainable Systems. Northern Academic Press.",
+            "type": "textbook",
+            "description": "Optional text for lectures",
+        },
+        {
+            "name": "Carter, L. 2018. Field Guide to Urban Ecosystems. Pacific Environmental Publications.",
+            "type": "textbook",
+            "description": "Optional text for labs",
+        },
+        {
+            "name": "UBC Library environmental databases",
+            "type": "digital resource",
+            "description": "Digital resources",
+        },
+        {
+            "name": "Urban Ecology Research Network resources",
+            "type": "digital resource",
+            "description": "Digital resources",
+        },
+        {
+            "name": "E-Flora BC and environmental mapping portals",
+            "type": "digital resource",
+            "description": "Digital resources",
+        },
+    ]
+
+
+def test_syllabi_table_of_schedule_and_messy_material():
+    file_path = BASE_DIR /"data"/"syllabi"/"Test_Syllabus_table_of_sched_and_messy_written_material.pdf"
+    file_name = "Test_Syllabus_table_of_sched_and_messy_written_material.pdf"
+    course_instance = sp.get_course_from_text_file(file_path, file_name)
+
+    assert course_instance['topics'] == [
+        "Course introduction and syllabus overview",
+        "Understanding sustainability and environmental systems",
+        "Public perceptions of environmental change",
+        "Guest lecture & discussion: Environmental journalism",
+        "Media narratives and environmental storytelling",
+        "Workshop: Communicating scientific uncertainty",
+        "Social media and environmental campaigns",
+        "Visual communication and infographic design",
+        "Climate misinformation and public trust",
+        "Workshop: Designing communication materials",
+        "Community engagement and participatory outreach",
+        "Guest lecture: Environmental policy communication",
+        "Urban resilience and future planning",
+        "Workshop: Scenario planning activities",
+        "Environmental ethics and emerging technologies",
+        "Course wrap-up and future directions",
+    ]
+    assert course_instance['materials'] == [
+        {
+            "name": "Morrison, L. & Patel, R. (2021). Communicating Environmental Futures: Media, Sustainability and Public Action. Pacific Northwest Academic Press.",
+            "type": "textbook",
+            "description": "The course textbook is",
+        }
+    ]
+
+
+def test_syllabi_no_topics_table():
+    file_path = BASE_DIR /"data"/"syllabi"/"Test_Syllabus_no_topics_table.pdf"
+    file_name = "Test_Syllabus_no_topics_table.pdf"
+    course_instance = sp.get_course_from_text_file(file_path, file_name)
+
+    assert course_instance['topics'] == [
+        "Introduction to urban ecosystems",
+        "Climate adaptation and sustainability planning",
+        "Urban biodiversity and ecological connectivity",
+        "Green infrastructure systems",
+        "Indigenous stewardship perspectives",
+        "Environmental monitoring and resilience indicators",
+        "Urban water systems and watershed management",
+        "Environmental governance and policy",
+        "Ecological restoration strategies",
+        "Community resilience and adaptation",
+        "Environmental communication and engagement",
+        "Urban forestry and climate mitigation",
+        "Nature-based climate solutions",
+        "Sustainable transportation systems",
+        "Global environmental change and adaptation",
+        "Environmental justice and equity",
+        "Urban sustainability planning",
+        "Case studies in ecosystem resilience",
+        "Future cities and environmental innovation",
+    ]
+    assert course_instance['materials'] == [
+        {
+            "name": "Foster, H. & Kim, R. 2022. Urban Ecology and Environmental Resilience. Pacific Academic Press.",
+            "type": "textbook",
+            "description": "Recommended literature sources",
+        },
+        {
+            "name": "Martin, S. 2020. Climate Adaptation in Cities. Greenleaf Publishing.",
+            "type": "textbook",
+            "description": "Recommended literature sources",
+        },
+    ]
+
+def test_syllabi_no_topic_keyword():
+    file_path = BASE_DIR /"data"/"syllabi"/"Test_Syllabus_no_topic_keyword_and_bulletList_of_material.pdf"
+    file_name = "Test_Syllabus_no_topic_keyword_and_bulletList_of_material.pdf"
+    course_instance = sp.get_course_from_text_file(file_path, file_name)
+
+    assert course_instance['topics'] == [
+        "Introduction to Environmental Systems",
+        "Ecosystem Components and Interactions",
+        "Climate Systems and Feedback Loops",
+        "Human Impacts on Landscapes",
+        "Introduction to GIS",
+        "Map Projections and Spatial Scale",
+        "Remote Sensing Fundamentals",
+        "Spectral Data and Image Interpretation",
+        "Spatial Data Visualization",
+        "Forest Disturbance Mapping",
+        "Urban Heat Island Analysis",
+        "Watershed Monitoring",
+        "Wildlife Habitat Analysis",
+        "Environmental Risk Assessment",
+        "Climate Adaptation Strategies",
+        "Environmental Policy and Data Ethics",
+        "Future of Environmental Monitoring",
+    ]
+    assert course_instance['materials'] == [
+        {
+            "name": "Introduction to Environmental Systems, 3rd Edition.",
+            "type": "textbook",
+            "description": "Required Textbook",
+        },
+        {
+            "name": "Weekly lecture slides and readings available on Canvas.",
+            "type": "course material",
+            "description": "Course Materials",
+        },
+        {
+            "name": "Access to ArcGIS Online and QGIS software.",
+            "type": "software",
+            "description": "Course Materials",
+        },
+        {
+            "name": "Scientific calculator recommended for lab activities.",
+            "type": "equipment",
+            "description": "Course Materials",
+        },
+        {
+            "name": "Selected journal articles and case studies posted throughout the term.",
+            "type": "reading",
+            "description": "Course Materials",
+        },
+    ]
+
+def test_syllabi_multiple_material_types():
+    file_path = BASE_DIR /"data"/"syllabi"/"Test_Syllabus_multuple_material_types.pdf"
+    file_name = "Test_Syllabus_multuple_material_types.pdf"
+    course_instance = sp.get_course_from_text_file(file_path, file_name)
+
+    assert course_instance['topics'] == [
+        "Introduction to environmental communication",
+        "Climate storytelling and sustainability media",
+        "Environmental journalism and public engagement",
+        "Digital campaigns and environmental advocacy",
+    ]
+    assert course_instance['materials'] == [
+        {
+            "name": "Lawson, M. & Rivera, T. (2023). Environmental Communication in a Changing World. Pacific Coast Academic Press.",
+            "type": "textbook",
+            "description": "Required Textbook",
+        },
+        {
+            "name": "Climate Futures: Cities Under Pressure (documentary series)",
+            "type": "video",
+            "description": "Required Documentary / Video Content",
+        },
+        {
+            "name": "Weekly lecture videos posted on Canvas",
+            "type": "video",
+            "description": "Required Documentary / Video Content",
+        },
+        {
+            "name": "The Sustainability Exchange podcast, selected episodes",
+            "type": "podcast",
+            "description": "Podcast and Audio Media",
+        },
+        {
+            "name": "Government of Canada climate data portal",
+            "type": "website",
+            "description": "Websites and Online Articles",
+        },
+        {
+            "name": "Selected articles from National Geographic and The Narwhal",
+            "type": "article",
+            "description": "Websites and Online Articles",
+        },
+    ]
