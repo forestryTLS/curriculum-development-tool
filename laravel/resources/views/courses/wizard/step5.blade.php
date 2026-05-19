@@ -111,8 +111,8 @@
                                                         <div id="aiStatusHeader-{{$course->course_id}}-{{$courseProgram->program_id}}"
                                                              class="{{ $_aiStatusClass }} align-items-center me-3"
                                                              {!! $_pollAttrs !!}>
-                                                            <button id="aiCheckingHeader-{{$course->course_id}}-{{$courseProgram->program_id}}" type="button" class="btn btn-sm btn-secondary" disabled>
-                                                                <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                                                            <button id="aiCheckingHeader-{{$course->course_id}}-{{$courseProgram->program_id}}" type="button" class="btn btn-secondary py-1 px-2" style="font-size: 0.75rem;" disabled>
+                                                                <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true" style="width: 0.75rem; height: 0.75rem;"></span>
                                                                 Waiting for AI suggestions...
                                                             </button>
                                                             <button id="aiRefreshHeader-{{$course->course_id}}-{{$courseProgram->program_id}}" type="button" class="btn btn-sm btn-warning d-none"
