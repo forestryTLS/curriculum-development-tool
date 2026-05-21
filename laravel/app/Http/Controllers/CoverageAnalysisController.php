@@ -7,7 +7,6 @@ use App\Models\CourseMaterial;
 use App\Models\Program;
 use App\Models\User;
 use Illuminate\Contracts\View\View;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -35,15 +34,6 @@ class CoverageAnalysisController extends Controller
             ->get();
 
         return view('courses.coverageAnalysis', compact('course', 'materials', 'canEdit'));
-    }
-
-    public function courseStatus(Request $request, $course_id): JsonResponse
-    {
-        $statuses = CourseMaterial::where('course_id', $course_id)
-            ->select(['id', 'status', 'page_count', 'pages_processed'])
-            ->get();
-
-        return response()->json($statuses);
     }
 
     public function program(Request $request, $program_id): View

@@ -129,7 +129,7 @@
                             $heading = 'materialHeading' . $material->id;
                             $body = 'materialBody' . $material->id;
                         @endphp
-                        <div class="accordion-item" data-material-id="{{ $material->id }}" data-material-status="{{ $material->status }}">
+                        <div class="accordion-item">
                             <h2 class="accordion-header" id="{{ $heading }}">
                                 <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
                                     data-bs-target="#{{ $body }}" aria-expanded="false" aria-controls="{{ $body }}">
@@ -157,25 +157,7 @@
                                                     <span class="material-status material-status--indexed">Indexed</span>
                                                     @break
                                                 @case('INDEXING')
-                                                    @if ($material->page_count > 0)
-                                                        @php $pct = round(($material->pages_processed / max(1, $material->page_count)) * 100); @endphp
-                                                        <span class="d-inline-block align-middle"
-                                                            style="width: 140px;"
-                                                            data-bs-toggle="tooltip"
-                                                            data-bs-placement="left"
-                                                            title="{{ $material->pages_processed }} / {{ $material->page_count }} pages indexed">
-                                                            <div class="progress" style="height: 14px;">
-                                                                <div class="progress-bar progress-bar-striped progress-bar-animated"
-                                                                    role="progressbar"
-                                                                    style="width: {{ $pct }}%; background-color: #6EC4E8; color: #212529;"
-                                                                    aria-valuenow="{{ $material->pages_processed }}"
-                                                                    aria-valuemin="0"
-                                                                    aria-valuemax="{{ $material->page_count }}">{{ $pct }}%</div>
-                                                            </div>
-                                                        </span>
-                                                    @else
-                                                        <span class="material-status material-status--indexing">Indexing</span>
-                                                    @endif
+                                                    <span class="material-status material-status--indexing">Indexing</span>
                                                     @break
                                                 @case('PENDING')
                                                     <span class="material-status material-status--pending">Pending</span>
@@ -272,67 +254,6 @@
             }
         }
     }
-
-    (function () {
-        const inProgress = document.querySelectorAll(
-            '.accordion-item[data-material-status="PENDING"], .accordion-item[data-material-status="INDEXING"]'
-        );
-        if (inProgress.length === 0) return;
-
-        const statusUrl = '{{ route("course.materials.status", $course->course_id) }}';
-        const timer = setInterval(() => {
-            fetch(statusUrl)
-                .then(r => r.ok ? r.json() : Promise.reject())
-                .then(data => {
-                    let needsReload = false;
-                    let anyInProgress = false;
-
-                    data.forEach(m => {
-                        const item = document.querySelector(`.accordion-item[data-material-id="${m.id}"]`);
-                        if (!item) return;
-
-                        const currentStatus = item.dataset.materialStatus;
-                        const wasInProgress = currentStatus === 'PENDING' || currentStatus === 'INDEXING';
-                        const isInProgress = m.status === 'PENDING' || m.status === 'INDEXING';
-
-                        if (isInProgress) anyInProgress = true;
-
-                        if (wasInProgress && !isInProgress) {
-                            needsReload = true;
-                            return;
-                        }
-
-                        if (wasInProgress && m.status === 'INDEXING' && m.page_count > 0) {
-                            const bar = item.querySelector('.progress-bar');
-                            if (bar) {
-                                const pct = Math.round((m.pages_processed / Math.max(1, m.page_count)) * 100);
-                                bar.style.width = pct + '%';
-                                bar.setAttribute('aria-valuenow', m.pages_processed);
-                                bar.setAttribute('aria-valuemax', m.page_count);
-                                bar.textContent = pct + '%';
-
-                                const tooltipEl = bar.closest('span[data-bs-toggle="tooltip"]');
-                                if (tooltipEl) {
-                                    const tt = bootstrap.Tooltip.getInstance(tooltipEl);
-                                    if (tt) tt.setContent({ '.tooltip-inner': `${m.pages_processed} / ${m.page_count} pages indexed` });
-                                }
-                            } else {
-                                needsReload = true;
-                            }
-                            item.dataset.materialStatus = m.status;
-                        }
-                    });
-
-                    if (needsReload) {
-                        clearInterval(timer);
-                        window.location.reload();
-                        return;
-                    }
-                    if (!anyInProgress) clearInterval(timer);
-                })
-                .catch(() => {});
-        }, 30000);
-    })();
 
     function validateMaterialSize(input) {
         const maxBytes = 50 * 1024 * 1024;

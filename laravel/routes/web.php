@@ -261,7 +261,6 @@ Route::post('courseWizard/{courseId}/{programId}/check-in-flight', [CourseProgra
 
 // Course materials + Coverage Analysis
 Route::get('/courses/{course}/coverage-analysis', [CoverageAnalysisController::class, 'course'])->name('course.coverageAnalysis');
-Route::get('/courses/{course}/materials/status', [CoverageAnalysisController::class, 'courseStatus'])->name('course.materials.status');
 Route::post('/courses/{course}/materials', [CourseMaterialController::class, 'store'])->name('course.materials.store');
 Route::delete('/courses/{course}/materials/{materialId}', [CourseMaterialController::class, 'destroy'])->name('course.materials.destroy');
 Route::get('/courses/{course}/materials/{materialId}/download', [CourseMaterialController::class, 'download'])->name('course.materials.download');

@@ -79,8 +79,6 @@ class IndexCourseMaterial implements ShouldQueue
                         'updated_at' => now(),
                     ];
                 }
-
-                $material->update(['pages_processed' => $pageNumber]);
             }
 
             if (!empty($rows)) {

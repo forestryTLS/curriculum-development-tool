@@ -108,25 +108,7 @@
                                                             <span class="material-status material-status--indexed">Indexed</span>
                                                             @break
                                                         @case('INDEXING')
-                                                            @if ($material->page_count > 0)
-                                                                @php $pct = round(($material->pages_processed / max(1, $material->page_count)) * 100); @endphp
-                                                                <span class="d-inline-block align-middle"
-                                                                    style="width: 140px;"
-                                                                    data-bs-toggle="tooltip"
-                                                                    data-bs-placement="left"
-                                                                    title="{{ $material->pages_processed }} / {{ $material->page_count }} pages indexed">
-                                                                    <div class="progress" style="height: 14px;">
-                                                                        <div class="progress-bar progress-bar-striped progress-bar-animated"
-                                                                            role="progressbar"
-                                                                            style="width: {{ $pct }}%; background-color: #6EC4E8; color: #212529;"
-                                                                            aria-valuenow="{{ $material->pages_processed }}"
-                                                                            aria-valuemin="0"
-                                                                            aria-valuemax="{{ $material->page_count }}">{{ $pct }}%</div>
-                                                                    </div>
-                                                                </span>
-                                                            @else
-                                                                <span class="material-status material-status--indexing">Indexing</span>
-                                                            @endif
+                                                            <span class="material-status material-status--indexing">Indexing</span>
                                                             @break
                                                         @case('PENDING')
                                                             <span class="material-status material-status--pending">Pending</span>
