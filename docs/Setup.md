@@ -115,6 +115,57 @@ php --ini
 
 Edit the file printed as **"Loaded Configuration File"**. After saving, kill and restart `php artisan serve` if already running.
 
+### Optional: OCR for image-based PDFs
+
+If you aren't using OCR, skip to the next section
+
+Two system binaries must be on the `PATH`:
+
+- `tesseract` (the OCR engine itself)
+- `pdftoppm` (from `poppler`, used to render PDF pages to PNGs before OCR)
+
+On Windows with Scoop:
+
+```
+scoop install tesseract
+scoop install poppler
+```
+
+On Linux:
+
+```
+sudo apt install tesseract-ocr poppler-utils
+```
+
+Verify both are reachable:
+
+```
+tesseract --version
+pdftoppm -v
+```
+
+**Tesseract language data**: `apt install tesseract-ocr` on Linux already includes English by default. Scoop's Tesseract package on Windows ships the binary only — you have to add language data files manually. Drop `eng.traineddata` into the `tessdata/` directory under your Tesseract install.
+
+If you installed Tesseract via Scoop, you can locate the install root with `scoop prefix tesseract`:
+
+```powershell
+$tessdir = Join-Path (scoop prefix tesseract) "tessdata"
+New-Item -ItemType Directory -Force $tessdir | Out-Null
+Invoke-WebRequest -Uri "https://github.com/tesseract-ocr/tessdata_fast/raw/main/eng.traineddata" -OutFile "$tessdir\eng.traineddata"
+```
+
+If you installed Tesseract some other way (e.g. the UB Mannheim installer, a portable build, or a corporate package), replace the `$tessdir` line with the path to the `tessdata/` directory inside your install (often `C:\Program Files\Tesseract-OCR\tessdata`).
+
+There are three traineddata variants in different GitHub repos: `tessdata_fast` (smallest at ~14 MB, fastest), `tessdata` (balanced), and `tessdata_best` (highest accuracy). For course material OCR, `fast` is usually sufficient.
+
+Verify with:
+
+```
+tesseract --list-langs
+```
+
+`eng` should appear in the output. If it doesn't, the OCR job will fail at preflight with a clear error message pointing back here.
+
 ### Run migrations and seeders
 
 ```
@@ -149,6 +200,11 @@ Start the queue worker in one terminal:
 
 ``` 
 php artisan queue:work
+```
+
+Note: If you need OCR, add this flag
+``` 
+php artisan queue:work --memory=2048
 ```
 
 Run the application in another:

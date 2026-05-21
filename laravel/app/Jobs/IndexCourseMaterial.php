@@ -13,12 +13,13 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Smalot\PdfParser\Config as PdfParserConfig;
 use Smalot\PdfParser\Parser;
+use thiagoalessio\TesseractOCR\TesseractOCR;
 
 class IndexCourseMaterial implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public int $timeout = 600;
+    public int $timeout = 1800;
     public int $tries = 1;
 
     public function __construct(public int $courseMaterialId)
@@ -35,10 +36,15 @@ class IndexCourseMaterial implements ShouldQueue
         }
 
         ini_set('memory_limit', '1024M');
+        set_time_limit(0);
 
         $material->update(['status' => CourseMaterial::STATUS_INDEXING, 'error_message' => null]);
 
         try {
+            if ($material->ocr_enabled) {
+                $this->assertOcrBinariesAvailable();
+            }
+
             $absolutePath = Storage::disk('local')->path($material->file_path);
 
             $config = new PdfParserConfig();
@@ -48,23 +54,33 @@ class IndexCourseMaterial implements ShouldQueue
             $pdf = $parser->parseFile($absolutePath);
             $pages = $pdf->getPages();
 
+            $material->update([
+                'page_count' => count($pages),
+                'pages_processed' => 0,
+            ]);
+
             $rows = [];
             $pageNumber = 0;
             foreach ($pages as $page) {
                 $pageNumber++;
                 $text = trim($page->getText());
-                if ($text === '') {
-                    continue;
+
+                if ($material->ocr_enabled && mb_strlen($text) <= $material->ocr_threshold) {
+                    $text = trim($this->ocrPage($absolutePath, $pageNumber));
                 }
 
-                $rows[] = [
-                    'course_material_id' => $material->id,
-                    'page_number' => $pageNumber,
-                    'chunk_index' => 0,
-                    'content' => $text,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ];
+                if ($text !== '') {
+                    $rows[] = [
+                        'course_material_id' => $material->id,
+                        'page_number' => $pageNumber,
+                        'chunk_index' => 0,
+                        'content' => $text,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
+                }
+
+                $material->update(['pages_processed' => $pageNumber]);
             }
 
             if (!empty($rows)) {
@@ -84,6 +100,71 @@ class IndexCourseMaterial implements ShouldQueue
                 'error_message' => mb_substr($e->getMessage(), 0, 1000),
             ]);
             throw $e;
+        }
+    }
+
+    private function ocrPage(string $pdfPath, int $pageNumber): string
+    {
+        $tempDir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'cmaterial-ocr-' . uniqid('', true);
+        if (!mkdir($tempDir) && !is_dir($tempDir)) {
+            throw new \RuntimeException("Could not create OCR temp directory at {$tempDir}.");
+        }
+
+        try {
+            $pngPrefix = $tempDir . DIRECTORY_SEPARATOR . 'page';
+            $cmd = sprintf(
+                'pdftoppm -png -f %d -l %d -r 300 %s %s',
+                $pageNumber,
+                $pageNumber,
+                escapeshellarg($pdfPath),
+                escapeshellarg($pngPrefix)
+            );
+            exec($cmd . ' 2>&1', $output, $code);
+
+            if ($code !== 0) {
+                throw new \RuntimeException(
+                    "pdftoppm failed for page {$pageNumber} (exit {$code}): " . implode(' | ', $output)
+                );
+            }
+
+            $pngFiles = glob($pngPrefix . '*.png');
+            if (empty($pngFiles)) {
+                throw new \RuntimeException("pdftoppm produced no PNG for page {$pageNumber}.");
+            }
+
+            return (new TesseractOCR($pngFiles[0]))->run();
+        } finally {
+            foreach (glob($tempDir . DIRECTORY_SEPARATOR . '*') ?: [] as $f) {
+                @unlink($f);
+            }
+            @rmdir($tempDir);
+        }
+    }
+
+    private function assertOcrBinariesAvailable(): void
+    {
+        $check = function (string $command, string $name, string $installHint): void {
+            exec($command . ' 2>&1', $output, $code);
+            if ($code !== 0) {
+                throw new \RuntimeException(
+                    "OCR is enabled but the '{$name}' binary is not available on PATH. "
+                    . "Install it and restart the queue worker. {$installHint} "
+                    . "See docs/Setup.md for full instructions."
+                );
+            }
+        };
+
+        $check('pdftoppm -v', 'pdftoppm', '(Windows: `scoop install poppler`. Linux: `sudo apt install poppler-utils`.)');
+        $check('tesseract --version', 'tesseract', '(Windows: `scoop install tesseract`. Linux: `sudo apt install tesseract-ocr`.)');
+
+        exec('tesseract --list-langs 2>&1', $langOutput, $langCode);
+        $langs = $langCode === 0 ? array_map('trim', $langOutput) : [];
+        if (!in_array('eng', $langs, true)) {
+            throw new \RuntimeException(
+                "OCR is enabled but Tesseract's English language data (eng.traineddata) is not installed. "
+                . "Download it into your Tesseract installation's tessdata directory. "
+                . "See docs/Setup.md for instructions."
+            );
         }
     }
 }

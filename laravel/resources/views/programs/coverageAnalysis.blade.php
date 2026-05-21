@@ -1,6 +1,25 @@
 @extends('layouts.app')
 
 @section('content')
+<style>
+    .material-status {
+        display: inline-block;
+        padding: 0.25em 0.6em;
+        font-size: 0.75em;
+        font-weight: 700;
+        line-height: 1;
+        color: #fff;
+        text-align: center;
+        white-space: nowrap;
+        vertical-align: baseline;
+        border-radius: 0.25rem;
+    }
+    .material-status--indexed { background-color: #198754; }
+    .material-status--indexing { background-color: #6EC4E8; color: #212529; }
+    .material-status--pending  { background-color: #6c757d; }
+    .material-status--failed   { background-color: #dc3545; }
+    .material-status--ocr      { background-color: #ffc107; color: #212529; }
+</style>
 <div class="mt-4 mb-5">
     <div class="row">
         <div class="col">
@@ -76,18 +95,44 @@
                                                     </small>
                                                 </div>
                                                 <div>
+                                                    @if ($material->ocr_enabled)
+                                                        <span class="material-status material-status--ocr me-1"
+                                                            data-bs-toggle="tooltip"
+                                                            data-bs-placement="left"
+                                                            title="Indexed with OCR fallback (threshold: {{ $material->ocr_threshold }} character{{ $material->ocr_threshold === 1 ? '' : 's' }})">
+                                                            OCR
+                                                        </span>
+                                                    @endif
                                                     @switch($material->status)
                                                         @case('INDEXED')
-                                                            <span class="badge bg-success">Indexed</span>
+                                                            <span class="material-status material-status--indexed">Indexed</span>
                                                             @break
                                                         @case('INDEXING')
-                                                            <span class="badge bg-info text-dark">Indexing</span>
+                                                            @if ($material->page_count > 0)
+                                                                @php $pct = round(($material->pages_processed / max(1, $material->page_count)) * 100); @endphp
+                                                                <span class="d-inline-block align-middle"
+                                                                    style="width: 140px;"
+                                                                    data-bs-toggle="tooltip"
+                                                                    data-bs-placement="left"
+                                                                    title="{{ $material->pages_processed }} / {{ $material->page_count }} pages indexed">
+                                                                    <div class="progress" style="height: 14px;">
+                                                                        <div class="progress-bar progress-bar-striped progress-bar-animated"
+                                                                            role="progressbar"
+                                                                            style="width: {{ $pct }}%; background-color: #6EC4E8; color: #212529;"
+                                                                            aria-valuenow="{{ $material->pages_processed }}"
+                                                                            aria-valuemin="0"
+                                                                            aria-valuemax="{{ $material->page_count }}">{{ $pct }}%</div>
+                                                                    </div>
+                                                                </span>
+                                                            @else
+                                                                <span class="material-status material-status--indexing">Indexing</span>
+                                                            @endif
                                                             @break
                                                         @case('PENDING')
-                                                            <span class="badge bg-secondary">Pending</span>
+                                                            <span class="material-status material-status--pending">Pending</span>
                                                             @break
                                                         @case('FAILED')
-                                                            <span class="badge bg-danger" title="{{ $material->error_message }}">Failed</span>
+                                                            <span class="material-status material-status--failed" title="{{ $material->error_message }}">Failed</span>
                                                             @break
                                                     @endswitch
                                                 </div>
@@ -103,7 +148,15 @@
                                                     <div><code>{{ $material->error_message }}</code></div>
                                                 </div>
                                             @elseif ($material->chunks->isEmpty())
-                                                <p class="text-muted mb-0">No extracted content yet.</p>
+                                                @if ($material->status === 'INDEXED')
+                                                    @if ($material->ocr_enabled)
+                                                        <p class="text-muted mb-0">No extracted content. OCR did not recover any readable text from this PDF either.</p>
+                                                    @else
+                                                        <p class="text-muted mb-0">No extracted content. Retry this file with the OCR option checked.</p>
+                                                    @endif
+                                                @else
+                                                    <p class="text-muted mb-0">No extracted content yet.</p>
+                                                @endif
                                             @else
                                                 <p class="text-muted small">
                                                     {{ $material->chunks->count() }} chunk(s) extracted.
@@ -129,4 +182,10 @@
         @endforeach
     @endif
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => new bootstrap.Tooltip(el));
+    });
+</script>
 @endsection

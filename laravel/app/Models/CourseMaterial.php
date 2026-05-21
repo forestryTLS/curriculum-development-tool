@@ -21,6 +21,14 @@ class CourseMaterial extends Model
         'status',
         'error_message',
         'page_count',
+        'pages_processed',
+        'ocr_enabled',
+        'ocr_threshold',
+    ];
+
+    protected $casts = [
+        'ocr_enabled' => 'boolean',
+        'ocr_threshold' => 'integer',
     ];
 
     public const STATUS_PENDING = 'PENDING';
