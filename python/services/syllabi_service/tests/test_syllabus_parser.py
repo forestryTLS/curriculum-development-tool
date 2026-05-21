@@ -574,3 +574,49 @@ def test_syllabi_multiple_material_types():
             "description": "Websites and Online Articles",
         },
     ]
+
+def test_syllabi_table_spanning_multiple_pages():
+    file_path = BASE_DIR / "data" / "syllabi" / "Test_syllabus_table_spanning_multiple_pages.pdf"
+    file_name = "Test_syllabus_table_spanning_multiple_pages.pdf"
+    course_instance = sp.get_course_from_text_file(file_path, file_name)
+
+    assert course_instance['topics'] == [
+        "Introduction and course overview",
+        "Design goals for distributed systems",
+        "Layering and abstractions",
+        "Socket programming basics",
+        "Client-server applications",
+        "Application protocols and APIs",
+        "Naming and discovery",
+        "Caching and content delivery",
+        "Reliable message delivery",
+        "Transport layer concepts",
+        "Timeouts and retransmission",
+        "Windowing protocols",
+        "Congestion control",
+        "Network layer introduction",
+        "Addressing and forwarding",
+        "Routing algorithms",
+        "Distance vector routing",
+        "Link state routing",
+        "Network security introduction",
+        "Authentication protocols",
+        "Encryption and TLS",
+        "Cloud networking",
+        "Distributed storage systems",
+        "Consensus and replication",
+        "Fault tolerance",
+        "Monitoring and observability",
+    ]
+    assert course_instance['materials'] == [
+        {
+            "name": "Chen, R. and Wallace, P. Distributed Systems and Network Applications, 2nd Edition.",
+            "type": "textbook",
+            "description": "Required textbook",
+        },
+        {
+            "name": "Additional readings and tutorial resources will be posted on Canvas.",
+            "type": "reading",
+            "description": "Textbook and References",
+        },
+    ]
