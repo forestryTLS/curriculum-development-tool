@@ -14,10 +14,6 @@
         </div>
     </div>
 
-    @if (session('error'))
-        <div class="alert alert-danger mt-3">{{ session('error') }}</div>
-    @endif
-
     <div class="card mt-4">
         <div class="card-header"><h5 class="mb-0">Coverage Analysis (dev)</h5></div>
         <div class="card-body">

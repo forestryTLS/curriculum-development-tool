@@ -14,21 +14,6 @@
         </div>
     </div>
 
-    @if (session('success'))
-        <div class="alert alert-success mt-3">{{ session('success') }}</div>
-    @endif
-    @if (session('error'))
-        <div class="alert alert-danger mt-3">{{ session('error') }}</div>
-    @endif
-    @if ($errors->any())
-        <div class="alert alert-danger mt-3">
-            <ul class="mb-0">
-                @foreach ($errors->all() as $err)
-                    <li>{{ $err }}</li>
-                @endforeach
-            </ul>
-        </div>
-    @endif
     @if (request('upload_error') === 'too_large')
         <div class="alert alert-danger mt-3">
             The uploaded file is too large. The current server limit is {{ request('limit', '?') }}B.
