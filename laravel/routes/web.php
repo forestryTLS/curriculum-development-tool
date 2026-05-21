@@ -5,9 +5,11 @@ use App\Http\Controllers\AdminEmailController;
 use App\Http\Controllers\AdminAssignRoleController;
 use App\Http\Controllers\AssessmentMethodController;
 use App\Http\Controllers\CourseController;
+use App\Http\Controllers\CourseMaterialController;
 use App\Http\Controllers\CourseProgramController;
 use App\Http\Controllers\CourseUserController;
 use App\Http\Controllers\CourseWizardController;
+use App\Http\Controllers\CoverageAnalysisController;
 use App\Http\Controllers\CustomAssessmentMethodsController;
 use App\Http\Controllers\CustomLearningActivitiesController;
 use App\Http\Controllers\FAQController;
@@ -256,6 +258,13 @@ Route::post('courseWizard/{courseId}/{programId}/aiSuggestion', [CourseProgramCo
 Route::post('courseWizard/{courseId}/{programId}/generate-ai-suggestions', [CourseProgramController::class, 'generateAiSuggestions']);
 Route::post('courseWizard/{courseId}/{programId}/check-ai-results', [CourseProgramController::class, 'checkAiResults']);
 Route::post('courseWizard/{courseId}/{programId}/check-in-flight', [CourseProgramController::class, 'checkInFlight']);
+
+// Course materials + Coverage Analysis
+Route::get('/courses/{course}/coverage-analysis', [CoverageAnalysisController::class, 'course'])->name('course.coverageAnalysis');
+Route::post('/courses/{course}/materials', [CourseMaterialController::class, 'store'])->name('course.materials.store');
+Route::delete('/courses/{course}/materials/{materialId}', [CourseMaterialController::class, 'destroy'])->name('course.materials.destroy');
+Route::get('/courses/{course}/materials/{materialId}/download', [CourseMaterialController::class, 'download'])->name('course.materials.download');
+Route::get('/programs/{program}/coverage-analysis', [CoverageAnalysisController::class, 'program'])->name('program.coverageAnalysis');
 
 Route::post('/courseDescription/{course}/store', [\App\Http\Controllers\CourseDescriptionController::class, 'store'])->name('courseDescription.store');
 

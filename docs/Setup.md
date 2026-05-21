@@ -97,6 +97,24 @@ psql -U postgres -h 127.0.0.1 -c "CREATE DATABASE laravel OWNER root;"
 php artisan storage:link
 ```
 
+### PHP upload limits (required for Course Materials uploads)
+
+The Coverage Analysis feature lets users upload PDF course materials. Laravel allows up to 50 MB per file, but PHP itself defaults to much smaller limits, so PHP rejects oversized uploads before Laravel ever sees them. Set these values in your active `php.ini`:
+
+```ini
+upload_max_filesize = 50M
+post_max_size = 60M
+memory_limit = 256M
+```
+
+Find the active `php.ini` with:
+
+```
+php --ini
+```
+
+Edit the file printed as **"Loaded Configuration File"**. After saving, kill and restart `php artisan serve` if already running.
+
 ### Run migrations and seeders
 
 ```
