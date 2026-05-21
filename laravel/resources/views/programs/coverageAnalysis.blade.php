@@ -95,12 +95,24 @@
                                                     </small>
                                                 </div>
                                                 <div>
-                                                    @if ($material->ocr_enabled)
+                                                    @if ($material->ocr_enabled || $material->extraction_engine === 'textract')
+                                                        @php
+                                                            if ($material->extraction_engine === 'textract') {
+                                                                $badgeLabel = 'OCR (AWS)';
+                                                                $tooltipTitle = 'Textract';
+                                                            } else {
+                                                                $badgeLabel = 'OCR (Local)';
+                                                                $tooltipTitle = 'Tesseract';
+                                                            }
+                                                            if ($material->processing_time_seconds !== null) {
+                                                                $tooltipTitle .= ' (' . $material->processing_time_seconds . 's)';
+                                                            }
+                                                        @endphp
                                                         <span class="material-status material-status--ocr me-1"
                                                             data-bs-toggle="tooltip"
                                                             data-bs-placement="left"
-                                                            title="Indexed with OCR fallback (threshold: {{ $material->ocr_threshold }} character{{ $material->ocr_threshold === 1 ? '' : 's' }})">
-                                                            OCR
+                                                            title="{{ $tooltipTitle }}">
+                                                            {{ $badgeLabel }}
                                                         </span>
                                                     @endif
                                                     @switch($material->status)

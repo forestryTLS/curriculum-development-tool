@@ -39,11 +39,14 @@ class IndexCourseMaterial implements ShouldQueue
         $material->update(['status' => CourseMaterial::STATUS_INDEXING, 'error_message' => null]);
 
         try {
+            $startTime = microtime(true);
             if ($material->extraction_engine === 'textract') {
                 $this->indexWithTextract($material);
             } else {
                 $this->indexWithLocalPipeline($material);
             }
+            $processingTime = (int) round(microtime(true) - $startTime);
+            $material->update(['processing_time_seconds' => $processingTime]);
         } catch (\Throwable $e) {
             Log::error("IndexCourseMaterial failed for material {$material->id}: " . $e->getMessage());
             $material->update([
