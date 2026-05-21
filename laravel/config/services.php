@@ -39,4 +39,8 @@ return [
         'base_url' => env('LO_MAPPING_SERVICE_URL', 'http://127.0.0.1:8002'),
     ],
 
+    'text_extraction' => [
+        'url' => env('TEXT_EXTRACTION_SERVICE_URL', 'http://127.0.0.1:5000'),
+    ],
+
 ];

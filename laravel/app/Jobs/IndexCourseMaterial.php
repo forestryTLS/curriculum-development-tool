@@ -9,6 +9,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Smalot\PdfParser\Config as PdfParserConfig;
@@ -35,17 +36,34 @@ class IndexCourseMaterial implements ShouldQueue
             return;
         }
 
-        ini_set('memory_limit', '1024M');
-        set_time_limit(0);
-
         $material->update(['status' => CourseMaterial::STATUS_INDEXING, 'error_message' => null]);
 
         try {
-            if ($material->ocr_enabled) {
-                $this->assertOcrBinariesAvailable();
+            if ($material->extraction_engine === 'textract') {
+                $this->indexWithTextract($material);
+            } else {
+                $this->indexWithLocalPipeline($material);
             }
+        } catch (\Throwable $e) {
+            Log::error("IndexCourseMaterial failed for material {$material->id}: " . $e->getMessage());
+            $material->update([
+                'status' => CourseMaterial::STATUS_FAILED,
+                'error_message' => mb_substr($e->getMessage(), 0, 1000),
+            ]);
+            throw $e;
+        }
+    }
 
-            $absolutePath = Storage::disk('local')->path($material->file_path);
+    private function indexWithLocalPipeline(CourseMaterial $material): void
+    {
+        ini_set('memory_limit', '1024M');
+        set_time_limit(0);
+
+        if ($material->ocr_enabled) {
+            $this->assertOcrBinariesAvailable();
+        }
+
+        $absolutePath = Storage::disk('local')->path($material->file_path);
 
             $config = new PdfParserConfig();
             $config->setRetainImageContent(false);
@@ -87,18 +105,49 @@ class IndexCourseMaterial implements ShouldQueue
                 }
             }
 
-            $material->update([
-                'status' => CourseMaterial::STATUS_INDEXED,
-                'page_count' => $pageNumber,
-            ]);
-        } catch (\Throwable $e) {
-            Log::error("IndexCourseMaterial failed for material {$material->id}: " . $e->getMessage());
-            $material->update([
-                'status' => CourseMaterial::STATUS_FAILED,
-                'error_message' => mb_substr($e->getMessage(), 0, 1000),
-            ]);
-            throw $e;
+        $material->update([
+            'status' => CourseMaterial::STATUS_INDEXED,
+            'page_count' => $pageNumber,
+        ]);
+    }
+
+    private function indexWithTextract(CourseMaterial $material): void
+    {
+        $absolutePath = Storage::disk('local')->path($material->file_path);
+        $fileBytes = file_get_contents($absolutePath);
+
+        $response = Http::timeout(300)->post(config('services.text_extraction.url') . '/extract', [
+            'file' => base64_encode($fileBytes),
+        ]);
+
+        $response->throw();
+        $data = $response->json();
+        $pages = $data['pages'] ?? [];
+
+        $rows = [];
+        foreach ($pages as $page) {
+            if (!empty($page['content'])) {
+                $rows[] = [
+                    'course_material_id' => $material->id,
+                    'page_number' => $page['page_number'],
+                    'chunk_index' => 0,
+                    'content' => $page['content'],
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            }
         }
+
+        if (!empty($rows)) {
+            foreach (array_chunk($rows, 100) as $batch) {
+                CourseMaterialChunk::insert($batch);
+            }
+        }
+
+        $material->update([
+            'status' => CourseMaterial::STATUS_INDEXED,
+            'page_count' => count($pages),
+        ]);
     }
 
     private function ocrPage(string $pdfPath, int $pageNumber): string

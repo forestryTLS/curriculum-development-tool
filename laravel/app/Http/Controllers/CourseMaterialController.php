@@ -27,6 +27,7 @@ class CourseMaterialController extends Controller
         $request->validate([
             'file' => ['required', 'file', 'mimes:pdf', 'max:51200'],
             'ocr_enabled' => ['sometimes', 'boolean'],
+            'extraction_engine' => ['required_if:ocr_enabled,1', 'in:tesseract,textract'],
             'ocr_threshold' => ['sometimes', 'integer', 'min:0', 'max:10000'],
         ]);
 
@@ -43,6 +44,7 @@ class CourseMaterialController extends Controller
             'mime_type' => $uploaded->getClientMimeType() ?: 'application/pdf',
             'file_size' => $uploaded->getSize(),
             'status' => CourseMaterial::STATUS_PENDING,
+            'extraction_engine' => $request->input('extraction_engine', 'tesseract'),
             'ocr_enabled' => $request->boolean('ocr_enabled'),
             'ocr_threshold' => $request->boolean('ocr_enabled') ? (int) $request->input('ocr_threshold', 0) : 0,
         ]);

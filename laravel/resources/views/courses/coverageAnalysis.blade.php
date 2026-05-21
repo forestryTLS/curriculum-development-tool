@@ -86,7 +86,24 @@
                             <i class="bi bi-caret-right-fill"></i> Advanced settings
                         </a>
                         <div class="collapse" id="ocrAdvancedBody">
-                            <div class="row g-2 align-items-end mt-1">
+                            <div class="row g-2 align-items-end mt-2">
+                                <div class="col-md-4">
+                                    <label for="extractionEngine" class="form-label small mb-0">
+                                        Extraction Engine
+                                        <i class="bi bi-question-circle ms-1 text-primary"
+                                            style="cursor: help;"
+                                            data-bs-toggle="tooltip"
+                                            data-bs-placement="right"
+                                            title="Local: uses Tesseract OCR on your server (free, slower). Textract: AWS cloud service (faster, ~$0.15 per 100 pages)."></i>
+                                    </label>
+                                    <select id="extractionEngine" name="extraction_engine" class="form-select form-select-sm" onchange="toggleThresholdByEngine(this)">
+                                        <option value="tesseract">Local (Tesseract OCR)</option>
+                                        <option value="textract">AWS Textract (cloud)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div id="thresholdRow" class="row g-2 align-items-end mt-2">
                                 <div class="col-md-4">
                                     <label for="ocrThreshold" class="form-label small mb-0">
                                         OCR threshold (characters)
@@ -252,6 +269,15 @@
             if (body && body.classList.contains('show')) {
                 bootstrap.Collapse.getOrCreateInstance(body).hide();
             }
+        }
+    }
+
+    function toggleThresholdByEngine(select) {
+        const thresholdRow = document.getElementById('thresholdRow');
+        if (select.value === 'tesseract') {
+            thresholdRow.classList.remove('d-none');
+        } else {
+            thresholdRow.classList.add('d-none');
         }
     }
 

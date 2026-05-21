@@ -24,6 +24,7 @@ class CourseMaterial extends Model
         'pages_processed',
         'ocr_enabled',
         'ocr_threshold',
+        'extraction_engine',
     ];
 
     protected $casts = [
