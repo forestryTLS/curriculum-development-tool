@@ -63,7 +63,7 @@
                         <span class="text-muted">&middot; {{ $course->course_title }}</span>
                     </div>
                     <div>
-                        <span class="badge bg-secondary me-2">
+                        <span class="badge bg-primary me-2">
                             {{ $indexedCount }} / {{ $courseMaterials->count() }} indexed
                         </span>
                         <a class="btn btn-sm btn-outline-primary"
