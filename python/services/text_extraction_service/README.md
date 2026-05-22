@@ -1,114 +1,77 @@
 # Text Extraction Service
 
-A FastAPI microservice that extracts text from PDF files using AWS Textract. Runs independently from the Laravel application and can be scaled separately. Includes automatic API documentation at `/docs`.
+FastAPI microservice for extracting text from PDFs using AWS Textract. Called by Laravel's `IndexCourseMaterial` job when users select the AWS Textract extraction engine.
 
 ## Setup
-
-### Local Development
 
 1. Create and activate a virtual environment:
    ```bash
    python -m venv venv
-   # On Windows:
-   venv\Scripts\activate
-   # On Mac/Linux:
-   source venv/bin/activate
+   venv\Scripts\activate  # Windows
+   source venv/bin/activate  # Mac/Linux
    ```
 
-2. Copy `.env.example` to `.env` and update with your AWS credentials:
+2. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. Configure environment:
    ```bash
    cp .env.example .env
    ```
+   Set `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`.
 
-3. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
+   The remaining values should already be set to 
+   ```
+   AWS_REGION=ca-central-1
+   AWS_S3_BUCKET=text-extraction-temp
+   PORT=5000
    ```
 
 4. Run the service:
    ```bash
    uvicorn app:app --host 0.0.0.0 --port 5000 --reload
    ```
+   API docs at `http://127.0.0.1:5000/docs`
 
-   The service will listen on `http://127.0.0.1:5000`.
-   
-   View interactive API docs at `http://127.0.0.1:5000/docs`
+## AWS Configuration
 
-### Docker
-
-Build and run with Docker:
-
+An S3 bucket for temporary file storage called `text-extraction-temp` should already be created. Check with:
 ```bash
-docker build -t text-extraction-service .
-docker run -e AWS_ACCESS_KEY_ID=... -e AWS_SECRET_ACCESS_KEY=... -e AWS_REGION=us-west-2 -p 5000:5000 text-extraction-service
+aws s3 ls s3://text-extraction-temp/
 ```
 
-## AWS Setup
+If not, set it up:
+```bash
+# Create the bucket
+aws s3 mb s3://text-extraction-temp --region ca-central-1
 
-1. Create an IAM user or use an existing one with permissions for Textract
-2. Attach the `AmazonTextractFullAccess` policy (or create a custom policy limiting to your needs)
-3. Generate access keys and add to `.env`
+#Set bucket lifecycle policy to delete files after 1 day:
+aws s3api put-bucket-lifecycle-configuration --bucket text-extraction-temp --lifecycle-configuration '{"Rules":[{"Status":"Enabled","Prefix":"textract-jobs/","ExpirationInDays":1}]}'
+```
 
-## API Endpoints
+## How It Works
 
-### POST `/extract`
+Attempts synchronous extraction first (faster, no polling needed). Synchronous extraction only works for single-page PDFs, so we check that the file size is under 5MB as an approximate indicator for single-page documents. If that fails or file is larger, falls back to asynchronous extraction. This microservice handles the polling for the asynchronous operation internally, and returns results synchronously to Laravel regardless of which method was used.
 
-Extracts text from a PDF file.
+## API
 
-**Request:**
+**POST `/extract`**: Extract text from base64-encoded PDF
 ```json
 {
   "file": "base64-encoded-pdf-bytes"
 }
 ```
 
-**Response:**
+Returns:
 ```json
 {
   "pages": [
-    {
-      "page_number": 1,
-      "content": "Extracted text from page 1..."
-    },
-    {
-      "page_number": 2,
-      "content": "Extracted text from page 2..."
-    }
+    {"page_number": 1, "content": "..."},
+    {"page_number": 2, "content": "..."}
   ]
 }
 ```
 
-### GET `/health`
-
-Health check endpoint.
-
-**Response:**
-```json
-{
-  "status": "ok"
-}
-```
-
-## Integration with Laravel
-
-The Laravel application calls this service from the `IndexCourseMaterial` job when a user selects "AWS Textract" as the extraction engine during upload.
-
-Configure the service URL in `.env`:
-```
-TEXT_EXTRACTION_SERVICE_URL=http://text-extraction-service:5000
-```
-
-## Costs
-
-AWS Textract pricing (as of 2026):
-- ~$1.50 per 1000 pages
-- For a 120-page document: ~$0.18
-
-No monthly minimum. Free tier available for testing.
-
-## Future Enhancements
-
-- Support for other extraction engines (PyMuPDF, pdfplumber)
-- Configurable engine selection via environment variable
-- Caching of extraction results
-- Async job status tracking
+**GET `/health`**: Health check endpoint
