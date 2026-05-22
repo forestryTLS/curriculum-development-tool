@@ -71,11 +71,14 @@ def get_course_from_text_file(filePath: str, originalFileName: str) -> dict:
     course["goals"] = get_learning_goals(doc_without_header)
     assessments_and_weights = get_assessment_methods_and_weight(doc)
     course["assessments"] = encode_assessment_and_weight(assessments_and_weights)
+    course["topics"] = get_course_topics(doc, doc_without_header)
+    course["materials"] = get_course_materials(doc, doc_without_header)
+
     return course
 
 
 def get_course_code_from_file_name(fileName: str) -> str:
-    """Returns the code for the from thye file name if exists, otherwise return empty string"""
+    """Returns the code for the from the file name if exists, otherwise return empty string"""
     
     # partsOfPath = filePath.split("\\")
     partsOfPath = fileName.split("/")
@@ -1069,3 +1072,340 @@ def encode_assessment_and_weight(assessment_and_weights: list[tuple[str, str]]) 
             except TypeError:
                 continue
     return encodedAssessmentNWeight
+
+
+def get_course_topics(doc: pymupdf.Document, doc_without_header: list[str] ) -> list[str]:
+
+    topic_pages = find_topic_section(doc_without_header) #get pages of where topic section falls
+    table_topics = get_topics_from_table(doc, topic_pages) #extract all cells from topic columns
+    if(table_topics):
+        return clean_topics(table_topics) #clean all the topics (remove ignore_topics)
+    
+
+    text_topics = get_topics_from_text(doc_without_header, topic_pages) 
+    return clean_topics(text_topics)
+
+
+
+def find_topic_section(doc: list[str]) -> list[int]:
+    topic_pages = []
+    in_section = False
+    
+
+    expected_headings = {"schedule of topics", "topics", "course topics", "schedule", "schedule of learning topics",
+                        "course schedule", "lecture schedule", "tentative lecture schedule", "tentative schedule",
+                        "schedule of topics and assessments", "course contents", "course content", "lecture topics", 
+                        "lectures", "weekly schedule", "weekly course schedule", "course outline", "class schedule",
+                        "class topics", "lecture outline", "course calendar", "weekly topics", "weekly modules", "modules",
+                        "course modules", "units", "course units", "weekly readings and topics", "schedule of classes",
+                        "schedule of lectures", "lecture and lab schedule", "course and lab schedule", "topics and schedule",
+                        "course topics and schedule", "course calendar"}
+    
+    stop_headings = {
+        "assessment",
+        "assessments",
+        "assessment of learning",
+        "assessments of learning",
+        "assessment of student learning",
+        "assessment methods",
+        "assessment schedule",
+        "breakdown of marks",
+        "mark breakdown",
+        "grade breakdown",
+        "graded activities",
+        "grading scheme",
+        "grading",
+        "course grading",
+        "course grade",
+        "evaluation",
+        "evaluations",
+        "examinations assignments and grading",
+        "examinations",
+        "assignments",
+        "course assignments",
+        "learning materials",
+        "course materials",
+        "learning materials and technology requirements",
+        "course materials and learning resources",
+        "course structure & learning materials",
+        "learning resources",
+        "required materials",
+        "required readings",
+        "recommended readings",
+        "textbook",
+        "textbooks",
+        "course policies",
+        "university policies",
+        "academic integrity",
+        "student support",
+        "student wellbeing",
+        "academic accommodations",
+        "accessibility",
+        "communication protocols",
+        "contacts",
+        "contact",
+        "teaching team",
+        "instructional staff",
+        "copyright",
+        "learning objectives",
+        "learning outcomes",
+        "course learning objectives",
+        "course learning outcomes",
+        }
+
+    
+    
+    for page_index, page_text in enumerate(doc):
+        lines = page_text.split("\n")
+
+        if not in_section:
+            for line in lines:
+                clean_line = line.strip().lower().rstrip(":")
+                clean_line = re.sub(r"^\d+(\.\d+)*[.)]?\s*", "", clean_line)
+                if clean_line in expected_headings:
+                    in_section = True
+                    topic_pages.append(page_index)
+                    break
+            continue
+
+        # already in topics section
+        topic_pages.append(page_index)
+
+        # after the topic section starts, keep adding pages until a known next section heading is found.
+        for line in lines:
+            clean_line = line.strip().lower().rstrip(":")
+            clean_line = re.sub(r"^\d+(\.\d+)*[.)]?\s*", "", clean_line) 
+
+            if clean_line in stop_headings:
+                return topic_pages
+
+        
+    return topic_pages
+
+
+def is_topic_section_boundary(line: str, stop_headings: set[str], topic_headings: set[str]) -> bool:
+    stripped_line = line.strip()
+    clean_line = stripped_line.lower().rstrip(":")
+    clean_line = re.sub(r"^\d+(\.\d+)*[.)]?\s*", "", clean_line)
+
+    if not clean_line:
+        return False
+    if clean_line in topic_headings:
+        return False
+    if clean_line in stop_headings:
+        return True
+
+    clean_without_number = re.sub(r"^\d+(\.\d+)*[.)]?\s*", "", clean_line).rstrip(":")
+    if clean_without_number in stop_headings:
+        return True
+
+    words = clean_without_number.split()
+    if len(words) > 6:
+        return False
+
+    if stripped_line.isupper() and len(words) >= 1:
+        return True
+
+    if re.match(r"^\d+(\.\d+)*[.)]?\s+[A-Z][A-Za-z&/ -]+$", stripped_line):
+        return True
+
+    return False
+
+
+def get_topics_from_table(doc: pymupdf.Document, topic_pages: list[int]) -> list[str]:
+    topics = []
+
+    topic_column_headings = {
+        "topic",
+        "topics",
+        "lecture",
+        "lecture topic",
+        "lecture topics",
+        "lab topic",
+        "lab topics",
+        "class topic",
+        "class topics",
+        "course topic",
+        "course topics",
+    }
+    title_column_headings = {"title", "name", "topic name", "topic title", "topics title"}
+    schedule_column_headings = {"week", "date", "dates", "module", "unit", "lecture"}
+    ignored_column_headings = {
+        "reading",
+        "readings",
+        "readings deadlines",
+        "readings and deadlines",
+        "deadline",
+        "deadlines",
+        "due date",
+        "assessment",
+        "assessments",
+        "activity",
+        "activities",
+        "mark",
+        "marks",
+        "weight",
+        "weight %",
+        "percentage",
+        "%",
+        "number",
+        "#",
+        "week",
+    }
+
+    for page_index in topic_pages: 
+        if page_index < 0 or page_index >= len(doc):
+            continue  
+
+        tables = doc[page_index].find_tables()
+        if not tables:
+            continue
+
+        for table in tables.tables:
+            extracted_table = table.extract()
+            if not extracted_table or len(extracted_table) < 2:
+                continue
+
+            cleaned_table = []
+            for row in extracted_table: #extract and clean the table
+                row_has_content = False
+                cleaned_row = []
+
+                for cell in row:
+                    if isinstance(cell, str):
+                        cleaned_cell = cell.strip()
+                    else:
+                        cleaned_cell = ""
+
+                    if cleaned_cell:
+                        row_has_content = True
+
+                    cleaned_row.append(cleaned_cell)
+
+                if row_has_content:
+                    cleaned_table.append(cleaned_row)
+
+            if len(cleaned_table) < 2:
+                continue
+
+            header = []
+            for cell in cleaned_table[0]:
+                header.append(normalize_table_heading(cell)) #get header from cleaned table
+
+            header_set = set(header)
+
+            if header_set & ignored_column_headings and not header_set & topic_column_headings: #if header has ignored columns and not any topic columns, skip
+                continue
+
+            topic_column_indexes = []
+            for index, heading in enumerate(header): #get column indexes for topic columns
+                if heading in topic_column_headings:
+                    topic_column_indexes.append(index)
+
+
+            title_column_indexes = []
+            for index, heading in enumerate(header): #get column indexes for title columns
+                if heading in title_column_headings:
+                    title_column_indexes.append(index)
+
+
+            if title_column_indexes and header_set & (schedule_column_headings | topic_column_headings):
+                for title_column_index in title_column_indexes:
+                    topic_column_indexes.append(title_column_index) #if there is a title column and also schedule/topic column, the title column is likely the topic name, so add it to topic indexing
+            #we would treate the titel_column like a topic column but it would still end up extracting all columns (including the topic column that only has numbers), so clean_topics() must take care of this
+
+            filtered_topic_column_indexes = []
+            for index in topic_column_indexes:  #remove any ignored column headings from chosen topic columns
+                if header[index] not in ignored_column_headings: #(we could switch to a different approach where we remove the ones not appearing in pre selected heading columns )
+                    filtered_topic_column_indexes.append(index)
+
+
+            topic_column_indexes = filtered_topic_column_indexes
+
+            if not topic_column_indexes:
+                continue
+
+            for row in cleaned_table[1:]:
+                for topic_column_index in topic_column_indexes:
+                    if topic_column_index >= len(row):
+                        continue
+
+                    cell = row[topic_column_index].strip()
+                    if not cell:
+                        continue
+
+                    topics.extend(split_topic_cell(cell))
+
+    return topics
+
+
+def normalize_table_heading(heading: str) -> str:
+    heading = heading.strip().lower()
+    heading = heading.replace("&", "and")
+    heading = re.sub(r"[%()*:]", "", heading)
+    heading = re.sub(r"\s+", " ", heading)
+    return heading.strip()
+
+
+def split_topic_cell(cell: str) -> list[str]:
+    split_topics = []
+
+    for item in cell.split("\n"):
+        item = item.strip()
+        if not item:
+            continue
+
+        no_labs_match = re.match(r"^no labs?\s*\((.+)\)$", item, re.IGNORECASE)
+        if no_labs_match:
+            split_topics.append(no_labs_match.group(1).strip())
+            continue
+
+        split_topics.append(item)
+
+    return split_topics
+
+
+def clean_topics(topics: list[str]) -> list[str]:
+    cleaned_topics = []
+    ignore_topics = {"no lab", "no labs", "mid term", "mid term 1", "mid term 2", "no class", "class canceled",
+                     "final exam", "final", "tba", "getting started", "no readings", "no assignments", "review",
+                     "final review", "mid term review", "midterm review", "midterm", "midterm 1", "midterm 2", "midterm exam",
+                     "review session", "final exam tba", "none", "canceled", "quiz 1", "quiz 2", "quiz 3", "quiz 0", "quiz 4", "quiz 5",
+                     "quiz 6", "assignment", "due", "course review", "in-class practice", "in-class review","exam", "test", "reading week",
+                     "reading break","term break","spring break","statutory holiday","holiday","thanksgiving","remembrance day","labour day",
+                     "make-up class", "make up class", "project presentations", "case study presentations", "assignment due", "proposal due",
+                     "final project due", "no lecture", "no lecture - holiday", "no tutorial", "no tutorials", "wrap up",
+                     "reading break - no class", "reading break no class", "wrap-up and review", "wrap up and review", "reading"}
+    
+    for topic in topics:
+        topic = topic.strip()
+        topic = only_bullet_pattern.sub("", topic).strip()
+        if not topic:
+            continue
+        if re.fullmatch(r"[A-Za-z]?\d+(\.\d+)*[.)]?", topic):
+            continue
+        if re.fullmatch(r"\d+(\.\d+)*[.)]?", topic): #remove if toppic is a number like value
+            continue 
+
+        lower_topic = topic.lower()
+        lower_topic = lower_topic.replace("–", "-").replace("—", "-")
+        lower_topic = re.sub(r"\s+", " ", lower_topic).strip()
+        if any(ignore_topic in lower_topic for ignore_topic in ignore_topics):
+            continue
+        if topic in cleaned_topics:
+            continue
+        
+        cleaned_topics.append(topic)
+
+
+    return cleaned_topics  
+
+
+def get_topics_from_text(doc: list[str], topic_pages: list[int]) -> list[str]:
+    return []
+
+
+def get_course_materials(doc: pymupdf.Document, doc_without_header: list[str]) -> list[dict]:
+    return []
+
+
