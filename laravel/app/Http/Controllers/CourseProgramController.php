@@ -42,7 +42,7 @@ class CourseProgramController extends Controller
 
         $programId = $request->input('program_id');
         // if courseIds is null, use an empty array
-        if (! $courseIds = $request->input('selectedCourses')) {
+        if (!$courseIds = $request->input('selectedCourses')) {
             $courseIds = [];
         }
 
@@ -62,7 +62,7 @@ class CourseProgramController extends Controller
 
         // update or create a programCourse for each course
         foreach ($courseIds as $index => $courseId) {
-            $isCourseRequired = $request->input('require'.$courseId);
+            $isCourseRequired = $request->input('require' . $courseId);
             // if a courseProgram with course_id and program_id exists then update course_required field else create a new courseProgram record
             CourseProgram::updateOrCreate(
                 ['course_id' => $courseId, 'program_id' => $programId],
@@ -84,9 +84,9 @@ class CourseProgramController extends Controller
             $this->addDirectorsToProgramCourses($program);
             $this->addDepartmentHeadsToProgramCourses($program);
 
-            $request->session()->flash('success', 'Successfully added '.strval(count($courseIds)).' course(s) to this program.');
+            $request->session()->flash('success', 'Successfully added ' . strval(count($courseIds)) . ' course(s) to this program.');
         } else {
-            $request->session()->flash('error', 'There was an error adding '.strval(count($courseIds) - $numCoursesAddedSuccessfully));
+            $request->session()->flash('error', 'There was an error adding ' . strval(count($courseIds) - $numCoursesAddedSuccessfully));
         }
 
         return redirect()->route('programWizard.step3', $request->input('program_id'));
@@ -102,10 +102,15 @@ class CourseProgramController extends Controller
         $coursesInProgram = $program->courses()->get();
         $programDirectorRole = Role::where('role', 'program director')->first();
 
-        foreach($programDirectors as $director){
-            foreach($coursesInProgram as $course){
-                $this->roleAssignmentHelper->addElevatedRoleUserToCourse($director, $programDirectorRole, $course,
-                    $program->program_id, null);
+        foreach ($programDirectors as $director) {
+            foreach ($coursesInProgram as $course) {
+                $this->roleAssignmentHelper->addElevatedRoleUserToCourse(
+                    $director,
+                    $programDirectorRole,
+                    $course,
+                    $program->program_id,
+                    null
+                );
             }
         }
     }
@@ -113,18 +118,24 @@ class CourseProgramController extends Controller
     /**
      * Helper function to add all department heads to the courses of the program.
      */
-    private function addDepartmentHeadsToProgramCourses($program){
+    private function addDepartmentHeadsToProgramCourses($program)
+    {
         $errorMessages = Collection::make();
         $department = $this->roleAssignmentHelper->getDepartmentFromEntity($program);
-        if($department){
+        if ($department) {
             $departmentHeadRole = Role::where('role', 'department head')->first();
             $departmentHeads = $department->heads()->get();
             $coursesInProgram = $program->courses()->get();
 
             foreach ($departmentHeads as $departmentHead) {
-                foreach($coursesInProgram as $course){
-                    $errorMessage = $this->roleAssignmentHelper->addElevatedRoleUserToCourse($departmentHead, $departmentHeadRole,
-                        $course, $program->program_id, $department->department_id);
+                foreach ($coursesInProgram as $course) {
+                    $errorMessage = $this->roleAssignmentHelper->addElevatedRoleUserToCourse(
+                        $departmentHead,
+                        $departmentHeadRole,
+                        $course,
+                        $program->program_id,
+                        $department->department_id
+                    );
                     if ($errorMessage) {
                         $errorMessages->add($errorMessage);
                     }
@@ -163,7 +174,7 @@ class CourseProgramController extends Controller
             $this->addDepartmentHeadsToProgramCourses($program);
 
 
-            $request->session()->flash('success', 'Successfully updated: '.strval($course->course_title));
+            $request->session()->flash('success', 'Successfully updated: ' . strval($course->course_title));
         } else {
             $request->session()->flash('error', 'There was an error updating the course');
         }
@@ -191,20 +202,6 @@ class CourseProgramController extends Controller
 
     public function generateAiSuggestions(Request $request, $courseId, $programId)
     {
-        $USE_MOCK_DATA = false;
-
-        if ($USE_MOCK_DATA) {
-            Log::info("Generating AI suggestions (MOCK MODE) for course_id=$courseId, program_id=$programId");
-
-            return response()->json([
-                'status' => 'mock',
-                'message' => 'Mock AI suggestions generated successfully',
-                'request_id' => 'mock_request_' . uniqid(),
-                'course_id' => $courseId,
-                'program_id' => $programId,
-            ]);
-        }
-
         try {
             $course = Course::findOrFail($courseId);
             $program = Program::findOrFail($programId);
@@ -273,7 +270,7 @@ class CourseProgramController extends Controller
     /**
      * Query the lo_mapping_service for in-flight status of multiple (course, program) pairs.
      * Returns ['<programId>' => bool, ...] for the given course/program pairs.
-     * Used at Step 5 render time and for pre-click race checks.
+     * Used at Step 5 render time and on-click to check if job is already being worked on.
      */
     public static function getInFlightStatuses(int $courseId, array $programIds): array
     {
@@ -299,31 +296,38 @@ class CourseProgramController extends Controller
             }
             return $result;
         } catch (\Exception $e) {
-            Log::warning('getInFlightStatuses exception: ' . $e->getMessage());
+            Log::error('getInFlightStatuses exception: ' . $e->getMessage());
             return array_fill_keys($programIds, false);
         }
     }
 
-    public function checkInFlight(Request $request, $courseId, $programId)
+    public function checkInFlight(Request $request, int $courseId, int $programId)
     {
-        $statuses = self::getInFlightStatuses((int) $courseId, [(int) $programId]);
+        $statuses = self::getInFlightStatuses($courseId, [$programId]);
         return response()->json([
-            'in_flight' => $statuses[(int) $programId] ?? false,
+            'in_flight' => $statuses[$programId] ?? false,
         ]);
     }
 
-    public function checkAiResults(Request $request, $courseId, $programId)
+
+    /**
+     * Checks if AI result is ready in the local DB.
+     * If not ready, requests the lo_mapping srvice to poll for and process any
+     * ready results for this course-program pair,
+     * which will eventually update the local DB when done.
+     */
+    public function checkAiResults(Request $request, int $courseId, int $programId)
     {
-        // 1. Local DB is the source of truth for "is this complete?". Once
+        // Check if complete according to local (laravel) DB
         // storeAiSuggestions has run, ai_suggestion_status is true and we are done.
         $courseProgram = CourseProgram::where(['course_id' => $courseId, 'program_id' => $programId])->first();
         if ($courseProgram && $courseProgram->ai_suggestion_status) {
             return response()->json(['status' => 'complete']);
         }
 
-        // 2. Not yet complete. Ask FastAPI to poll for and trigger processing of any
-        // ready record. /process-pending-results returns immediately (background
-        // task), so this does not deadlock when artisan serve is single-threaded.
+        // If not yet complete according to local DB:
+        // Ask FastAPI to poll for and trigger processing of any
+        // ready record for this course-program pair
         try {
             $loMappingServiceUrl = config('services.lo_mapping.base_url');
             $payload = [
@@ -376,7 +380,7 @@ class CourseProgramController extends Controller
             ->toArray();
 
         // Look up the "Not Applicable" scale (used to record AI's "is_mapped: false"
-        // suggestions on the N/A column). May not exist in every deployment, so guard.
+        // suggestions on the N/A column). If not found, those suggestions are skipped
         $notApplicableScaleId = \App\Models\MappingScale::where('map_scale_id', 0)
             ->orWhere('abbreviation', 'N/A')
             ->value('map_scale_id');
