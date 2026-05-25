@@ -158,7 +158,7 @@ class LOMappingRequestDynamoDBRecord:
         "AWAITING_COMPLETION_FAILED",
     )
 
-    def find_in_flight_records_for_pairs(self, pairs: list[tuple]) -> dict:
+    def find_in_flight_records_for_pairs(self, pairs: list[tuple[int, int]]) -> dict:
         """
         Given a list of (course_id, program_id) tuples, return a dict mapping each
         tuple to the latest in-flight DynamoDB record (or None if none exists).
@@ -169,13 +169,12 @@ class LOMappingRequestDynamoDBRecord:
 
         Single GSI scan per status; in-memory filter for the requested pairs.
         """
-        result = {pair: None for pair in pairs}
         if not pairs:
-            return result
+            return None
+        
+        result = {pair: None for pair in pairs}
 
-        # Normalize to str so callers can pass int/str/Decimal interchangeably.
         pair_set = {(str(c), str(p)) for c, p in pairs}
-        normalized_to_original = {(str(c), str(p)): (c, p) for c, p in pairs}
         table = self._get_table()
 
         for status in self.IN_FLIGHT_STATUSES:
@@ -184,21 +183,22 @@ class LOMappingRequestDynamoDBRecord:
                 "KeyConditionExpression": Key("status").eq(status),
             }
             response = table.query(**args)
-            self._collect_matching(response.get("Items", []), pair_set, normalized_to_original, result)
+            self._collect_matching(response.get("Items", []), pair_set, result)
 
-            while "LastEvaluatedKey" in response:
+            while "LastEvaluatedKey" in response: # Paginate if there are more results to be read
                 response = table.query(**args, ExclusiveStartKey=response["LastEvaluatedKey"])
-                self._collect_matching(response.get("Items", []), pair_set, normalized_to_original, result)
+                self._collect_matching(response.get("Items", []), pair_set, result)
 
         return result
 
     @staticmethod
-    def _collect_matching(items: list[dict], pair_set: set, normalized_to_original: dict, result: dict) -> None:
+    def _collect_matching(items: list[dict], pair_set: set, result: dict) -> None:
         for item in items:
-            normalized = (str(item.get("course_id")), str(item.get("program_id")))
-            if normalized not in pair_set:
+            pair = (str(item.get("course_id")), str(item.get("program_id")))
+            if pair not in pair_set:
                 continue
-            pair = normalized_to_original[normalized]
+            # If multiple in-flight records exist for the same pair, return the latest one
+            # Note: This shouldn't happen due to the guards we have set up (in both the frontend and service), but just in case
             current = result.get(pair)
             if current is None or item.get("created_at", "") > current.get("created_at", ""):
                 result[pair] = item

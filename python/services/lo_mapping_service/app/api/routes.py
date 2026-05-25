@@ -180,10 +180,7 @@ async def poll_results_status(body: ManualProcessRequest):
 async def process_pending_results(body: ManualProcessRequest, background_tasks: BackgroundTasks):
     """
     Trigger S3 read + Laravel delivery + DynamoDB cleanup as a background task,
-    and return immediately. Returning fast prevents a circular-call deadlock when
-    Laravel is single-threaded (e.g. `php artisan serve` with one worker), since
-    this request has to finish before Laravel can serve the storeAiSuggestions
-    POST that the background task makes.
+    and return immediately.
     """
     logger.info(
         "Process pending results request — course_id=%s program_id=%s",
@@ -205,11 +202,3 @@ async def process_pending_results(body: ManualProcessRequest, background_tasks: 
         "message":   "Processing started in background.",
         "record_id": record.get("request_id"),
     }
-
-
-# Backwards-compatible alias for older callers (and the 6-hour scheduler invocation
-# pattern). Same behaviour as /process-pending-results.
-@app.post("/get-processed-results")
-async def get_processed_results_alias(body: ManualProcessRequest, background_tasks: BackgroundTasks):
-    return await process_pending_results(body, background_tasks)
-    
