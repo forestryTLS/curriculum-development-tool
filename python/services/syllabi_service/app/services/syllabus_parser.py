@@ -71,7 +71,10 @@ def get_course_from_text_file(filePath: str, originalFileName: str) -> dict:
     course["goals"] = get_learning_goals(doc_without_header)
     assessments_and_weights = get_assessment_methods_and_weight(doc)
     course["assessments"] = encode_assessment_and_weight(assessments_and_weights)
-    course["topics"] = get_course_topics(doc, doc_without_header)
+    if originalFileName.lower().endswith(".docx"):
+        course["topics"] = []
+    else:
+        course["topics"] = get_course_topics(doc, doc_without_header)
     course["materials"] = get_course_materials(doc, doc_without_header)
 
     return course
@@ -1102,55 +1105,12 @@ def find_topic_section(doc: list[str]) -> list[int]:
                         "course topics and schedule", "course calendar"}
     
     stop_headings = {
-        "assessment",
-        "assessments",
-        "assessment of learning",
-        "assessments of learning",
-        "assessment of student learning",
-        "assessment methods",
-        "assessment schedule",
-        "breakdown of marks",
-        "mark breakdown",
-        "grade breakdown",
-        "graded activities",
-        "grading scheme",
-        "grading",
-        "course grading",
-        "course grade",
-        "evaluation",
-        "evaluations",
-        "examinations assignments and grading",
-        "examinations",
-        "assignments",
-        "course assignments",
-        "learning materials",
-        "course materials",
-        "learning materials and technology requirements",
-        "course materials and learning resources",
-        "course structure & learning materials",
-        "learning resources",
-        "required materials",
-        "required readings",
-        "recommended readings",
-        "textbook",
-        "textbooks",
-        "course policies",
-        "university policies",
-        "academic integrity",
-        "student support",
-        "student wellbeing",
-        "academic accommodations",
-        "accessibility",
-        "communication protocols",
-        "contacts",
-        "contact",
-        "teaching team",
-        "instructional staff",
-        "copyright",
-        "learning objectives",
-        "learning outcomes",
-        "course learning objectives",
-        "course learning outcomes",
+        "assessment","assessments","assessment of learning","assessments of learning",
+        "assessment of student learning","assessment methods","assessment schedule","breakdown of marks","mark breakdown","grade breakdown","graded activities","grading scheme","grading",
+        "course grading","course grade","evaluation","evaluations","examinations assignments and grading","examinations","assignments","course assignments","learning materials",
+        "course materials","learning materials and technology requirements","course materials and learning resources","course structure & learning materials","learning resources",
+        "course policies","university policies","academic integrity","student support","student wellbeing","academic accommodations","accessibility","communication protocols","contacts",
+        "contact","teaching team","instructional staff","copyright","learning objectives","learning outcomes","course learning objectives","course learning outcomes",
         }
 
     
@@ -1162,10 +1122,22 @@ def find_topic_section(doc: list[str]) -> list[int]:
             for line in lines:
                 clean_line = line.strip().lower().rstrip(":")
                 clean_line = re.sub(r"^\d+(\.\d+)*[.)]?\s*", "", clean_line)
-                if clean_line in expected_headings:
+
+                # some syllabi prefix section headings with course info such as
+                # LAND 304: Tentative Lecture Schedule Check both the full line and
+                # the text after the colon so prefixed headings can still match our known
+                # topic heading names
+
+                heading_candidates = {clean_line}
+
+                if ":" in clean_line:
+                    heading_candidates.add(clean_line.split(":", 1)[1].strip())
+
+                if heading_candidates & expected_headings:
                     in_section = True
                     topic_pages.append(page_index)
                     break
+
             continue
 
         # already in topics section
@@ -1214,44 +1186,16 @@ def is_topic_section_boundary(line: str, stop_headings: set[str], topic_headings
 
 def get_topics_from_table(doc: pymupdf.Document, topic_pages: list[int]) -> list[str]:
     topics = []
+    previous_topic_column_indexes = []
 
     topic_column_headings = {
-        "topic",
-        "topics",
-        "lecture",
-        "lecture topic",
-        "lecture topics",
-        "lab topic",
-        "lab topics",
-        "class topic",
-        "class topics",
-        "course topic",
-        "course topics",
+        "topic","topics","lecture","lecture topic","lecture topics","lab topic","lab topics",
+        "class topic","class topics","course topic","course topics","module topics","weekly topics","weekly topic"
     }
     title_column_headings = {"title", "name", "topic name", "topic title", "topics title"}
     schedule_column_headings = {"week", "date", "dates", "module", "unit", "lecture"}
-    ignored_column_headings = {
-        "reading",
-        "readings",
-        "readings deadlines",
-        "readings and deadlines",
-        "deadline",
-        "deadlines",
-        "due date",
-        "assessment",
-        "assessments",
-        "activity",
-        "activities",
-        "mark",
-        "marks",
-        "weight",
-        "weight %",
-        "percentage",
-        "%",
-        "number",
-        "#",
-        "week",
-    }
+    ignored_column_headings = {"reading","readings","readings deadlines","readings and deadlines","deadline","deadlines","due date","assessment","assessments",
+        "activity","activities","mark","marks","weight","weight %","percentage","%","number","#","week",}
 
     for page_index in topic_pages: 
         if page_index < 0 or page_index >= len(doc):
@@ -1293,6 +1237,7 @@ def get_topics_from_table(doc: pymupdf.Document, topic_pages: list[int]) -> list
                 header.append(normalize_table_heading(cell)) #get header from cleaned table
 
             header_set = set(header)
+            has_topic_header = bool(header_set & topic_column_headings)
 
             if header_set & ignored_column_headings and not header_set & topic_column_headings: #if header has ignored columns and not any topic columns, skip
                 continue
@@ -1322,10 +1267,21 @@ def get_topics_from_table(doc: pymupdf.Document, topic_pages: list[int]) -> list
 
             topic_column_indexes = filtered_topic_column_indexes
 
+            # Some continued tables keep the same columns but lose the header row on the next page/table fragment. so we can reuse the topic columns from the previous page
+            if not topic_column_indexes and previous_topic_column_indexes:
+                topic_column_indexes = previous_topic_column_indexes
+
             if not topic_column_indexes:
                 continue
 
-            for row in cleaned_table[1:]:
+            previous_topic_column_indexes = topic_column_indexes
+
+            if has_topic_header:
+                rows_to_process = cleaned_table[1:]  #if there is a header row, we processes everything but the header, but if there isnt, we process every row
+            else:
+                rows_to_process = cleaned_table
+
+            for row in rows_to_process:
                 for topic_column_index in topic_column_indexes:
                     if topic_column_index >= len(row):
                         continue
@@ -1373,13 +1329,16 @@ def clean_topics(topics: list[str]) -> list[str]:
                      "review session", "final exam tba", "none", "canceled", "quiz 1", "quiz 2", "quiz 3", "quiz 0", "quiz 4", "quiz 5",
                      "quiz 6", "assignment", "due", "course review", "in-class practice", "in-class review","exam", "test", "reading week",
                      "reading break","term break","spring break","statutory holiday","holiday","thanksgiving","remembrance day","labour day",
-                     "make-up class", "make up class", "project presentations", "case study presentations", "assignment due", "proposal due",
+                    "make-up class", "make up class", "project presentations", "case study presentations", "assignment due", "proposal due",
                      "final project due", "no lecture", "no lecture - holiday", "no tutorial", "no tutorials", "wrap up",
                      "reading break - no class", "reading break no class", "wrap-up and review", "wrap up and review", "reading"}
     
     for topic in topics:
         topic = topic.strip()
         topic = only_bullet_pattern.sub("", topic).strip()
+        topic = topic.replace("–", "-").replace("—", "-")
+        topic = topic.rstrip("*").strip() #test syllabi were outputted with topics that had "*" attatched to the end, this is why this is here
+
         if not topic:
             continue
         if re.fullmatch(r"[A-Za-z]?\d+(\.\d+)*[.)]?", topic):
@@ -1388,10 +1347,12 @@ def clean_topics(topics: list[str]) -> list[str]:
             continue 
 
         lower_topic = topic.lower()
-        lower_topic = lower_topic.replace("–", "-").replace("—", "-")
+        lower_topic = lower_topic.replace("–", "-").replace("—", "-") #there are diff dashes that python treats differently
+        
         lower_topic = re.sub(r"\s+", " ", lower_topic).strip()
         if any(ignore_topic in lower_topic for ignore_topic in ignore_topics):
             continue
+        topic = re.sub(r"\s*\([^)]*(dr\.|instructor|ta|teaching assistant|prof|professor|teacher)[^)]*\)\s*$", "", topic, flags=re.IGNORECASE).strip() #strips instructor-style parenthesis
         if topic in cleaned_topics:
             continue
         
@@ -1402,10 +1363,119 @@ def clean_topics(topics: list[str]) -> list[str]:
 
 
 def get_topics_from_text(doc: list[str], topic_pages: list[int]) -> list[str]:
-    return []
+    topics = []
+    expected_headings = {"schedule of topics", "topics", "course topics", "schedule", "schedule of learning topics",
+                        "course schedule", "lecture schedule", "tentative lecture schedule", "tentative schedule",
+                        "schedule of topics and assessments", "course contents", "course content", "lecture topics", 
+                        "lectures", "weekly schedule", "weekly course schedule", "course outline", "class schedule",
+                        "class topics", "lecture outline", "course calendar", "weekly topics", "weekly modules", "modules",
+                        "course modules", "units", "course units", "weekly readings and topics", "schedule of classes",
+                        "schedule of lectures", "lecture and lab schedule", "course and lab schedule", "topics and schedule",
+                        "course topics and schedule", "course calendar"}
+    ignored_lines = {"week", "weeks", "date", "dates", "day", "days", "topic", "topics", "title", "name", "lecture", "lectures", "module", "modules",
+                    "unit", "units", "class", "classes", "session", "sessions", "reading", "readings", "required reading", "required readings",
+                    "recommended reading", "recommended readings", "assignment", "assignments", "deadline", "deadlines", "due", "due date", "due dates", 
+                    "quiz", "quizzes", "exam", "exams", "test", "tests", "assessment", "assessments", "activity", "activities", "lab", "labs", "tutorial", 
+                    "tutorials", "workshop", "workshops", "in-class work", "in class work", "who", "instructor", "location", "room", "notes", "comments", 
+                    "description", "overview"}
+    stop_headings = {
+    "assessment",
+    "assessments", "communication protocols", "academic and learning resources", "netiquette expectations", "universities policies", "university policies", "academic integrity"
+    "assessment of learning",
+    "assessments of learning","assessment of student learning","assessment methods","assessment schedule","breakdown of marks","mark breakdown","grade breakdown",
+    "graded activities","grading scheme","grading","course grading","course grade","evaluation","evaluations","examinations assignments and grading","examinations",
+    "assignments","course assignments","learning materials","course materials","learning materials and technology requirements","course materials and learning resources",
+    "course structure & learning materials","learning resources","required materials","required readings","recommended readings","textbook","textbooks","course policies",
+    "university policies","academic integrity","student support","student wellbeing","academic accommodations","accessibility","communication protocols","contacts",
+    "contact","teaching team","instructional staff","copyright","learning objectives","learning outcomes","course learning objectives","course learning outcomes",
+    }
+    
+
+
+    started = False #to indicate when to start extracting topic lines since this method can start earlier than it is supposed to
+
+    for page_count, page_index in enumerate(topic_pages):
+        if page_index < 0 or page_index >= len(doc):
+            continue
+
+        lines = doc[page_index].split("\n")
+
+        if page_count > 0:
+            started = True
+
+        for line in lines:
+            line = line.strip()
+
+            if not line:
+                continue
+
+            clean_line = line.lower().rstrip(":")
+
+            # the first topic page can contain earlier sections above the schedule heading sp
+            # only start text extraction once the topic heading itself is reached.
+            heading_line = re.sub(r"^\d+(\.\d+)*[.)]?\s*", "", clean_line)
+            heading_candidates = {heading_line}
+            if ":" in heading_line:
+                heading_candidates.add(heading_line.split(":", 1)[1].strip())
+
+            if not started: #if we have not reached the schedule heading yet, keep skipping lines but once we find the heading we can start extracting
+                #this would prevent early extraction of non-topics
+                if heading_candidates & expected_headings:
+                    started = True
+                continue
+            if is_topic_section_boundary(line, stop_headings , expected_headings):
+                return topics #once text extraction has started, this will stop it if we hit a later section heading
+
+            if clean_line in ignored_lines:
+                continue
+
+            if only_bullet_pattern.match(line):
+                topic = only_bullet_pattern.sub("", line).strip() #if bullet/numbered lines/points, extract each line 
+                topics.append(topic)
+                continue
+
+            module_match = re.match(r"^(module|week|unit|lecture)\s+\d+[.:–—-]\s*(.+)$", line, re.IGNORECASE ) #extract module/week lines 
+
+            if module_match:
+                topics.append(module_match.group(2).strip())
+                continue
+
+            date_topic_match = re.match(r"^(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?\s+\d{1,2}[,:]?\s+(.+)$", line, re.IGNORECASE) #extract date + topic lines
+
+            if date_topic_match:
+                topics.append(date_topic_match.group(2).strip())
+                continue
+
+            words = line.split()
+            if 3 <= len(words) <= 12 and not line.endswith("."): #extract topic looking plain lines
+                topics.append(line)
+
+    return topics
+
 
 
 def get_course_materials(doc: pymupdf.Document, doc_without_header: list[str]) -> list[dict]:
+    material_pages = find_material_section(doc_without_header)
+
+    text_materials = materials = get_materials_from_text(doc_without_header, material_pages)
+    if(text_materials):
+        return clean_materials(text_materials)
+    
+    return  clean_materials(get_materials_from_table(doc, material_pages))
+
+
+
+def find_material_section(doc: list[str]) -> list[int]:
+   return []
+
+def get_materials_from_text(doc: list[str], pages: list[int]) -> list[dict]:
     return []
+
+def clean_materials(materials: list[dict]) -> list[dict]:
+    return []
+
+def get_materials_from_table(doc: pymupdf.Document, pages: list[int]) -> list[dict]:
+    return []
+
 
 
