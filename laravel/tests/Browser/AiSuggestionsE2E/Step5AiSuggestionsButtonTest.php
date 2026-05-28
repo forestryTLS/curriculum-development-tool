@@ -19,5 +19,6 @@ it('shows the AI Suggestions button on step 5 when a course is linked to a progr
     $page = visit("/courseWizard/{$course->course_id}/step5");
 
     $page->assertNoJavascriptErrors();
+    $page->click("[data-bs-target=\"#collapseProgramAccordion{$program->program_id}\"]");
     $page->assertSee('AI Suggestions');
 });
