@@ -28,6 +28,7 @@
         "mockery/mockery": "^1.4.4",
         "nunomaduro/collision": "^8.1",
         "pestphp/pest": "^4.7",
+        "pestphp/pest-plugin-browser": "^4.3",
         "spatie/laravel-ignition": "^2.0"
     },
     "config": {
@@ -53,7 +54,10 @@
     "autoload-dev": {
         "psr-4": {
             "Tests\\": "tests/"
-        }
+        },
+        "files": [
+            "tests/Helpers/Fixtures.php"
+        ]
     },
     "minimum-stability": "stable",
     "prefer-stable": true,
@@ -74,7 +78,17 @@
         "test": [
             "php scripts/check-test-db.php",
             "php artisan migrate:fresh --seed --env=testing",
-            "php artisan test"
+            "php artisan test --exclude-group=ai-suggestions-e2e"
+        ],
+        "test:ai-suggestions-e2e": [
+            "php scripts/check-test-db.php",
+            "php artisan migrate:fresh --seed --env=testing",
+            "php artisan test --group=ai-suggestions-e2e"
+        ],
+        "test:ai-suggestions-e2e:debug": [
+            "php scripts/check-test-db.php",
+            "php artisan migrate:fresh --seed --env=testing",
+            "php artisan test --group=ai-suggestions-e2e --debug"
         ]
     }
 }

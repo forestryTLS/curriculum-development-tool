@@ -18,6 +18,10 @@ pest()->extend(TestCase::class)
  // ->use(RefreshDatabase::class)
     ->in('Feature');
 
+pest()->extend(TestCase::class)
+    ->group('ai-suggestions-e2e')
+    ->in('Browser/AiSuggestionsE2E');
+
 /*
 |--------------------------------------------------------------------------
 | Expectations

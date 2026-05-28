@@ -20,7 +20,8 @@
         "vue": "^3.2.25"
     },
     "dependencies": {
-        "@popperjs/core": "^2.11.4"
+        "@popperjs/core": "^2.11.4",
+        "playwright": "^1.60.0"
     },
     "type": "module"
 }
