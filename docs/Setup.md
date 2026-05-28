@@ -4,7 +4,7 @@
 
 - PHP `^8.2`
 - Composer
-- Laravel 10
+- Laravel 11
 - Node.js and npm
 - PostgreSQL
 - Python (for running the microservices under `python/services/`)
