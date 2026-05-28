@@ -20,6 +20,7 @@ pest()->extend(TestCase::class)
 
 pest()->extend(TestCase::class)
     ->group('ai-suggestions-e2e')
+    ->beforeAll(fn () => \Tests\Helpers\AiSuggestionsE2E\ensureLOMappingServiceReachable())
     ->in('Browser/AiSuggestionsE2E');
 
 /*

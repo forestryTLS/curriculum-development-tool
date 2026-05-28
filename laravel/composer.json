@@ -56,7 +56,8 @@
             "Tests\\": "tests/"
         },
         "files": [
-            "tests/Helpers/Fixtures.php"
+            "tests/Helpers/AiSuggestionsE2E/Fixtures.php",
+            "tests/Helpers/AiSuggestionsE2E/ServiceChecks.php"
         ]
     },
     "minimum-stability": "stable",

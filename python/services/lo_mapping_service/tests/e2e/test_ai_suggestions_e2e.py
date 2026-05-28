@@ -1,7 +1,5 @@
 """
-End-to-end test that simulates a SageMaker job completing for a course/program,
-drives the polling endpoint, and verifies the AI-suggested mappings render on
-Step 5 with the expected purple icons.
+Unused
 
 Covers:
   - LocalStack DynamoDB + S3 read by FastAPI
