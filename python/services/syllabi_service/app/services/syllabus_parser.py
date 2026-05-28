@@ -73,9 +73,10 @@ def get_course_from_text_file(filePath: str, originalFileName: str) -> dict:
     course["assessments"] = encode_assessment_and_weight(assessments_and_weights)
     if originalFileName.lower().endswith(".docx"):
         course["topics"] = []
+        course["materials"] = []
     else:
         course["topics"] = get_course_topics(doc, doc_without_header)
-    course["materials"] = get_course_materials(doc, doc_without_header)
+        course["materials"] = get_course_materials(doc, doc_without_header)
 
     return course
 
@@ -1471,10 +1472,11 @@ def find_material_section(doc: list[str]) -> list[int]:
     pages = []
     in_section = False
     expected_headings = {"learning materials", "course materials", "required readings", "recommended readings","textbook","textbooks",
-    "required textbook","required textbooks","course resources","learning resources", "materials and resources","textbook and references","course materials and learning resources",
-    "learning materials and technology requirements", "course structure and learning materials", "course references", "optional readings", "optional textbook",
+    "required textbook","required textbooks","course resources","learning resources", "materials and resources","textbook and references","textbook and readings","course materials and learning resources",
+    "learning materials and technology requirements", "course structure and learning materials", "course structure & learning materials", "course references", "supplies needed", "optional readings", "optional textbook",
     "optional textbooks", "optional resources","required materials","required readings","recommended readings","textbook","textbooks", "learning materials", "course materials",
-    "learning materials and technology requirements", "course materials and learning resources", "learning resources",}
+    "learning materials and technology requirements", "course materials and learning resources", "learning resources","recommended literature sources", "recommended literature resources", "recommended literature sources",
+    "recommended literature source", "recommended literature resource", "recommended sources", "recommended resources"}
     stop_headings = {
         "assessment","assessments","assessment of learning","assessments of learning",
         "assessment of student learning","assessment methods","assessment schedule","breakdown of marks","mark breakdown","grade breakdown","graded activities","grading scheme","grading",
@@ -1528,15 +1530,16 @@ def find_material_section(doc: list[str]) -> list[int]:
 def get_materials_from_text(doc: list[str], pages: list[int]) -> list[dict]:
     materials = []
     expected_headings = {"learning materials", "course materials", "required readings", "recommended readings","textbook","textbooks",
-    "required textbook","required textbooks","course resources","learning resources", "materials and resources","textbook and references","course materials and learning resources",
-    "learning materials and technology requirements", "course structure and learning materials", "course references", "optional readings", "optional textbook",
+    "required textbook","required textbooks","course resources","learning resources", "materials and resources","textbook and references","textbook and readings","course materials and learning resources",
+    "learning materials and technology requirements", "course structure and learning materials", "course structure & learning materials", "course references", "supplies needed", "optional readings", "optional textbook",
     "optional textbooks", "optional resources","required materials","required readings","recommended readings","textbook","textbooks", "learning materials", "course materials",
-    "learning materials and technology requirements", "course materials and learning resources", "learning resources","recommended literature sources", "recommended literature resources"}
+    "learning materials and technology requirements", "course materials and learning resources", "learning resources","recommended literature sources", "recommended literature resources", "recommended literature sources",
+    "recommended literature source", "recommended literature resource", "recommended sources", "recommended resources"}
 
     stop_headings = {"assessment","assessments","assessment of learning","assessments of learning",
     "assessment of student learning","assessment methods","assessment schedule","breakdown of marks","mark breakdown","grade breakdown","graded activities","grading scheme","grading",
     "course grading","course grade","evaluation","evaluations","examinations assignments and grading","examinations","assignments","course assignments","technology requirements",
-    "course policies","university policies","academic integrity","student support","student wellbeing","academic accommodations","accessibility","communication protocols","contacts",
+    "course policies","university policies","academic integrity","academic and learning resources","student support","student wellbeing","academic accommodations","accessibility","communication protocols","contacts",
     "contact","teaching team","instructional staff","copyright","learning objectives","learning outcomes","course learning objectives","course learning outcomes",
     "schedule of topics", "topics", "course topics", "schedule", "schedule of learning topics","course schedule", "lecture schedule", "tentative lecture schedule", "tentative schedule",
     "schedule of topics and assessments", "course contents", "course content", "lecture topics", "weekly schedule", "weekly course schedule", "course outline", "class schedule",
@@ -1566,7 +1569,7 @@ def get_materials_from_text(doc: list[str], pages: list[int]) -> list[dict]:
     "textbook", "edition", "readings", "reading", "slides", "canvas","software", "arcgis", "qgis", "calculator", "journal articles",
     "case studies", "documentary", "video", "podcast", "website","portal", "articles", "article", "book"
 }
-    citation_pattern = re.compile(r"^[A-Z][A-Za-z'’.-]+,\s+[A-Z](?:\.\s*)?(?:&\s+[A-Z][A-Za-z'’.-]+,\s+[A-Z](?:\.\s*)?)?\s+\d{4}\.\s+.+\.\s+.+\.?$") #regex for citation patterns
+    citation_pattern = re.compile(r"^[A-Z][A-Za-z'’.-]+,\s+.+(?:\(\d{4}\)|\d{4})\.\s+.+\.?$") #regex to spot citation patterns
 
     started = False
     current_description = ""
@@ -1578,17 +1581,27 @@ def get_materials_from_text(doc: list[str], pages: list[int]) -> list[dict]:
             continue
 
         lines = doc[page_index].split("\n")
+        skip_line_indexes = set()
 
         if page_count > 0:
             started = True
 
-        for line in lines:
+        for line_index, line in enumerate(lines):
+            if line_index in skip_line_indexes:
+                continue
+
             line = line.strip()
 
             if not line:
                 continue
 
-            clean_line = line.lower().rstrip(":")
+            clean_line = line.lower().rstrip(":") #if current line extends on to the next line and the next line is not a bullet/header/title, save it for later use in determining description
+            next_line_description = ""
+            if line_index + 1 < len(lines):
+                next_line = lines[line_index + 1].strip()
+                clean_next_line = next_line.lower().rstrip(":")
+                if next_line and clean_next_line not in ignore_lines and clean_next_line not in material_labels and not only_bullet_pattern.match(next_line) and not is_section_boundary(next_line, stop_headings, expected_headings):
+                    next_line_description = next_line
 
             # the first material page can contain earlier sections above the schedule heading sp
             # only start text extraction once the heading itself is reached.
@@ -1601,7 +1614,11 @@ def get_materials_from_text(doc: list[str], pages: list[int]) -> list[dict]:
                 #this would prevent early extraction of non-materials
                 if heading_candidates & expected_headings:
                     started = True
+                    if clean_line in material_labels:
+                        current_description = line.rstrip(":").strip() # If the heading is also a material label, keep it for the entries below it.
                 continue
+            if clean_line in expected_headings and materials and clean_line not in material_labels:
+                return materials # Once real materials are found, a new materials-like heading is usually a support/resources section.
             if is_section_boundary(line, stop_headings , expected_headings):
                 return materials #once text extraction has started, this will stop it if we hit a later section heading
             
@@ -1614,8 +1631,13 @@ def get_materials_from_text(doc: list[str], pages: list[int]) -> list[dict]:
 
 
             ### bullet points extraction
-            if only_bullet_pattern.match(line):
+            material_bullet_match = only_bullet_pattern.match(line) or re.match(r"^G\s+", line)
+            if material_bullet_match:
                 material_name = only_bullet_pattern.sub("", line).strip()
+                material_name = re.sub(r"^G\s+", "", material_name).strip() # Some pdfs extract bullet dots as G weirdly, but only treat that as a bullet inside material parsing.
+                if material_name == "" and next_line_description:
+                    material_name = next_line_description
+                    skip_line_indexes.add(line_index + 1) # PymuPDF can split a bullet marker and its text onto separate lines, so treat the next line as the bullet item.
                 clean_material_name = material_name.lower()
                 clean_material_name = clean_material_name.replace("–", "-").replace("—", "-")
                 clean_material_name = re.sub(r"\s+", " ", clean_material_name).strip()
@@ -1637,14 +1659,6 @@ def get_materials_from_text(doc: list[str], pages: list[int]) -> list[dict]:
                         })
                         continue
 
-                    if(label_before_col not in material_labels):
-                        materials.append({
-                            "name": name,
-                            "type": infer_material_type(name, description),
-                            "description": description,
-                        })
-                        continue
-
 
                 if citation_pattern.match(material_name): # likely a textbook citation
                     if current_description == "":
@@ -1659,23 +1673,32 @@ def get_materials_from_text(doc: list[str], pages: list[int]) -> list[dict]:
 
                     continue
 
-                if current_description == "":
-                    current_description = "resource for course"
+                if current_description.lower() not in material_labels and not any(keyword in clean_material_name for keyword in material_keywords):
+                    continue
+
+                material_description = next_line_description or current_description #prefer next_line_description
+                if material_description == "":
+                    material_description = "resource for course"
+                if next_line_description:
+                    skip_line_indexes.add(line_index + 1) # Some pdfs split "Textbook 1: description" onto two lines, so attach the next line instead of treating it as a separate material.
 
                 materials.append({
                     "name": material_name,
-                    "type": infer_material_type(material_name, current_description),
-                    "description": current_description,
+                    "type": infer_material_type(material_name, material_description),
+                    "description": material_description,
                 })
                 continue
             ### end of bullet points extraction
 
 
             #handles things like "required textbook:", or "the course textbook is..."
-            textbook_match = re.match(r"^(the course textbook is|required textbook)\s*:?\s*(.+)$", line, re.IGNORECASE)
+            textbook_match = re.search(r"\b(the course textbook is|required textbook)\s*:?\s*(.+)$", line, re.IGNORECASE)
             if textbook_match:
                 description = textbook_match.group(1).strip()
                 name = textbook_match.group(2).strip() 
+                if next_line_description and (not name.endswith(".") or re.search(r"\(\d{4}\)\.$", name)):
+                    name = f"{name} {next_line_description}"
+                    skip_line_indexes.add(line_index + 1) # Some pdf citations wrap onto the next line so keep the citation together as one material name
 
                 materials.append({
                     "name": name,
@@ -1718,12 +1741,7 @@ def get_materials_from_text(doc: list[str], pages: list[int]) -> list[dict]:
                         })
                         continue
 
-                    materials.append({
-                        "name": name,
-                        "type": infer_material_type(name, description),
-                        "description": description,
-                    })
-                    continue
+                    # If the colon is part of the title, keep the full line and let the generic material rules handle it.
             
             if citation_pattern.match(line): #handles citation looking lines
                 if current_description == "":
@@ -1752,10 +1770,10 @@ def get_materials_from_text(doc: list[str], pages: list[int]) -> list[dict]:
 
 def infer_material_type(name: str, description: str) -> str:
     material_types = [
-        "textbook","software","podcast","documentary","video","article","case study","website",
-        "online resource","digital resource","lecture slide","slides","reading","book","movie","calculator",
-        "equipment",]
-    citation_pattern = re.compile(r"^[A-Z][A-Za-z'’.-]+,\s+[A-Z](?:\.\s*)?(?:&\s+[A-Z][A-Za-z'’.-]+,\s+[A-Z](?:\.\s*)?)?\s+\d{4}\.\s+.+\.\s+.+\.?$") #regex for citation patterns
+        "textbook","software","podcast","video","website","article","case study",
+        "online resource","digital resource","lecture slides","slides","reading","book","movie","calculator",
+        "equipment"]
+    citation_pattern = re.compile(r"^[A-Z][A-Za-z'’.-]+,\s+.+(?:\(\d{4}\)|\d{4})\.\s+.+\.?$") #regex for citation patterns
     
     is_citation = citation_pattern.match(name) or citation_pattern.match(description)
     
@@ -1763,27 +1781,101 @@ def infer_material_type(name: str, description: str) -> str:
     name = name.strip().lower()
     description = description.strip().lower()
 
+    if "optional text" in description:
+        return "text"
+    if "textbook" in description or "edition" in name:
+        return "textbook"
+    if is_citation:
+        return "textbook"
     if "calculator" in name or "calculator" in description:
         return "equipment"
+    if "arcgis" in name or "qgis" in name or "software" in name:
+        return "software"
+    if "digital resource" in description or "digital resources" in description:
+        return "digital resource"
+    if "portal" in name:
+        return "website"
+    if "documentary" in name or "documentary" in description:
+        return "video"
 
     for t in material_types:
         if t in name:
             return t
-        
+
+    if "websites and online articles" in description and "article" in name:
+        return "article"
+    # if the name did not reveal the type, fall back to the section label/description.
+    for t in material_types:
         if t in description:
             return t
-        
-    
-    if is_citation: #citation likely are for textbooks
-        return "textbook"
     
     return "course resource"
     
 
 def clean_materials(materials: list[dict]) -> list[dict]:
+    cleaned_materials = []
+    seen_materials = set()
+
+    ignore_names = {"", "none", "n/a", "na", "not applicable", "tba", "to be announced", "see canvas", "canvas", "canvas site", "course website", "course textbook and readings", "software tools", "additional readings and case studies will be provided through canvas.", "through canvas modules.", "throughout the term in canvas modules.", "there are no mandatory textbook requirements for this course and all lecture materials will be supplied through canvas.", "learning materials",
+                    "course materials", "other course materials", "course resources", "learning resources", "materials and resources", "textbook and references",
+                    "textbook and readings", "required textbook", "required textbooks", "optional textbook", "optional textbooks", "required reading", "required readings",
+                    "recommended reading", "recommended readings", "optional reading", "optional readings", "recommended literature sources", "recommended literature resources", 
+                    "digital resources", "online resources", "web resources", "technology requirements", "supplies needed", "equipment", "software", "calculator", "laptop", "tablet", 
+                    "mobile device", "internet", "wifi", "course policies", "academic integrity", "student support", "communication protocols", "assessment", "assessments", "assignments", 
+                    "schedule", "topics", "week", "date", "lecture", "lab", "tutorial", "textbook", "textbooks"}
+
+    for material in materials:
+        name = material.get("name", "") 
+        material_type = material.get("type", "")
+        description = material.get("description", "")
 
 
-    return []
+        name = re.sub(r"\s+", " ", name).strip()
+        material_type = re.sub(r"\s+", " ", material_type).strip()
+        description = re.sub(r"\s+", " ", description).strip()
+
+        name = name.replace("–", "-").replace("—", "-")
+        description = description.replace("–", "-").replace("—", "-")
+
+        if ":" in name and description == name:
+            name, description = [part.strip() for part in name.split(":", 1)] # Split duplicated "Name: description" entries so duplicate cleanup can keep the richer description.
+
+        clean_name = name.lower().rstrip(":").strip()
+
+        if clean_name in ignore_names:
+            continue
+
+        if clean_name.startswith("* note") or clean_name.startswith("note,"):
+            continue # Exam note bullets are schedule/admin notes, not course materials.
+
+        if not name:
+            continue
+
+        if re.match(r"^(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?\s+\d{1,2}\b", clean_name):
+            continue # Date-prefixed schedule rows can mention readings/case studies, but they are topics, not materials.
+
+        if description.lower() == "resource for course" and len(name.split()) > 8:
+            continue #s longer lines can mention readings and textbooks, but they are usually othe info rather than actual material
+
+        cleaned_material = {
+            "name": name,
+            "type": material_type,
+            "description": description,
+        }
+
+        if clean_name in seen_materials:
+            for index, existing_material in enumerate(cleaned_materials):
+                if existing_material["name"].lower().rstrip(":").strip() == clean_name and len(description) > len(existing_material["description"]):
+                    cleaned_materials[index] = cleaned_material
+                    break  #if the same material appears twice, keep the one with the description name beccause that is most likely the better one
+            continue
+
+        seen_materials.add(clean_name)
+
+        cleaned_materials.append(cleaned_material)
+
+    return cleaned_materials
+
 
 
 
