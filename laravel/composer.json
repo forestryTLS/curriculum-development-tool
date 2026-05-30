@@ -57,7 +57,7 @@
         },
         "files": [
             "tests/Helpers/AiSuggestionsE2E/Fixtures.php",
-            "tests/Helpers/AiSuggestionsE2E/ServiceChecks.php"
+            "tests/Helpers/AiSuggestionsE2E/LOMappingServiceCheck.php"
         ]
     },
     "minimum-stability": "stable",

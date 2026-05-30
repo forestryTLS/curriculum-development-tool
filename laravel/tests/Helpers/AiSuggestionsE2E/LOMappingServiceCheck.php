@@ -6,7 +6,7 @@ use RuntimeException;
 
 function ensureLOMappingServiceReachable(): void
 {
-    $baseUrl = config('services.lo_mapping.base_url');
+    $baseUrl = getenv('LO_MAPPING_SERVICE_URL') ?: 'http://127.0.0.1:8002';
     $ch = curl_init(rtrim($baseUrl, '/') . '/docs');
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_TIMEOUT, 3);
@@ -19,8 +19,7 @@ function ensureLOMappingServiceReachable(): void
         throw new RuntimeException(
             "FastAPI (lo_mapping_service) is not reachable at $baseUrl.\n" .
             "Start it from python/services/lo_mapping_service/ with:\n" .
-            "    python -m app.test\n" .
-            "That also brings up LocalStack via Docker Compose if it isn't already running."
+            "    python -m app.test"
         );
     }
 }

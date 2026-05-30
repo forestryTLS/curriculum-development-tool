@@ -60,7 +60,6 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
-
 @app.get("/health")
 async def health_check() -> dict[str, str]:
     return {"status": "ok"}
@@ -68,10 +67,9 @@ async def health_check() -> dict[str, str]:
 
 @app.post("/map-program-outcomes")
 async def map_program_outcomes(request: OutcomeMappingRequest)-> dict:
+    logger.info("/map-program-outcomes called for course_id=%s program_id=%s", request.course_id, request.program_id)
     try:
-        # Dedupe: if there is already an in-flight record for this (course, program)
-        # pair, return its request_id and skip the S3 upload + DynamoDB insert + Lambda
-        # invoke. Best-effort (small race window between query and insert).
+        logger.info("Step 1/4: checking for existing in-flight record")
         existing = lo_mapping_request_store.find_in_flight_records_for_pairs(
             [(request.course_id, request.program_id)]
         ).get((request.course_id, request.program_id))
@@ -87,18 +85,25 @@ async def map_program_outcomes(request: OutcomeMappingRequest)-> dict:
                 "deduplicated": True,
             }
 
+        logger.info("Step 2/4: building batch prompt records (uploads to S3)")
         batchTranformInputBuilder = BatchTransformInputBuilder(request)
         s3_input_path = batchTranformInputBuilder.build_batch_prompt_records()
+        logger.info("Step 2/4 done: s3_input_path=%s", s3_input_path)
+
+        logger.info("Step 3/4: writing PENDING record to DynamoDB table=%s", lo_mapping_request_store.table_name)
         record = lo_mapping_request_store.create_request(
             course_id=request.course_id,
             program_id=request.program_id,
             input_s3_path=s3_input_path,
             status="PENDING",
         )
+        logger.info("Step 3/4 done: created record_id=%s", record["request_id"])
+
+        logger.info("Step 4/4: invoking start-batch-transform-job Lambda")
         try:
             response = lambda_client.invoke(
                 FunctionName="start-batch-transform-job",
-                InvocationType="RequestResponse",        
+                InvocationType="RequestResponse",
                 Payload=json.dumps({"record_id": record["request_id"]
                                     }).encode("utf-8")
             )
@@ -109,6 +114,7 @@ async def map_program_outcomes(request: OutcomeMappingRequest)-> dict:
             result = json.loads(response["Payload"].read())
             body = result.get("body", {}) if isinstance(result, dict) else {}
 
+            logger.info("Step 4/4 done: lambda returned %s", body)
             return {
                 "message": body.get("message", "Submitted"),
                 "jobName": body.get("jobName") or body.get("existingJob"),
@@ -116,9 +122,12 @@ async def map_program_outcomes(request: OutcomeMappingRequest)-> dict:
             }
 
         except Exception as e:
+            logger.exception("Step 4/4 failed: lambda invocation error (PENDING record %s is in DynamoDB)", record["request_id"])
             raise HTTPException(status_code=500, detail=str(e))
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Error in mapping LOs: {e}")
+        logger.exception("Error in mapping LOs (full traceback above)")
         raise HTTPException(status_code=500, detail="Something went wrong while processing mapping request")
     
 @app.post("/in-flight-status")
@@ -152,6 +161,7 @@ async def in_flight_status(request: InFlightStatusRequest) -> dict:
                 "request_id": record.get("request_id"),
                 "created_at": record.get("created_at"),
             })
+    logger.info("In-flight status check: pairs=%s statuses=%s", pairs, statuses)
     return {"statuses": statuses}
 
 
@@ -202,3 +212,38 @@ async def process_pending_results(body: ManualProcessRequest, background_tasks: 
         "message":   "Processing started in background.",
         "record_id": record.get("request_id"),
     }
+
+
+# ───────────────── TEST ROUTES ─────────────────
+# Routes inside this block are only registered when ENABLE_TEST_ENDPOINTS=true
+# (set by app/test.py). Production runs never expose these. Used by the Pest
+# E2E suite to manipulate state without needing the AWS SDK on the Laravel side.
+if os.environ.get("ENABLE_TEST_ENDPOINTS") == "true":
+    import datetime as _dt
+
+    logger.info("Test endpoints registered at /test/*")
+
+    @app.post("/test/mark-record-in-progress/{course_id}/{program_id}")
+    def _mark_record_in_progress(course_id: int, program_id: int) -> dict:
+        """The start-batch-transform-job lambda uses Sage Maker, so this
+        simulates the start-batch-transform-job Lambda succeeding: find the
+        in-flight record for this (course, program) pair and flip its status
+        to IN_PROGRESS.
+        """
+        record = lo_mapping_request_store.find_in_flight_records_for_pairs(
+            [(course_id, program_id)]
+        ).get((course_id, program_id))
+        if record is None:
+            return {"error": "No in-flight record found", "course_id": course_id, "program_id": program_id}
+
+        lo_mapping_request_store._get_table().update_item(
+            Key={"request_id": record["request_id"]},
+            UpdateExpression="SET #st = :s, transform_job_name = :j, updated_at = :ts",
+            ExpressionAttributeNames={"#st": "status"},
+            ExpressionAttributeValues={
+                ":s":  "IN_PROGRESS",
+                ":j":  f"test-job-{record['request_id']}",
+                ":ts": _dt.datetime.utcnow().isoformat(),
+            },
+        )
+        return {"status": "ok", "request_id": record["request_id"]}

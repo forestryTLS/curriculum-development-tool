@@ -700,7 +700,7 @@
         .then(data => {
             console.log('AI suggestion response:', data);
 
-            if (data.status === 'mock' || data.status === 'success') {
+            if (data.status === 'success') {
                 hideAiModal(courseId, programId);
                 enterCheckingState(courseId, programId, AI_MSG_CHECKING);
                 pollForResults(courseId, programId);

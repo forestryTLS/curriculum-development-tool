@@ -7,6 +7,7 @@ use App\Models\ProgramLearningOutcome;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 
 function makeTestUser(string $email): User
 {
@@ -103,3 +104,19 @@ function attachMappingScalesToProgram(Program $program, array $mapScaleIds = [1,
         ]);
     }
 }
+
+function markRecordInProgress(int $courseId, int $programId): void
+{
+    $baseUrl = getenv('LO_MAPPING_SERVICE_URL') ?: 'http://127.0.0.1:8002';
+    $response = Http::post(
+        rtrim($baseUrl, '/') . "/test/mark-record-in-progress/{$courseId}/{$programId}"
+    );
+
+    if (! $response->successful()) {
+        throw new RuntimeException(
+            "Failed to mark record IN_PROGRESS via FastAPI test endpoint. " .
+            "Status: {$response->status()}, Body: {$response->body()}"
+        );
+    }
+}
+

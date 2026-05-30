@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 from uuid import uuid4
 
@@ -84,15 +85,26 @@ class LOMappingRequestDynamoDBRecord:
         }
 
         try:
-            table = self._create_boto_session().resource("dynamodb").Table(self.table_name)
+            logger.info(
+                "create_request: writing to table=%s endpoint_url=%s region=%s item_keys=%s",
+                self.table_name,
+                os.environ.get("AWS_ENDPOINT_URL", "<unset>"),
+                self.aws_region,
+                list(item.keys()),
+            )
+            table = self._create_boto_session().resource(
+                "dynamodb", region_name=self.aws_region
+            ).Table(self.table_name)
             table.put_item(Item=item)
             logger.info(
-                "Created LO mapping request record in DynamoDB for course_id=%s program_id=%s",
+                "Created LO mapping request record in DynamoDB request_id=%s course_id=%s program_id=%s",
+                item["request_id"],
                 course_id,
                 program_id,
             )
             return item
         except Exception as e:
+            logger.exception("create_request failed for table=%s", self.table_name)
             raise RuntimeError(f"Failed to create LO mapping request record in DynamoDB: {str(e)}") from e
 
     def get_records_by_status(self, status: str) -> list[dict]:

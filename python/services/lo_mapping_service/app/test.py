@@ -1,35 +1,31 @@
 """
-Starts FastAPI in test mode with LocalStack. Used for E2E tests.
-- If LocalStack isn't already running, starts it (and stops it on exit)
-- Starts FastAPI on port 8002 with AWS env vars pointed at LocalStack
+Similar to main.py, but points AWS env vars at LocalStack. Used for E2E tests.
+If LocalStack isn't already running, starts it (and stops it on exit)
 """
 import atexit
 import os
 import time
 
+import boto3
 import requests
 import uvicorn
-from testcontainers.localstack import LocalStackContainer
+from dotenv import load_dotenv
 
-LOCALSTACK_HEALTH_URL = f"http://127.0.0.1:{LOCALSTACK_PORT}/_localstack/health"
+from testcontainers.localstack import LocalStackContainer
+from testcontainers.core.waiting_utils import wait_for_logs
+
 FASTAPI_PORT = 8002
-LOCALSTACK_PORT = LOCALSTACK_PORT
+LOCALSTACK_PORT = 4566
+LOCALSTACK_HEALTH_URL = f"http://127.0.0.1:{LOCALSTACK_PORT}/_localstack/health"
 
 TEST_ENV = {
     "AWS_ENDPOINT_URL":                   f"http://127.0.0.1:{LOCALSTACK_PORT}",
-    "AWS_REGION":                         "ca-central-1",
     "AWS_ACCESS_KEY_ID":                  "test",
     "AWS_SECRET_ACCESS_KEY":              "test",
     "ACCESS_KEY":                         "test",
     "SECRET_KEY":                         "test",
-    "LO_MAPPING_DYNAMODB_REQUESTS_TABLE": "lo-mapping-requests-e2e",
-    "BATCH_TRANSFORM_INPUT_S3_BUCKET":    "curriculum-map-e2e-bucket",
-    "OUTPUT_S3_URI":                      "s3://curriculum-map-e2e-bucket/output/",
-    "DYNAMODB_STATUS_INDEX":              "status-created_at-index",
-    "ALLOWED_ORIGINS":                    "http://localhost,http://127.0.0.1",
-    "LARAVEL_API_URL":                    "http://127.0.0.1:8000/api/microservices/lo-mapping/ai-suggestions/store",
+    "ENABLE_TEST_ENDPOINTS":              "true",
 }
-
 
 def is_localstack_running() -> bool:
     try:
@@ -37,46 +33,53 @@ def is_localstack_running() -> bool:
     except requests.RequestException:
         return False
 
-
-def wait_for_localstack(timeout: int = 60) -> None:
-    deadline = time.time() + timeout
-    while time.time() < deadline:
-        if is_localstack_running():
-            return
-        time.sleep(1)
-    raise RuntimeError(f"LocalStack did not become ready within {timeout}s")
-
-
-def ensure_localstack_running() -> None:
-    if is_localstack_running():
-        # Could be running from another service's test
+def ensure_localstack_running():
+    if is_localstack_running(): # Could be running from another service's test
         print(f"[test] LocalStack already running on {LOCALSTACK_PORT}; reusing it")
     else:
-        print("[test] Starting LocalStack via testcontainers")
+        print("[test] Starting LocalStack container")
         container = LocalStackContainer(image="localstack/localstack:3.0")
-        # Bind to a fixed host port so every consumer hits the same URL.
         container.with_bind_ports(LOCALSTACK_PORT, LOCALSTACK_PORT)
         container.start()
-        # We only reach here if LocalStack wasn't already running, 
-        # So that means this test started it, so we should stop it on exit.
-        atexit.register(container.stop)
-        wait_for_localstack()
-        print("[test] LocalStack ready on {LOCALSTACK_PORT}")
+        
+        atexit.register(container.stop) # If this test started the LocalStack container, stop it on exit
+        
+        wait_for_logs(container, r"Ready\.", timeout=60)
+        print(f"[test] LocalStack ready on {LOCALSTACK_PORT}")
 
+def initialize_db_and_storage():
+    """Create the DynamoDB table and S3 bucket the service uses, in
+    LocalStack. Doesn't modify existing resources"""
+    load_dotenv()
+    os.environ.update(TEST_ENV)
 
-def ensure_fastapi_port_free() -> None:
+    region = os.environ.get("AWS_REGION", "ca-central-1")
+
+    bucket = os.environ.get("BATCH_TRANSFORM_INPUT_S3_BUCKET")
+    if not bucket:
+        raise RuntimeError("BATCH_TRANSFORM_INPUT_S3_BUCKET is not set in .env")
+
+    s3 = boto3.client(
+        "s3",
+        endpoint_url=f"http://127.0.0.1:{LOCALSTACK_PORT}",
+        region_name=region,
+        aws_access_key_id="test",
+        aws_secret_access_key="test",
+    )
     try:
-        r = requests.get(f"http://127.0.0.1:{FASTAPI_PORT}/docs", timeout=1)
-        if r.status_code < 500:
-            raise RuntimeError(
-                f"Port {FASTAPI_PORT} already has a service running. "
-                "Stop it before starting test mode."
-            )
-    except (requests.ConnectionError, requests.Timeout):
-        pass
+        s3.create_bucket(
+            Bucket=bucket,
+            CreateBucketConfiguration={"LocationConstraint": region},
+        )
+        print(f"[test] Created S3 bucket {bucket}")
+    except s3.exceptions.BucketAlreadyOwnedByYou:
+        print(f"[test] S3 bucket {bucket} already exists, reusing")
+
+    from app.services import LOMappingRequestDynamoDBRecord
+    LOMappingRequestDynamoDBRecord().ensure_table_exists()
 
 
-def start_fastapi() -> None:
+def start_fastapi():
     os.environ.update(TEST_ENV)
     print(f"[test] Starting FastAPI on port {FASTAPI_PORT} (Ctrl+C to stop)")
     config = uvicorn.Config(
@@ -90,5 +93,5 @@ def start_fastapi() -> None:
 
 if __name__ == "__main__":
     ensure_localstack_running()
-    ensure_fastapi_port_free()
+    initialize_db_and_storage()
     start_fastapi()
