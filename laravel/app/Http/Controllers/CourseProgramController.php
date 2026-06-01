@@ -429,7 +429,6 @@ class CourseProgramController extends Controller
             $courseProgram = CourseProgram::where(['course_id' => $courseId, 'program_id' => $programId])->first();
             if ($courseProgram) {
                 $courseProgram->ai_suggestion_status = true;
-                $courseProgram->manual_map_status    = true;
                 $courseProgram->save();
             } else {
                 Log::warning("CourseProgram pivot not found for course_id=$courseId program_id=$programId. ai_suggestion_status not updated.");

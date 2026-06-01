@@ -52,7 +52,7 @@ def ensure_localstack_running():
 def initialize_storage():
     """Create the S3 bucket the service uses in LocalStack."""
     settings = Settings()
-    region = settings.AWS_REGION or "ca-central-1"
+    region = settings.AWS_REGION
     bucket = settings.BATCH_TRANSFORM_INPUT_S3_BUCKET
     if not bucket:
         raise RuntimeError("BATCH_TRANSFORM_INPUT_S3_BUCKET is not set in .env")
