@@ -223,6 +223,23 @@ if os.environ.get("ENABLE_TEST_ENDPOINTS") == "true":
 
     logger.info("Test endpoints registered at /test/*")
 
+    @app.post("/test/put-pending-record/{course_id}/{program_id}")
+    def _put_pending_record(course_id: int, program_id: int) -> dict:
+        """Inject a freshly-submitted, not-yet-running request into DynamoDB"""
+        now = _dt.datetime.utcnow()
+        request_id = now.strftime("%Y%m%d-%H%M%S-") + str(uuid4())
+        lo_mapping_request_store._get_table().put_item(Item={
+            "request_id":     request_id,
+            "course_id":      course_id,
+            "program_id":     program_id,
+            "status":         "PENDING",
+            "input_s3_path":  "s3://e2e-fake/input.jsonl",
+            "output_s3_path": "s3://e2e-fake/output.jsonl.out",
+            "created_at":     now.isoformat(),
+            "updated_at":     now.isoformat(),
+        })
+        return {"status": "ok", "request_id": request_id}
+
     @app.post("/test/mark-record-in-progress/{course_id}/{program_id}")
     def _mark_record_in_progress(course_id: int, program_id: int) -> dict:
         """The start-batch-transform-job lambda uses Sage Maker, so this

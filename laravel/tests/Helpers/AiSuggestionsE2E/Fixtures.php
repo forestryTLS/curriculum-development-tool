@@ -105,6 +105,27 @@ function attachMappingScalesToProgram(Program $program, array $mapScaleIds = [1,
     }
 }
 
+// Test helper functions used to simulate the SageMaker Lambda's operations
+
+
+function putPendingRecord(int $courseId, int $programId): string
+{
+    $baseUrl = getenv('LO_MAPPING_SERVICE_URL') ?: 'http://127.0.0.1:8002';
+    $response = Http::post(
+        rtrim($baseUrl, '/') . "/test/put-pending-record/{$courseId}/{$programId}"
+    );
+
+    if (! $response->successful()) {
+        throw new RuntimeException(
+            "Failed to inject PENDING record via FastAPI test endpoint. " .
+            "Make sure FastAPI is running in test mode (python -m app.test). " .
+            "Status: {$response->status()}, Body: {$response->body()}"
+        );
+    }
+
+    return $response->json('request_id');
+}
+
 function markRecordInProgress(int $courseId, int $programId): void
 {
     $baseUrl = getenv('LO_MAPPING_SERVICE_URL') ?: 'http://127.0.0.1:8002';
