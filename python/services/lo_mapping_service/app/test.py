@@ -9,7 +9,9 @@ import time
 import boto3
 import requests
 import uvicorn
+
 from dotenv import load_dotenv
+from app.core.config import Settings
 
 from testcontainers.localstack import LocalStackContainer
 from testcontainers.core.waiting_utils import wait_for_logs
@@ -47,15 +49,11 @@ def ensure_localstack_running():
         wait_for_logs(container, r"Ready\.", timeout=60)
         print(f"[test] LocalStack ready on {LOCALSTACK_PORT}")
 
-def initialize_db_and_storage():
-    """Create the DynamoDB table and S3 bucket the service uses, in
-    LocalStack. Doesn't modify existing resources"""
-    load_dotenv()
-    os.environ.update(TEST_ENV)
-
-    region = os.environ.get("AWS_REGION", "ca-central-1")
-
-    bucket = os.environ.get("BATCH_TRANSFORM_INPUT_S3_BUCKET")
+def initialize_storage():
+    """Create the S3 bucket the service uses in LocalStack."""
+    settings = Settings()
+    region = settings.AWS_REGION or "ca-central-1"
+    bucket = settings.BATCH_TRANSFORM_INPUT_S3_BUCKET
     if not bucket:
         raise RuntimeError("BATCH_TRANSFORM_INPUT_S3_BUCKET is not set in .env")
 
@@ -75,12 +73,22 @@ def initialize_db_and_storage():
     except s3.exceptions.BucketAlreadyOwnedByYou:
         print(f"[test] S3 bucket {bucket} already exists, reusing")
 
+
+def reset_dynamodb():
+    """Drop the LO mapping requests table if it exists."""
+    load_dotenv()
+
     from app.services import LOMappingRequestDynamoDBRecord
-    LOMappingRequestDynamoDBRecord().ensure_table_exists()
+    store = LOMappingRequestDynamoDBRecord()
+    client = store._create_boto_session().client("dynamodb", region_name=store.aws_region)
+    try:
+        client.delete_table(TableName=store.table_name)
+        print(f"[test] Dropped DynamoDB table {store.table_name}")
+    except client.exceptions.ResourceNotFoundException:
+        print(f"[test] DynamoDB table {store.table_name} did not exist, nothing to drop")
 
 
 def start_fastapi():
-    os.environ.update(TEST_ENV)
     print(f"[test] Starting FastAPI on port {FASTAPI_PORT} (Ctrl+C to stop)")
     config = uvicorn.Config(
         "app.api.routes:app",
@@ -92,6 +100,8 @@ def start_fastapi():
 
 
 if __name__ == "__main__":
+    os.environ.update(TEST_ENV)
     ensure_localstack_running()
-    initialize_db_and_storage()
+    reset_dynamodb()
+    initialize_storage()
     start_fastapi()

@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     SECRET_KEY: str | None = None
     DYNAMODB_STATUS_INDEX: str = "status-created_at-index"
     OUTPUT_S3_URI: str | None = None
+    BATCH_TRANSFORM_INPUT_S3_BUCKET: str | None = None
     LARAVEL_API_URL: str | None = None
 
     @field_validator("ALLOWED_ORIGINS")
