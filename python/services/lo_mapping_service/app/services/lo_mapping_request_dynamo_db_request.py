@@ -180,13 +180,15 @@ class LOMappingRequestDynamoDBRecord:
         AWAITING_COMPLETION_FAILED).
 
         Single GSI scan per status; in-memory filter for the requested pairs.
+        
+        Note: both course and program IDs must be of type int
         """
         if not pairs:
             return None
         
         result = {pair: None for pair in pairs}
 
-        pair_set = {(str(c), str(p)) for c, p in pairs}
+        pair_set = set(pairs)
         table = self._get_table()
 
         for status in self.IN_FLIGHT_STATUSES:
@@ -206,7 +208,7 @@ class LOMappingRequestDynamoDBRecord:
     @staticmethod
     def _collect_matching(items: list[dict], pair_set: set, result: dict) -> None:
         for item in items:
-            pair = (str(item.get("course_id")), str(item.get("program_id")))
+            pair = (item.get("course_id"), item.get("program_id"))
             if pair not in pair_set:
                 continue
             # If multiple in-flight records exist for the same pair, return the latest one
