@@ -21,16 +21,17 @@ it('renders waiting state after the user clicks AI Suggestions and confirms', fu
     $yesButtonSelector = "#AiSuggestionConfirmation{$course->course_id}{$program->program_id} .btn-success";
     $page->click($yesButtonSelector);
 
-    // $page->assertSee('Submitting');
-    // $page->assertAttribute($yesButtonSelector, 'disabled', 'true');
-
-    markRecordInProgress($course->course_id, $program->program_id);
-
-    // $page->script("hideAiModal({$course->course_id}, {$program->program_id})");
-
+    // record in PENDING state
     $page = visit("/courseWizard/{$course->course_id}/step5");
     $page->click("[data-bs-target=\"#collapseProgramAccordion{$program->program_id}\"]");
     $page->assertSee('Waiting for AI suggestions...');
 
-    // $page->pause();
+    // Simulates the PENDING record moving to IN_PROGRESS (i.e. accepted by SageMaker)
+    // because we can't test with SageMaker in LocalStack
+    markRecordInProgress($course->course_id, $program->program_id);
+
+    // record in IN_PROGRESS state
+    $page = visit("/courseWizard/{$course->course_id}/step5");
+    $page->click("[data-bs-target=\"#collapseProgramAccordion{$program->program_id}\"]");
+    $page->assertSee('Waiting for AI suggestions...');
 });
