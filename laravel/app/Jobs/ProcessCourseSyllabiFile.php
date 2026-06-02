@@ -19,6 +19,8 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Bus\Batchable;
+use App\Models\CourseTopic;
+use App\Models\CourseMaterial;
 
 class ProcessCourseSyllabiFile implements ShouldQueue
 {
@@ -113,6 +115,30 @@ class ProcessCourseSyllabiFile implements ShouldQueue
             $assessmentMethod->weight = $am[1];
             $assessmentMethod->course_id = $course->course_id;
             $assessmentMethod->save();
+        }
+
+        $courseTopics = $courseObject->topics ?? [];
+        foreach ($courseTopics as $ct) {
+            if (!empty($ct)) {
+                $courseTopic = new CourseTopic();
+                $courseTopic->course_id = $course->course_id;
+                $courseTopic->topic = $ct;
+                $courseTopic->save();
+            }
+        }
+
+        $courseMaterials = $courseObject->materials ?? [];
+        foreach($courseMaterials as $cm){
+            if(!empty($cm)){
+                $courseMaterial = new CourseMaterial();
+                $courseMaterial->course_id = $course->course_id;
+                $courseMaterial->name = $cm->name;
+                $courseMaterial->type = $cm->type;
+                $courseMaterial->description = $cm->description;
+                $courseMaterial->is_required = false; #default would be false but user can change it if needed (more material found in syllabi are optional than required)
+                $courseMaterial->save();
+            }
+
         }
 
         $user = User::where('id', $this->userId)->first();
