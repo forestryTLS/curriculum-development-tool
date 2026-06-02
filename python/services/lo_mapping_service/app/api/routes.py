@@ -37,9 +37,9 @@ async def lifespan(app: FastAPI):
     scheduler.start()
     logger.info("APScheduler started.")
     app.state.scheduler = scheduler
-    
+
     yield
-    
+
     scheduler.shutdown(wait=False)
     logger.info("APScheduler stopped.")
 
@@ -214,53 +214,3 @@ async def process_pending_results(body: ManualProcessRequest, background_tasks: 
     }
 
 
-# ───────────────── TEST ROUTES ─────────────────
-# Routes inside this block are only registered when ENABLE_TEST_ENDPOINTS=true
-# (set by app/test.py). Production runs never expose these. Used by the Pest
-# E2E suite to manipulate state without needing the AWS SDK on the Laravel side.
-if os.environ.get("ENABLE_TEST_ENDPOINTS") == "true":
-    import datetime as _dt
-
-    logger.info("Test endpoints registered at /test/*")
-
-    @app.post("/test/put-pending-record/{course_id}/{program_id}")
-    def _put_pending_record(course_id: int, program_id: int) -> dict:
-        """Inject a freshly-submitted, not-yet-running request into DynamoDB"""
-        now = _dt.datetime.utcnow()
-        request_id = now.strftime("%Y%m%d-%H%M%S-") + str(uuid4())
-        lo_mapping_request_store._get_table().put_item(Item={
-            "request_id":     request_id,
-            "course_id":      course_id,
-            "program_id":     program_id,
-            "status":         "PENDING",
-            "input_s3_path":  "s3://e2e-fake/input.jsonl",
-            "output_s3_path": "s3://e2e-fake/output.jsonl.out",
-            "created_at":     now.isoformat(),
-            "updated_at":     now.isoformat(),
-        })
-        return {"status": "ok", "request_id": request_id}
-
-    @app.post("/test/mark-record-in-progress/{course_id}/{program_id}")
-    def _mark_record_in_progress(course_id: int, program_id: int) -> dict:
-        """The start-batch-transform-job lambda uses Sage Maker, so this
-        simulates the start-batch-transform-job Lambda succeeding: find the
-        in-flight record for this (course, program) pair and flip its status
-        to IN_PROGRESS.
-        """
-        record = lo_mapping_request_store.find_in_flight_records_for_pairs(
-            [(course_id, program_id)]
-        ).get((course_id, program_id))
-        if record is None:
-            return {"error": "No in-flight record found", "course_id": course_id, "program_id": program_id}
-
-        lo_mapping_request_store._get_table().update_item(
-            Key={"request_id": record["request_id"]},
-            UpdateExpression="SET #st = :s, transform_job_name = :j, updated_at = :ts",
-            ExpressionAttributeNames={"#st": "status"},
-            ExpressionAttributeValues={
-                ":s":  "IN_PROGRESS",
-                ":j":  f"test-job-{record['request_id']}",
-                ":ts": _dt.datetime.utcnow().isoformat(),
-            },
-        )
-        return {"status": "ok", "request_id": record["request_id"]}

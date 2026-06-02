@@ -1,7 +1,9 @@
 """
 Similar to main.py, but points AWS env vars at LocalStack. Used for E2E tests.
 If LocalStack isn't already running, starts it (and stops it on exit)
+! Don't deploy this to production !
 """
+
 import atexit
 import os
 import time
@@ -26,7 +28,6 @@ TEST_ENV = {
     "AWS_SECRET_ACCESS_KEY":              "test",
     "ACCESS_KEY":                         "test",
     "SECRET_KEY":                         "test",
-    "ENABLE_TEST_ENDPOINTS":              "true",
 }
 
 def is_localstack_running() -> bool:
@@ -52,7 +53,7 @@ def ensure_localstack_running():
 def initialize_storage():
     """Create the S3 bucket the service uses in LocalStack."""
     settings = Settings()
-    region = settings.AWS_REGION
+    region = settings.AWS_REGION or "ca-central-1"
     bucket = settings.BATCH_TRANSFORM_INPUT_S3_BUCKET
     if not bucket:
         raise RuntimeError("BATCH_TRANSFORM_INPUT_S3_BUCKET is not set in .env")
@@ -89,9 +90,18 @@ def reset_dynamodb():
 
 
 def start_fastapi():
+    # We have to import these after TEST_ENV is applied, 
+    # so the app's boto clients point at LocalStack,  
+    # because routes.py creates the boto client at the module level.
+    # To clean this up, we should refactor routes.py and some of the files it imports
+    from app.api.routes import app
+    from app.api.test_routes import register_test_routes 
+    # Never register these in main.py or deploy this to production
+    register_test_routes(app)
+
     print(f"[test] Starting FastAPI on port {FASTAPI_PORT} (Ctrl+C to stop)")
     config = uvicorn.Config(
-        "app.api.routes:app",
+        app,
         host="127.0.0.1",
         port=FASTAPI_PORT,
         log_level="info",
