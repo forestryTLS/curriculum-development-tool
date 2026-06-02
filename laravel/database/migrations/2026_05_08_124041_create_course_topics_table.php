@@ -16,7 +16,7 @@ return new class extends Migration
 
             $table->unsignedBigInteger('course_id');
             $table->foreign('course_id')->references('course_id')->on('courses')->onDelete('cascade');
-            $table->string('topic');
+            $table->text('topic');
             $table->text('description')->nullable();
             $table->unsignedInteger('position')->default(0);
             $table->timestamps();
