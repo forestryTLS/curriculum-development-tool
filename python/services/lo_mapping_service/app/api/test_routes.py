@@ -18,7 +18,7 @@ def register_test_routes(app) -> None:
     @app.post("/test/put-pending-record/{course_id}/{program_id}")
     def put_pending_record(course_id: int, program_id: int) -> dict:
         # Put a 'freshly submitted' PENDING request record into DynamoDB.
-        now = datetime.datetime.now(datetime.datetime.timezone.utc)
+        now = datetime.datetime.now(datetime.timezone.utc)
         request_id = now.strftime("%Y%m%d-%H%M%S-") + str(uuid4())
         _store._get_table().put_item(Item={
             "request_id":     request_id,
@@ -49,7 +49,7 @@ def register_test_routes(app) -> None:
             ExpressionAttributeValues={
                 ":s":  "IN_PROGRESS",
                 ":j":  f"test-job-{record['request_id']}",
-                ":ts": datetime.datetime.now(datetime.datetime.timezone.utc).isoformat(),
+                ":ts": datetime.datetime.now(datetime.timezone.utc).isoformat(),
             },
         )
         return {"status": "ok", "request_id": record["request_id"]}

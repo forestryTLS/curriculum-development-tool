@@ -110,6 +110,7 @@ function attachMappingScalesToProgram(Program $program, array $mapScaleIds = [1,
 
 function putPendingRecord(int $courseId, int $programId): string
 {
+    // TODO: Replace with getter
     $baseUrl = getenv('LO_MAPPING_SERVICE_URL') ?: 'http://127.0.0.1:8002';
     $response = Http::post(
         rtrim($baseUrl, '/') . "/test/put-pending-record/{$courseId}/{$programId}"
@@ -136,6 +137,34 @@ function markRecordInProgress(int $courseId, int $programId): void
     if (! $response->successful()) {
         throw new RuntimeException(
             "Failed to mark record IN_PROGRESS via FastAPI test endpoint. " .
+            "Status: {$response->status()}, Body: {$response->body()}"
+        );
+    }
+}
+
+function deleteAiRecords(int $courseId, int $programId): void
+{
+    $baseUrl = getenv('LO_MAPPING_SERVICE_URL') ?: 'http://127.0.0.1:8002';
+    $response = Http::post(
+        rtrim($baseUrl, '/') . "/test/delete-records/{$courseId}/{$programId}"
+    );
+
+    if (! $response->successful()) {
+        throw new RuntimeException(
+            "Failed to delete records via FastAPI test endpoint. " .
+            "Status: {$response->status()}, Body: {$response->body()}"
+        );
+    }
+}
+
+function clearDynamoDb(): void
+{
+    $baseUrl = getenv('LO_MAPPING_SERVICE_URL') ?: 'http://127.0.0.1:8002';
+    $response = Http::post(rtrim($baseUrl, '/') . '/test/clear-dynamodb-aisuggestions');
+
+    if (! $response->successful()) {
+        throw new RuntimeException(
+            "Failed to truncate DynamoDB via FastAPI test endpoint. " .
             "Status: {$response->status()}, Body: {$response->body()}"
         );
     }

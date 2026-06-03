@@ -21,6 +21,7 @@ pest()->extend(TestCase::class)
 pest()->extend(TestCase::class)
     ->group('ai-suggestions-e2e')
     ->beforeAll(fn () => \Tests\Helpers\AiSuggestionsE2E\ensureLOMappingServiceReachable())
+    ->beforeEach(fn () => clearDynamoDb())
     ->in('Browser/AiSuggestionsE2E');
 
 /*
