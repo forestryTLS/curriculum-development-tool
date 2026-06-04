@@ -331,8 +331,8 @@ class CourseProgramController extends Controller
         try {
             $loMappingServiceUrl = config('services.lo_mapping.base_url');
             $payload = [
-                'course_id'  => (string) $courseId,
-                'program_id' => (string) $programId,
+                'course_id'  => $courseId,
+                'program_id' => $programId,
             ];
 
             $statusRes = Http::timeout(10)->post(

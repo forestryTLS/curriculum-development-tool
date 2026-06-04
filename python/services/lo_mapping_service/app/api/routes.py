@@ -11,7 +11,7 @@ import os
 
 from app.schemas import (
     OutcomeMappingRequest,
-    ManualProcessRequest,
+    CourseProgramPair,
     InFlightStatusRequest,
 )
 from app.services import BatchTransformInputBuilder, LOMappingRequestDynamoDBRecord, process_batch_transform_results
@@ -172,7 +172,7 @@ async def process_batch_transform_results_endpoint(request: dict, background_tas
     return {"message": "accepted"}
 
 @app.post("/poll-results-status")
-async def poll_results_status(body: ManualProcessRequest):
+async def poll_results_status(body: CourseProgramPair):
     """Read-only check: is there an AWAITING_COMPLETION record ready to process?"""
     record = lo_mapping_request_store.find_latest_awaiting_record_by_ids(
         body.course_id, body.program_id
@@ -187,7 +187,7 @@ async def poll_results_status(body: ManualProcessRequest):
 
 
 @app.post("/process-pending-results")
-async def process_pending_results(body: ManualProcessRequest, background_tasks: BackgroundTasks):
+async def process_pending_results(body: CourseProgramPair, background_tasks: BackgroundTasks):
     """
     Trigger S3 read + Laravel delivery + DynamoDB cleanup as a background task,
     and return immediately.
