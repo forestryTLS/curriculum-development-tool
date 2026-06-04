@@ -107,13 +107,15 @@ function attachMappingScalesToProgram(Program $program, array $mapScaleIds = [1,
 
 // Test helper functions used to simulate the SageMaker Lambda's operations
 
-function queryLOMappingService(int $courseId, int $programId, string $endpoint): array
+function queryLOMappingService(int $courseId, int $programId, string $endpoint, bool $useCIDPID = true, array $body = []): array
 {
-    $baseUrl = getenv('LO_MAPPING_SERVICE_URL') ?: 'http://127.0.1:8002';
-    $response = Http::get(
-        rtrim($baseUrl, '/') . "/test/{$endpoint}/{$courseId}/{$programId}"
+    $baseUrl = getenv('LO_MAPPING_SERVICE_URL') ?: 'http://127.0.0.1:8002';
+    $response = Http::post(
+        rtrim($baseUrl, '/') . ($useCIDPID ? "/test/{$endpoint}/{$courseId}/{$programId}"
+            : "/test/{$endpoint}"),
+        $body
     );
-    if (! $response->successful()) {
+    if (!$response->successful()) {
         throw new RuntimeException(
             "Failed to query {$endpoint}. " .
             "Make sure FastAPI is running in test mode (python -m app.test). " .
@@ -141,8 +143,8 @@ function deleteAiRecords(int $courseId, int $programId): void
 
 function clearDynamoDb(): void
 {
-    // 0, 0 just dummy values here
-    queryLOMappingService(0, 0, 'clear-dynamodb-aisuggestions');
+    // 0, 0 just dummy values for CID, PID here
+    queryLOMappingService(0, 0, 'clear-dynamodb-aisuggestions', useCIDPID: false);
 }
 
 /**
@@ -151,6 +153,6 @@ function clearDynamoDb(): void
  */
 function setAwaitingCompletion(int $courseId, int $programId, array $suggestions): void
 {
-    queryLOMappingService($courseId, $programId, 'set-awaiting-completion');
+    queryLOMappingService($courseId, $programId, 'set-awaiting-completion', body: ['suggestions' => $suggestions]);
 }
 
