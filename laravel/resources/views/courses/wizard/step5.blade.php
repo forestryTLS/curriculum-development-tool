@@ -651,7 +651,7 @@
         const originalText = yesButton.innerHTML;
         yesButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Submitting...';
 
-        // Pre-click in-flight check: catches the race where another user (or this user
+        // Pre-submit in-flight check: catches the race where another user (or this user
         // in another tab) already submitted in the seconds between page render and click.
         try {
             const checkRes = await fetch(`/courseWizard/${courseId}/${programId}/check-in-flight`, {

@@ -156,3 +156,49 @@ function setAwaitingCompletion(int $courseId, int $programId, array $suggestions
     queryLOMappingService($courseId, $programId, 'set-awaiting-completion', body: ['suggestions' => $suggestions]);
 }
 
+// CSS selector helpers for various browser tests
+
+function aiIconForCloPlo(int $cloId, int $ploId, int $scale): string
+{
+    // The int $scale refers to the INDEX of the intended mapping scale column
+    return "input[name=\"map[{$cloId}][{$ploId}][]\"][value=\"{$scale}\"]"
+        . ' ~ img[src*="AISuggestionPurple.png"]';
+}
+
+function anyAiIconForClo(int $cloId): string
+{
+    // Checks that any AI suggestion exists, used with negative assertions to verify none exist
+    return "input[name^=\"map[{$cloId}][\"] ~ img[src*=\"AISuggestionPurple.png\"]";
+}
+
+function anyAiIconForPlo(int $ploId): string
+{
+    // Checks that any AI suggestion exists, used with negative assertions to verify none exist
+    return "input[name*=\"][{$ploId}][\"] ~ img[src*=\"AISuggestionPurple.png\"]";
+}
+
+function manualMapCheckbox(int $cloId, int $ploId, int $scale): string
+{
+    return "input[name=\"map[{$cloId}][{$ploId}][]\"][value=\"{$scale}\"]";
+}
+
+function manualMapField(int $cloId, int $ploId): string
+{
+    return "map[{$cloId}][{$ploId}][]";
+}
+
+function programAccordionToggle(int $programId): string
+{
+    return "button[data-bs-target=\"#collapseProgramAccordion{$programId}\"]";
+}
+
+function cloAccordionToggle(int $programId, int $cloId): string
+{
+    return "button[data-bs-target=\"#collapse{$programId}-{$cloId}\"]";
+}
+
+function createManuallyButton(int $courseId, int $programId): string
+{
+    return "button[onclick=\"showManualMapDiv({$courseId}, {$programId})\"]";
+}
+

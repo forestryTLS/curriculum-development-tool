@@ -37,3 +37,5 @@ Setting it back to `"0"` disables stepping.
 Since LocalStack doesn't currently support SageMaker, we've 'mocked' quite a few tasks in the tests by sending requests to test endpoints.
 
 `MainWorkflowTest.php` has a lot of comments to explain what's going on. The other tests follow a similar logic.
+
+In `MainWorkflowTest.php`, the course, program, and initial mapping setup are done by simulating user clicks to be as realistic as possible. In the other tests, however, these are done programmatically to save time and focus on the actual case being tested (unless some set up is relevant to the test case, like in `AddingCLOPLOafterSubmittingTest.php`).
