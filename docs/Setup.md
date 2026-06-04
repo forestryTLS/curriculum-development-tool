@@ -186,9 +186,13 @@ The instructions below assume these defaults.
 
 **Running the test suite**:
 
+*Please note that this only runs the unit tests and feature tests. To run the End-to-end tests for the AI Suggestions service, please check `laravel\tests\Browser\AiSuggestionsE2E\README.md` for set up and running instructions.*
+
 ```
 composer test
 ```
+
+
 
 ## Python Setup
 

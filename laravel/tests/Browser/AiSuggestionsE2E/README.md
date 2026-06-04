@@ -30,3 +30,10 @@ If you want to be able to step, set the env variable
 - Windows: `$PW_DEBUG="1"`.
 
 Setting it back to `"0"` disables stepping.
+
+
+##### Notes
+
+Since LocalStack doesn't currently support SageMaker, we've 'mocked' quite a few tasks in the tests by sending requests to test endpoints.
+
+`MainWorkflowTest.php` has a lot of comments to explain what's going on. The other tests follow a similar logic.
