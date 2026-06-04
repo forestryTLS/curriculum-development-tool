@@ -282,4 +282,4 @@ async def process_records(records: list) -> dict:
             continue
 
     logger.info("Finished processing %d record(s). Succeeded=%d Failed=%d", len(records), len(succeeded), len(failed))
-    return {"succeeded": succeeded, "failed": failed}
+    

@@ -126,7 +126,7 @@ class LOMappingRequestDynamoDBRecord:
 
         return items
 
-    def find_latest_awaiting_record_by_ids(self, course_id, program_id) -> dict | None:
+    def find_latest_awaiting_record_by_ids(self, course_id : int, program_id : int) -> dict | None:
         """Find the latest record for the given course/program awaiting post-processing"""
 
         latest_record = None

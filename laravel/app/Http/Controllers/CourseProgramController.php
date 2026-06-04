@@ -274,7 +274,7 @@ class CourseProgramController extends Controller
      */
     public static function getInFlightStatuses(int $courseId, array $programIds): array
     {
-        $pairs = array_map(fn($pid) => ['course_id' => $courseId, 'program_id' => (int) $pid], $programIds);
+        $pairs = array_map(fn(int $pid) => ['course_id' => $courseId, 'program_id' => $pid], $programIds);
 
         try {
             $loMappingServiceUrl = config('services.lo_mapping.base_url');
