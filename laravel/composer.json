@@ -87,6 +87,13 @@
             "php artisan test --group=ai-suggestions-e2e"
         ],
         "test:ai-suggestions-e2e:debug": [
+            "@putenv PWDEBUG=1",
+            "php scripts/check-test-db.php",
+            "php artisan migrate:fresh --seed --env=testing",
+            "php artisan test --group=ai-suggestions-e2e --debug"
+        ],
+        "test:ai-suggestions-e2e:visual": [
+            "@putenv PWDEBUG=0",
             "php scripts/check-test-db.php",
             "php artisan migrate:fresh --seed --env=testing",
             "php artisan test --group=ai-suggestions-e2e --debug"

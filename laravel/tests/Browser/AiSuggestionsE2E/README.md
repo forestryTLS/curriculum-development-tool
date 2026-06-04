@@ -1,4 +1,4 @@
-### AI Suggestions Feature End-to-End Tests
+## AI Suggestions Feature End-to-End Tests
 
 These are end-to-end browser tests don't run automatically with `composer test`.
 
@@ -6,33 +6,36 @@ Like the other tests, make sure the database is initialized and the server is ru
 
 Then complete the following set up specific to these tests:
 
-##### Browser Playwrights
+### Browser Playwrights
 Install the browser playwrights with `npx playwright install` from the `laravel/` directory. This will install mock browsers onto your system, using around 0.5GB of storage. You can remove these after running the tests with `npx playwright uninstall`, and reinstall them later if necessary.
 
 <small>
 Optional: If you'd like these to install onto a specific drive, follow <a href="https://playwright.dev/docs/browsers#managing-browser-binaries">these configuration steps</a>. However, as of writing this, only the default set up has been tested.
 </small>
 
-##### Docker
+### Docker
 Ensure you have docker on your device, with enough space to create a container. The LocalStack container takes around 1GB of system storage. The actual container creation (and deletion) are handled by the script.
 
-##### Running the LocalStack server
+Ensure docker is running on your system. You should be able to run `docker ps` without errors.
 
-##### Running the tests 
+### Running the Test server (and LocalStack)
 
-Then run these tests specifically with `composer test:ai-suggestions-e2e`.
+`cd` into the `python/services/lo_mapping_services` and activate the virtual environment (steps are in *Activate virtual environment* section in `docs/Setup.md`).
 
-*Debugging*
+Then run `python -m app.test`. 
 
-To see the browser as the tests run, use `composer test:ai-suggestions-e2e:debug`.
-If you want to be able to step, set the env variable 
-- Linux, Mac, WSL: `export PW_DEBUG="1"`
-- Windows: `$PW_DEBUG="1"`.
+If the LocalStack container isn't already up and running, this command automatically sets it up and starts it.
 
-Setting it back to `"0"` disables stepping.
+### Running the tests 
 
+Run these specific tests with `composer test:ai-suggestions-e2e`.
 
-##### Notes
+**Debugging**
+
+To see the browser as the tests run, use `composer test:ai-suggestions-e2e:visual`.
+To see the browser and debug-step, use `composer test:ai-suggestions-e2e:debug`.
+
+### Notes
 
 Since LocalStack doesn't currently support SageMaker, we've 'mocked' quite a few tasks in the tests by sending requests to test endpoints.
 
