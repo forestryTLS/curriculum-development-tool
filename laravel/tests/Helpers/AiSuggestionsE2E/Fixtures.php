@@ -107,66 +107,50 @@ function attachMappingScalesToProgram(Program $program, array $mapScaleIds = [1,
 
 // Test helper functions used to simulate the SageMaker Lambda's operations
 
-
-function putPendingRecord(int $courseId, int $programId): string
+function queryLOMappingService(int $courseId, int $programId, string $endpoint): array
 {
-    // TODO: Replace with getter
-    $baseUrl = getenv('LO_MAPPING_SERVICE_URL') ?: 'http://127.0.0.1:8002';
-    $response = Http::post(
-        rtrim($baseUrl, '/') . "/test/put-pending-record/{$courseId}/{$programId}"
+    $baseUrl = getenv('LO_MAPPING_SERVICE_URL') ?: 'http://127.0.1:8002';
+    $response = Http::get(
+        rtrim($baseUrl, '/') . "/test/{$endpoint}/{$courseId}/{$programId}"
     );
-
     if (! $response->successful()) {
         throw new RuntimeException(
-            "Failed to inject PENDING record via FastAPI test endpoint. " .
+            "Failed to query {$endpoint}. " .
             "Make sure FastAPI is running in test mode (python -m app.test). " .
             "Status: {$response->status()}, Body: {$response->body()}"
         );
     }
+    return $response->json();
+}
 
-    return $response->json('request_id');
+
+function putPendingRecord(int $courseId, int $programId): string
+{
+    return queryLOMappingService($courseId, $programId, 'put-pending-record')['request_id'];
 }
 
 function markRecordInProgress(int $courseId, int $programId): void
 {
-    $baseUrl = getenv('LO_MAPPING_SERVICE_URL') ?: 'http://127.0.0.1:8002';
-    $response = Http::post(
-        rtrim($baseUrl, '/') . "/test/mark-record-in-progress/{$courseId}/{$programId}"
-    );
-
-    if (! $response->successful()) {
-        throw new RuntimeException(
-            "Failed to mark record IN_PROGRESS via FastAPI test endpoint. " .
-            "Status: {$response->status()}, Body: {$response->body()}"
-        );
-    }
+    queryLOMappingService($courseId, $programId, 'mark-record-in-progress');
 }
 
 function deleteAiRecords(int $courseId, int $programId): void
 {
-    $baseUrl = getenv('LO_MAPPING_SERVICE_URL') ?: 'http://127.0.0.1:8002';
-    $response = Http::post(
-        rtrim($baseUrl, '/') . "/test/delete-records/{$courseId}/{$programId}"
-    );
-
-    if (! $response->successful()) {
-        throw new RuntimeException(
-            "Failed to delete records via FastAPI test endpoint. " .
-            "Status: {$response->status()}, Body: {$response->body()}"
-        );
-    }
+    queryLOMappingService($courseId, $programId, 'delete-records');
 }
 
 function clearDynamoDb(): void
 {
-    $baseUrl = getenv('LO_MAPPING_SERVICE_URL') ?: 'http://127.0.0.1:8002';
-    $response = Http::post(rtrim($baseUrl, '/') . '/test/clear-dynamodb-aisuggestions');
+    // 0, 0 just dummy values here
+    queryLOMappingService(0, 0, 'clear-dynamodb-aisuggestions');
+}
 
-    if (! $response->successful()) {
-        throw new RuntimeException(
-            "Failed to truncate DynamoDB via FastAPI test endpoint. " .
-            "Status: {$response->status()}, Body: {$response->body()}"
-        );
-    }
+/**
+ * Writes mock SageMaker output to S3,
+ * and moves record state from IN_PROGRESS to AWAITING_COMPLETION in DynamoDB
+ */
+function setAwaitingCompletion(int $courseId, int $programId, array $suggestions): void
+{
+    queryLOMappingService($courseId, $programId, 'set-awaiting-completion');
 }
 
