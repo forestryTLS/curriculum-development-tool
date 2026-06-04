@@ -8,6 +8,7 @@ from uuid import uuid4
 
 from app.core.logging_config import logger
 from app.services import LOMappingRequestDynamoDBRecord
+from app.services.test.mock_sagemaker import MockSageMaker
 
 _store = LOMappingRequestDynamoDBRecord()
 
@@ -70,6 +71,31 @@ def register_test_routes(app) -> None:
                 break
             scan = table.scan(ExclusiveStartKey=scan["LastEvaluatedKey"])
         return {"status": "ok", "deleted": deleted}
+
+    @app.post("/test/set-awaiting-completion/{course_id}/{program_id}")
+    def set_awaiting_completion(course_id: int, program_id: int, body: dict) -> dict:
+        """Simulates SageMaker finishing and the EventBridge Lambda triggering.
+        Writes mock SageMaker output to S3 and moves the (course, program)'s IN_PROGRESS record
+        to AWAITING_COMPLETION."""
+        record = _store.find_in_flight_records_for_pairs(
+            [(course_id, program_id)]
+        ).get((course_id, program_id))
+        
+        output_s3_path = MockSageMaker().write_output(
+            course_id, program_id, body.get("suggestions", [])
+        )
+
+        _store._get_table().update_item(
+            Key={"request_id": record["request_id"]},
+            UpdateExpression="SET #st = :s, output_s3_path = :o, updated_at = :ts",
+            ExpressionAttributeNames={"#st": "status"},  # 'status' is a reserved word in DynamoDB
+            ExpressionAttributeValues={
+                ":s":  "AWAITING_COMPLETION",
+                ":o":  output_s3_path,
+                ":ts": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            },
+        )
+        return {"status": "ok", "request_id": record["request_id"], "output_s3_path": output_s3_path}
 
     @app.post("/test/clear-dynamodb-aisuggestions")
     def clear_dynamodb() -> dict:
