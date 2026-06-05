@@ -1465,7 +1465,7 @@
                     <div class="input-group">
                         <input type="hidden" class="form-check-input" name="user_id" value={{Auth::id()}}>
                         <input type="file" id="inputCourseSyllabiFiles" name="uploadedSyllabi[]" class="form-control"
-                               aria-label="Upload" required multiple accept=".pdf, .docx">
+                               aria-label="Upload" required multiple accept=".pdf">
                     </div>
                     <ul id="uploadedCourseSyllabiList"></ul>
                 </div>
