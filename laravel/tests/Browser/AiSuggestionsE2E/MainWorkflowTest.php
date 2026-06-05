@@ -14,7 +14,7 @@ it('creates a course and program via the UI and renders AI suggestion icons end-
     $this->actingAs($user);
 
     // Create course
-    $page = visit('/home');
+    $page = visit_v('/home');
     $page->click('[data-bs-target="#methodToCreateNewCourse"]')
         ->click('[data-bs-target="#createCourseModal"]')
         ->type('#course_code', 'HAPP')
@@ -24,41 +24,44 @@ it('creates a course and program via the UI and renders AI suggestion icons end-
         ->select('#course_year', '2026')
         ->select('#delivery_modality', 'O')
         ->select('#standard_category_id', '1')
-        ->click('#createCourse #submit'); // POSTs and redirects to /courseWizard/{id}/step8
+        ->wait(1)
+        ->pressAndWaitFor('#createCourse #submit', 2); // POSTs and redirects to /courseWizard/{id}/step8
 
     $course = Course::where('course_title', 'E2E Normal workflow Course')->latest('course_id')->firstOrFail();
 
     // Add CLO
-    $page->click('a[href$="/courseWizard/' . $course->course_id . '/step1"]')
-        ->click('[data-bs-target="#addLearningOutcomeModal"]')
+    $page->click('a.btn.btn-secondary[href$="/courseWizard/' . $course->course_id . '/step1"]')
+        ->click('CLO') // the + CLO button
         ->type('#l_outcome', 'Students apply core concepts to novel problems.')
         ->type('#title', 'Apply Concepts')
-        ->click('#addCLOBtn')                            // append row
-        ->click('#saveCLOChanges button[type="submit"]'); // persist
+        ->pressAndWaitFor('Add', 0.5)
+        ->screenshot(true, 'before-saving-clo') // TODO: remove after debugging
+        ->pressAndWaitFor('#saveCLOChanges button:has-text("Save Changes")', 1);
+    // ->click('Save Changes');
 
     $clo = LearningOutcome::where('course_id', $course->course_id)->firstOrFail();
 
     // Create program
     $page->click('a[href$="/home"]')
-        ->click('[data-bs-target="#createProgramModal"]')
+        ->pressAndWaitFor('[data-bs-target="#createProgramModal"]', 0.5)
         ->type('#program', 'E2E Normal workflow Program')
         ->check('input[name="level"][value="Bachelors"]')
-        ->click('#createProgramModal button[type="submit"]'); // redirects to /programWizard/{id}/step1
+        ->pressAndWaitFor('Add', 1); // redirects to /programWizard/{id}/step1
 
     $program = Program::where('program', 'E2E Normal workflow Program')->latest('program_id')->firstOrFail();
 
     // Add 3 PLOs
-    $page->click('[data-bs-target="#addPLOModal"]')
+    $page->press('[data-bs-target="#addPLOModal"]')
         ->type('#pl_outcome', 'PLO 1: Demonstrate mastery of the discipline.')
         ->type('#ploShortphrase', 'Demonstrate Mastery')
-        ->click('#addPLOBtn')
+        ->press('#addPLOBtn')
         ->type('#pl_outcome', 'PLO 2: Synthesize ideas across domains.')
         ->type('#ploShortphrase', 'Synthesize Ideas')
-        ->click('#addPLOBtn')
+        ->press('#addPLOBtn')
         ->type('#pl_outcome', 'PLO 3: Evaluate competing approaches.')
         ->type('#ploShortphrase', 'Evaluate Approaches')
-        ->click('#addPLOBtn')
-        ->click('#savePLOChanges button[type="submit"]');
+        ->press('#addPLOBtn')
+        ->press('#savePLOChanges button[type="submit"]');
 
     // These also function as assertions that the PLOs were stored correctly in the db
     $plo1 = ProgramLearningOutcome::where('pl_outcome', 'PLO 1: Demonstrate mastery of the discipline.')->firstOrFail();
@@ -66,20 +69,27 @@ it('creates a course and program via the UI and renders AI suggestion icons end-
     $plo3 = ProgramLearningOutcome::where('pl_outcome', 'PLO 3: Evaluate competing approaches.')->firstOrFail();
 
     // Assign default I/D/A mapping scales to the program
-    $page->click('a[href$="/programWizard/' . $program->program_id . '/step2"]')
-        ->click('[data-bs-target=".mapping-scales"]')
-        ->click('form[action*="addDefaultMappingScale"]:has(input[name="mapping_scale_categories_id"][value="1"]) button[type="submit"]');
+    $page->click('a.btn.btn-secondary[href$="/programWizard/' . $program->program_id . '/step2"]')
+        ->pressAndWaitFor('[data-bs-target=".mapping-scales"]', 1)
+        ->pressAndWaitFor('form[action*="addDefaultMappingScale"]:has(input[name="mapping_scale_categories_id"][value="1"]) button[type="submit"]', 2);
+    // ->click('+ Use this scale');
 
     // Map the course to the program
-    $page->click('a[href$="/programWizard/' . $program->program_id . '/step3"]')
+    $page->click('a.btn.btn-secondary[href$="/programWizard/' . $program->program_id . '/step3"]')
         ->click('[data-bs-target="#addCourseModal"]')
         ->check('input[name="selectedCourses[]"][value="' . $course->course_id . '"]')
-        ->click('button[form="addExistCourse"]');
+        ->pressAndWaitFor('button[form="addExistCourse"]', 3);
+
+    $page->navigate("/courseWizard/{$course->course_id}/step5")
+        ->assertNoJavascriptErrors()
+        ->pressAndWaitFor(programAccordionToggle($program->program_id), 0.5)
+        ->assertSee('AI Suggestions')
+        ->wait(2);
 
     // If we submit the job via UI, it will fail because that calls the lambda that invokes SageMaker
     // So instead, we directly create the pending record and write Mock SageMaker output
     putPendingRecord($course->course_id, $program->program_id);
-    // The mock mappings we set here don't directly
+    // Request mock sagemaker to return these values
     setAwaitingCompletion($course->course_id, $program->program_id, [
         ['clo_id' => $clo->l_outcome_id, 'plo_id' => $plo1->pl_outcome_id, 'labels' => ['I']],      // single map
         ['clo_id' => $clo->l_outcome_id, 'plo_id' => $plo2->pl_outcome_id, 'labels' => []],         // no map, should show as N/A
@@ -89,13 +99,15 @@ it('creates a course and program via the UI and renders AI suggestion icons end-
     // Reload the page. Now that we have a record awaiting completion, it should auto-poll and
     // FastAPI should get the results from LocalStack, and send them to Laravel
     $page->refresh();
-    // $page->navigate("/courseWizard/{$course->course_id}/step5");
 
     // Scale values: I, D, A, N/A
     $I = 1;
     $D = 2;
     $A = 3;
     $NA = 0;
+
+    // May take some time for it to poll FastAPI and get the results into Laravel
+    $page->wait(20);
 
     $page->assertPresent(aiIconForCloPlo($clo->l_outcome_id, $plo1->pl_outcome_id, $I))
         ->assertMissing(aiIconForCloPlo($clo->l_outcome_id, $plo1->pl_outcome_id, $D))

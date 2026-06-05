@@ -202,3 +202,23 @@ function createManuallyButton(int $courseId, int $programId): string
     return "button[onclick=\"showManualMapDiv({$courseId}, {$programId})\"]";
 }
 
+/**
+ * Wraps Pest's visit with viewport dimensions.
+ * Seems to reduce the flakiness by preventing elements from going off-screen.
+ * Make sure to set the resolution to something SMALLER than your monitor's resolution
+ */
+function visit_v(string $url)
+{
+    $width = env('PLAYWRIGHT_VIEWPORT_WIDTH');
+    $height = env('PLAYWRIGHT_VIEWPORT_HEIGHT');
+
+    if ($width && $height) {
+        return visit($url, [
+            'viewport' => ['width' => (int) $width, 'height' => (int) $height],
+            'deviceScaleFactor' => 1,
+        ]);
+    }
+
+    return visit($url);
+}
+
