@@ -20,6 +20,7 @@ from testcontainers.core.waiting_utils import wait_for_logs
 
 FASTAPI_PORT = 8002
 LOCALSTACK_PORT = 4566
+LARAVEL_TEST_PORT = 8010 # End to end test laravel server runs on this port, different from normal 8000
 LOCALSTACK_HEALTH_URL = f"http://127.0.0.1:{LOCALSTACK_PORT}/_localstack/health"
 
 TEST_ENV = {
@@ -28,6 +29,7 @@ TEST_ENV = {
     "AWS_SECRET_ACCESS_KEY":              "test",
     "ACCESS_KEY":                         "test",
     "SECRET_KEY":                         "test",
+    "LARAVEL_API_URL":                    f"http://127.0.0.1:{LARAVEL_TEST_PORT}/api/microservices/lo-mapping/ai-suggestions/store",
 }
 
 def is_localstack_running() -> bool:
