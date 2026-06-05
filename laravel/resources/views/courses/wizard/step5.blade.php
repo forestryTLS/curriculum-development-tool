@@ -359,8 +359,6 @@
                                                                                                                 </tbody>
                                                                                                             </table>
 
-                                                                                                            <!-- <button type="submit" class="btn btn-success my-3 btn-sm float-end col-2" >Save</button> -->
-
                                                                                                 </div>
                                                                                             </div>
                                                                                         <!-- </form> -->

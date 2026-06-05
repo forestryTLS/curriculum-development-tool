@@ -228,7 +228,7 @@
                 $(this).addClass('was-validated');
             }
             // readjust modal's position 
-            document.querySelector('#addLearningActivitiesModal').handleUpdate();
+            bootstrap.Modal.getInstance(document.querySelector('#addLearningActivitiesModal'))?.handleUpdate();
 
         });
 

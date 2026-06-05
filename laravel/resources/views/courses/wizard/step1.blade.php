@@ -253,8 +253,8 @@
                 // mark form as validated
                 $(this).addClass('was-validated');
             }
-            // readjust modal's position 
-            document.querySelector('#addLearningOutcomeModal').handleUpdate();
+            // readjust modal's position
+            bootstrap.Modal.getInstance(document.querySelector('#addLearningOutcomeModal'))?.handleUpdate();
         });
 
         $('#cancel').click(function(event) {

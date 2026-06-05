@@ -643,7 +643,7 @@
                 $(this).addClass('was-validated');
             }
             // readjust modal's position 
-            document.querySelector('#addPLOCategoryModal').handleUpdate();
+            bootstrap.Modal.getInstance(document.querySelector('#addPLOCategoryModal'))?.handleUpdate();
 
         });
 
@@ -664,7 +664,7 @@
             }
             // readjust modal's position
             var addP 
-            document.querySelector('#addPLOModal').handleUpdate();
+            bootstrap.Modal.getInstance(document.querySelector('#addPLOModal'))?.handleUpdate();
         });
 
         $('#cancelPLOCategoryForm').click(function(event) {
