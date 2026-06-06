@@ -59,6 +59,15 @@ function linkUserToCourse(User $user, Course $course, int $permission = 1): void
     ]);
 }
 
+function linkUserToProgram(User $user, Program $program, int $permission = 1): void
+{
+    DB::table('program_users')->insert([
+        'program_id' => $program->program_id,
+        'user_id' => $user->id,
+        'permission' => $permission,
+    ]);
+}
+
 function linkCourseToProgram(Course $course, Program $program): void
 {
     DB::table('course_programs')->insert([
