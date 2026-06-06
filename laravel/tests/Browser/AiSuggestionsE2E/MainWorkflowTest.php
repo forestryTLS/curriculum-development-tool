@@ -37,7 +37,6 @@ it('creates a course and program via the UI and renders AI suggestion icons end-
         ->pressAndWaitFor('Add', 0.5)
         ->screenshot(true, 'before-saving-clo') // TODO: remove after debugging
         ->pressAndWaitFor('#saveCLOChanges button:has-text("Save Changes")', 1);
-    // ->click('Save Changes');
 
     $clo = LearningOutcome::where('course_id', $course->course_id)->firstOrFail();
 
@@ -72,7 +71,6 @@ it('creates a course and program via the UI and renders AI suggestion icons end-
     $page->click('a.btn.btn-secondary[href$="/programWizard/' . $program->program_id . '/step2"]')
         ->pressAndWaitFor('[data-bs-target=".mapping-scales"]', 1)
         ->pressAndWaitFor('form[action*="addDefaultMappingScale"]:has(input[name="mapping_scale_categories_id"][value="1"]) button[type="submit"]', 2);
-    // ->click('+ Use this scale');
 
     // Map the course to the program
     $page->click('a.btn.btn-secondary[href$="/programWizard/' . $program->program_id . '/step3"]')
@@ -124,8 +122,6 @@ it('creates a course and program via the UI and renders AI suggestion icons end-
         ->assertMissing(aiIconForCloPlo($clo->l_outcome_id, $plo3->pl_outcome_id, $A))
         ->assertMissing(aiIconForCloPlo($clo->l_outcome_id, $plo3->pl_outcome_id, $NA));
 
-    // 8. The icons rendered, so the polling-driven delivery has run: verify the
-    //    underlying rows + flag the pipeline wrote (single map, N/A, multi map).
     $this->assertDatabaseHas('course_programs', [
         'course_id' => $course->course_id,
         'program_id' => $program->program_id,
@@ -157,11 +153,13 @@ it('creates a course and program via the UI and renders AI suggestion icons end-
         ->click(cloAccordionToggle($program->program_id, $clo->l_outcome_id))
         ->check(manualMapField($clo->l_outcome_id, $plo1->pl_outcome_id), (string) $I)
         ->check(manualMapField($clo->l_outcome_id, $plo3->pl_outcome_id), (string) $A)
-        ->click('Save');
+        ->wait(0.5)
+        ->pressAndWaitFor('button.btn.btn-success:text-is("Save")', 3);
 
     // Check checkboxes reflect the manual choices; the purple icons still reflect the AI suggestions
     $page->refresh();
-    $page->assertPresent(manualMapCheckbox($clo->l_outcome_id, $plo1->pl_outcome_id, $I) . ':checked')
+    $page->wait(1)
+        ->assertPresent(manualMapCheckbox($clo->l_outcome_id, $plo1->pl_outcome_id, $I) . ':checked')
         ->assertPresent(aiIconForCloPlo($clo->l_outcome_id, $plo1->pl_outcome_id, $I))            // manual + AI on I
         ->assertPresent(manualMapCheckbox($clo->l_outcome_id, $plo3->pl_outcome_id, $A) . ':checked')
         ->assertMissing(aiIconForCloPlo($clo->l_outcome_id, $plo3->pl_outcome_id, $A))            // manual A, no AI on A
