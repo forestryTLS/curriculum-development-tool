@@ -13,7 +13,6 @@ import requests
 import uvicorn
 
 from dotenv import load_dotenv
-from app.core.config import Settings
 
 from testcontainers.localstack import LocalStackContainer
 from testcontainers.core.waiting_utils import wait_for_logs
@@ -31,6 +30,18 @@ TEST_ENV = {
     "SECRET_KEY":                         "test",
     "LARAVEL_API_URL":                    f"http://127.0.0.1:{LARAVEL_TEST_PORT}/api/microservices/lo-mapping/ai-suggestions/store",
 }
+
+os.environ.update(TEST_ENV)
+
+# We have to import these after TEST_ENV is applied, 
+# so the app's boto clients point at LocalStack,  
+# because routes.py creates the boto client at the module level.
+# To clean this up, we should refactor routes.py and some of the files it imports
+from app.api.routes import app
+from app.api.test_routes import register_test_routes 
+# We have to import Settings after TEST_ENV is applied,
+# so it uses the LARAVEL_API_URL with the test port instead of the actual one
+from app.core.config import Settings
 
 def is_localstack_running() -> bool:
     try:
@@ -92,12 +103,6 @@ def reset_dynamodb():
 
 
 def start_fastapi():
-    # We have to import these after TEST_ENV is applied, 
-    # so the app's boto clients point at LocalStack,  
-    # because routes.py creates the boto client at the module level.
-    # To clean this up, we should refactor routes.py and some of the files it imports
-    from app.api.routes import app
-    from app.api.test_routes import register_test_routes 
     # Never register these in main.py or deploy this to production
     register_test_routes(app)
 
@@ -112,7 +117,6 @@ def start_fastapi():
 
 
 if __name__ == "__main__":
-    os.environ.update(TEST_ENV)
     ensure_localstack_running()
     reset_dynamodb()
     initialize_storage()
