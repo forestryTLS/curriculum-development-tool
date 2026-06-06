@@ -5,8 +5,8 @@
  * started by another user or session), opening step 5 should render the
  * waiting state.
  *
- * Somewhat redundant with Step5WaitingStateWithPendingRecordTest, but this specifically tests the case where the
- * user didn't just click "Yes" to start the request, and is refreshing or returning to the page later.
+ * Somewhat redundant with PendingInProgress, but this specifically tests the case where the
+ * user didn't just click "Yes" to start the request, it may have been started by another user or this user in an earlier session.
  */
 it('renders the waiting state on step 5 when a request is already in flight', function () {
     $user = makeTestUser('e2e-inflight-render@ubc.ca');
