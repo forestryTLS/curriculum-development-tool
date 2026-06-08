@@ -14,6 +14,7 @@ laravel/.env.testing
 laravel/database/seeders/UserSeeder.php
 laravel/resources/views/emails/
 .phpunit.result.cache
+laravel/.phpunit.cache
 
 Homestead.json
 Homestead.yaml
@@ -34,6 +35,7 @@ experiments/llm-evaluation/venv
 python/services/logs/
 python/services/*/env/
 python/services/lo_mapping_service/app/services/batch_inputs/**
+python/services/lo_mapping_service/deploy/*.zip
 **.env
 python/services/lo_mapping_service/env
 python/services/syllabi_service/env

@@ -26,14 +26,12 @@ FastAPI microservice for extracting text from PDFs using AWS Textract. Called by
    ```
    AWS_REGION=ca-central-1
    AWS_S3_BUCKET=text-extraction-temp
-   PORT=5000
    ```
 
 4. Run the service:
    ```bash
-   uvicorn app:app --host 0.0.0.0 --port 5000 --reload
+   python -m app.main
    ```
-   API docs at `http://127.0.0.1:5000/docs`
 
 ## AWS Configuration
 
