@@ -92,8 +92,12 @@ it('tracks AI-suggestion requests independently across multiple programs', funct
     $page->click("[data-bs-target=\"#collapseProgramAccordion{$program2->program_id}\"]")
          ->assertSee('Waiting for AI suggestions...')
          ->assertAttribute($options2, 'data-poll-on-load', 'true')
+         ->wait(1)
          ->click("[data-bs-target=\"#collapseProgramAccordion{$program2->program_id}\"]") // Close P2 Modal
+         ->wait(1)
          ->click("[data-bs-target=\"#collapseProgramAccordion{$program1->program_id}\"]") // Open P1 Modal
+         ->wait(1)
          ->click("[data-bs-target=\"#collapseProgramAccordion{$program3->program_id}\"]") // Open P3 Modal
+         ->wait(1)
          ->assertDontSee('Waiting for AI suggestions...');
 });
