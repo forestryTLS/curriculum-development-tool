@@ -72,6 +72,21 @@ def register_test_routes(app) -> None:
             scan = table.scan(ExclusiveStartKey=scan["LastEvaluatedKey"])
         return {"status": "ok", "deleted": deleted}
 
+    @app.post("/test/get-records/{course_id}/{program_id}")
+    def get_records(course_id: int, program_id: int) -> dict:
+        table = _store._get_table()
+        records = []
+        scan = table.scan()
+        while True:
+            for item in scan.get("Items", []):
+                if int(item.get("course_id")) == course_id and int(item.get("program_id")) == program_id:
+                    records.append(item)
+            # TODO: Could abstract away the do-while LastEvalutedKey pattern, used it thrice
+            if "LastEvaluatedKey" not in scan:
+                break
+            scan = table.scan(ExclusiveStartKey=scan["LastEvaluatedKey"])
+        return {"status": "ok", "records": records}
+
     @app.post("/test/set-awaiting-completion/{course_id}/{program_id}")
     def set_awaiting_completion(course_id: int, program_id: int, body: dict) -> dict:
         """Simulates SageMaker finishing and the EventBridge Lambda triggering.

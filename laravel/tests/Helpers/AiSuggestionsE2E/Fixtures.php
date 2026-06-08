@@ -150,6 +150,11 @@ function deleteAiRecords(int $courseId, int $programId): void
     queryLOMappingService($courseId, $programId, 'delete-records');
 }
 
+function getDynamoDBRecords(int $courseId, int $programId): array
+{
+    return queryLOMappingService($courseId, $programId, 'get-records')['records'];
+}
+
 function clearDynamoDb(): void
 {
     // 0, 0 just dummy values for CID, PID here
