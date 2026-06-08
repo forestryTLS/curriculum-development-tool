@@ -35,7 +35,6 @@ it('creates a course and program via the UI and renders AI suggestion icons end-
         ->type('#l_outcome', 'Students apply core concepts to novel problems.')
         ->type('#title', 'Apply Concepts')
         ->pressAndWaitFor('Add', 0.5)
-        ->screenshot(true, 'before-saving-clo') // TODO: remove after debugging
         ->pressAndWaitFor('#saveCLOChanges button:has-text("Save Changes")', 1);
 
     $clo = LearningOutcome::where('course_id', $course->course_id)->firstOrFail();
