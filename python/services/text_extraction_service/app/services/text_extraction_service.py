@@ -6,6 +6,10 @@ import boto3
 from app.core.config import settings
 from app.core.logging_config import logger
 
+import io
+from pypdf import PdfReader
+from pypdf.errors import PdfReadError
+
 
 def _create_boto_session() -> boto3.Session:
     return boto3.Session(
@@ -24,12 +28,15 @@ def extract_text(file_bytes: bytes) -> list[dict]:
     """Extract per-page text from a PDF, trying synchronous Textract first then async."""
     logger.info(f"Extracting text from {len(file_bytes)} byte document")
 
-    # Verify it looks like a PDF
-    if not file_bytes.startswith(b"%PDF"):
-        logger.warning(f"File does not start with PDF magic bytes. Starts with: {file_bytes[:10]}")
+    try:
+        reader = PdfReader(io.BytesIO(file_bytes))
+    except PdfReadError as e:
+        logger.error(f"Failed to read PDF: {str(e)}")
+        raise Exception("Invalid PDF file")
 
-    # For small single-page PDFs, try synchronous operation first
-    if len(file_bytes) < 5 * 1024 * 1024:  # < 5MB
+    # For single-page PDFs, try synchronous operation first
+    # With synchronous mode, page doesn't need to be uploaded to S3
+    if len(reader.pages) == 1:
         try:
             response = textract.detect_document_text(Document={"Bytes": file_bytes})
             pages = extract_pages_from_response(response)
@@ -38,8 +45,8 @@ def extract_text(file_bytes: bytes) -> list[dict]:
         except Exception as e:
             logger.info(f"Synchronous operation failed: {str(e)}, falling back to async")
 
-    # Use asynchronous operation for larger files or if sync fails
-    # Upload to S3 first (async requires S3 location)
+    # Use asynchronous operation for larger files or if synchronous fails
+    # Upload to S3 first (async requires file to be on S3)
     s3_key = f"textract-jobs/{int(time.time())}-{os.urandom(4).hex()}.pdf"
     s3.put_object(Bucket=settings.AWS_S3_BUCKET, Key=s3_key, Body=file_bytes)
     logger.info(f"Uploaded file to s3://{settings.AWS_S3_BUCKET}/{s3_key}")
@@ -54,27 +61,24 @@ def extract_text(file_bytes: bytes) -> list[dict]:
     job_id = response["JobId"]
     logger.info(f"Started async text detection job: {job_id}")
 
-    # Poll for job completion
     pages = wait_for_job_completion(job_id)
     logger.info(f"Extracted {len(pages)} pages using asynchronous operation")
 
     return pages
 
 
-def extract_pages_from_response(response) -> list[dict]:
-    """Extract pages and text from a Textract response."""
-    pages = {}
+def extract_pages_from_response(response, pages: dict | None = None) -> list[dict]:
+    if pages is None:
+        pages = {}
     for block in response["Blocks"]:
         if block["BlockType"] == "PAGE":
             page_num = block["Page"]
-            pages[page_num] = {"page_number": page_num, "content": ""}
-
-    for block in response["Blocks"]:
-        if block["BlockType"] == "LINE":
+            if page_num not in pages:
+                pages[page_num] = {"page_number": page_num, "content": ""}
+        elif block["BlockType"] == "LINE":
             page_num = block["Page"]
             if page_num in pages:
                 pages[page_num]["content"] += block["Text"] + "\n"
-
     return sorted(pages.values(), key=lambda p: p["page_number"])
 
 
@@ -90,7 +94,6 @@ def wait_for_job_completion(job_id, max_wait_seconds=600) -> list[dict]:
         logger.info(f"Job {job_id} status: {status}")
 
         if status == "SUCCEEDED":
-            # Collect results from all pages
             pages = {}
             next_token = None
 
@@ -100,16 +103,7 @@ def wait_for_job_completion(job_id, max_wait_seconds=600) -> list[dict]:
                 else:
                     response = textract.get_document_text_detection(JobId=job_id)
 
-                for block in response["Blocks"]:
-                    if block["BlockType"] == "PAGE":
-                        page_num = block["Page"]
-                        if page_num not in pages:
-                            pages[page_num] = {"page_number": page_num, "content": ""}
-
-                    elif block["BlockType"] == "LINE":
-                        page_num = block["Page"]
-                        if page_num in pages:
-                            pages[page_num]["content"] += block["Text"] + "\n"
+                extract_pages_from_response(response, pages)
 
                 next_token = response.get("NextToken")
                 if not next_token:
@@ -120,7 +114,6 @@ def wait_for_job_completion(job_id, max_wait_seconds=600) -> list[dict]:
         elif status == "FAILED":
             raise Exception(f"Textract job {job_id} failed")
 
-        # Wait before polling again
         time.sleep(2)
 
     raise Exception(f"Textract job {job_id} did not complete within {max_wait} seconds")

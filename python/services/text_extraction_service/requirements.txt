@@ -4,3 +4,4 @@ boto3==1.26.137
 python-dotenv==1.0.0
 pydantic-settings==2.10.1
 python-json-logger==3.3.0
+pypdf==6.13.1
