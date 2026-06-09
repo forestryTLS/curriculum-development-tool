@@ -41,14 +41,39 @@
     @endif
 
     <div class="card mt-4">
-        <div class="card-header"><h5 class="mb-0">Coverage Analysis (dev)</h5></div>
+        <div class="card-header"><h5 class="mb-0">Coverage Analysis (WIP)</h5></div>
         <div class="card-body">
-            <p class="text-muted mb-0">
-                Upload supporting PDFs. The indexer extracts text per page; the raw extraction is shown
-                below for inspection. Search is provided by the system-wide content search feature.
-            </p>
+            <form method="GET" action="{{ route('course.materials.search', $course->course_id) }}" class="d-flex gap-2">
+                <input type="text" name="query" class="form-control" placeholder="Search extracted text..."
+                    value="{{ session('search_query', '') }}" required>
+                <button type="submit" class="btn btn-primary text-nowrap">Search</button>
+            </form>
         </div>
     </div>
+
+    @if (session('search_results') !== null)
+        <div class="card mt-3">
+            <div class="card-header"><h6 class="mb-0">
+                Search results for <em>{{ session('search_query') }}</em>
+                <span class="text-muted fw-normal">({{ session('search_results')->count() }} results)</span>
+            </h6></div>
+            <div class="card-body">
+                @if (session('search_results')->isEmpty())
+                    <p class="text-muted mb-0">No results found.</p>
+                @else
+                    @foreach (session('search_results') as $result)
+                        <div class="border rounded p-3 mb-2">
+                            <div class="mb-1">
+                                <strong>{{ $result->file_name }}</strong>
+                                <span class="text-muted ms-2">Page {{ $result->page_number }}</span>
+                            </div>
+                            <div>{!! $result->snippet !!}</div>
+                        </div>
+                    @endforeach
+                @endif
+            </div>
+        </div>
+    @endif
 
     <div class="card mt-3">
         <div class="card-header"><h6 class="mb-0">Upload Material</h6></div>

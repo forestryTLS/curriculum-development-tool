@@ -264,6 +264,8 @@ Route::get('/courses/{course}/coverage-analysis', [CoverageAnalysisController::c
 Route::post('/courses/{course}/materials', [CourseMaterialController::class, 'store'])->name('course.materials.store');
 Route::delete('/courses/{course}/materials/{materialId}', [CourseMaterialController::class, 'destroy'])->name('course.materials.destroy');
 Route::get('/courses/{course}/materials/{materialId}/download', [CourseMaterialController::class, 'download'])->name('course.materials.download');
+Route::get('/courses/{course}/materials/search', [CourseMaterialController::class, 'searchCourse'])->name('course.materials.search');
+Route::get('/programs/{program}/materials/search', [CourseMaterialController::class, 'searchProgram'])->name('program.materials.search');
 Route::get('/programs/{program}/coverage-analysis', [CoverageAnalysisController::class, 'program'])->name('program.coverageAnalysis');
 
 Route::post('/courseDescription/{course}/store', [\App\Http\Controllers\CourseDescriptionController::class, 'store'])->name('courseDescription.store');

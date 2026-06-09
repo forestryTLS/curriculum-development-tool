@@ -34,13 +34,14 @@
     </div>
 
     <div class="card mt-4">
-        <div class="card-header"><h5 class="mb-0">Coverage Analysis (dev)</h5></div>
+        <div class="card-header"><h5 class="mb-0">Coverage Analysis (WIP)</h5></div>
         <div class="card-body">
-            <p class="text-muted mb-0">
-                Inspect the raw extracted content for every material uploaded to any course mapped to this
-                program. Search is provided by the system-wide content search feature; uploads happen on
-                each course's own Coverage Analysis page.
-            </p>
+            <div class="d-flex gap-2">
+                <input type="text" class="form-control" placeholder="Search extracted text..." disabled>
+                <button type="button" class="btn btn-primary text-nowrap" disabled>
+                    Search <span class="badge bg-secondary ms-1">TODO</span>
+                </button>
+            </div>
         </div>
     </div>
 
