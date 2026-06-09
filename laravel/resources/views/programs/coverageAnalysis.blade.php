@@ -36,14 +36,37 @@
     <div class="card mt-4">
         <div class="card-header"><h5 class="mb-0">Coverage Analysis (WIP)</h5></div>
         <div class="card-body">
-            <div class="d-flex gap-2">
-                <input type="text" class="form-control" placeholder="Search extracted text..." disabled>
-                <button type="button" class="btn btn-primary text-nowrap" disabled>
-                    Search <span class="badge bg-secondary ms-1">TODO</span>
-                </button>
-            </div>
+            <form method="GET" action="{{ route('program.materials.search', $program->program_id) }}" class="d-flex gap-2">
+                <input type="text" name="query" class="form-control" placeholder="Search extracted text..."
+                    value="{{ session('search_query', '') }}" required>
+                <button type="submit" class="btn btn-primary text-nowrap">Search</button>
+            </form>
         </div>
     </div>
+
+    @if (session('search_results') !== null)
+        <div class="card mt-3">
+            <div class="card-header"><h6 class="mb-0">
+                Search results for <em>{{ session('search_query') }}</em>
+                <span class="text-muted fw-normal">({{ session('search_results')->count() }} result(s))</span>
+            </h6></div>
+            <div class="card-body">
+                @if (session('search_results')->isEmpty())
+                    <p class="text-muted mb-0">No results found.</p>
+                @else
+                    @foreach (session('search_results') as $result)
+                        <div class="border rounded p-3 mb-2">
+                            <div class="mb-1">
+                                <strong>{{ $result->file_name }}</strong>
+                                <span class="text-muted ms-2">Page {{ $result->page_number }}</span>
+                            </div>
+                            <div>{!! $result->snippet !!}</div>
+                        </div>
+                    @endforeach
+                @endif
+            </div>
+        </div>
+    @endif
 
     @if ($courses->isEmpty())
         <div class="card mt-3">
