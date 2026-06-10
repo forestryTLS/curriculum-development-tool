@@ -55,13 +55,16 @@
                     <p class="text-muted mb-0">No results found.</p>
                 @else
                     @foreach (session('search_results') as $result)
-                        <div class="border rounded p-3 mb-2">
-                            <div class="mb-1">
-                                <strong>{{ $result->file_name }}</strong>
-                                <span class="text-muted ms-2">Page {{ $result->page_number }}</span>
+                        <a href="{{ route('course.materials.view', ['course' => $result->course_id, 'materialId' => $result->material_id]) }}#page={{ $result->page_number }}"
+                           target="_blank" class="text-decoration-none text-reset">
+                            <div class="border rounded p-3 mb-2">
+                                <div class="mb-1">
+                                    <strong>{{ $result->file_name }}</strong>
+                                    <span class="text-muted ms-2">Page {{ $result->page_number }}</span>
+                                </div>
+                                <div>{!! $result->snippet !!}</div>
                             </div>
-                            <div>{!! $result->snippet !!}</div>
-                        </div>
+                        </a>
                     @endforeach
                 @endif
             </div>

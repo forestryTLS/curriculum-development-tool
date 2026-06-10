@@ -156,6 +156,17 @@ class CourseMaterialController extends Controller
         return Storage::disk('local')->download($material->file_path, $material->file_name);
     }
 
+    public function view($course_id, $material_id): StreamedResponse
+    {
+        $material = CourseMaterial::where('id', $material_id)
+            ->where('course_id', $course_id)
+            ->firstOrFail();
+
+        abort_unless(Storage::disk('local')->exists($material->file_path), 404);
+
+        return Storage::disk('local')->response($material->file_path, $material->file_name);
+    }
+
     private function assertIsEditor(int $course_id): void
     {
         $permission = User::find(Auth::id())?->effectivePermissionForCourse($course_id) ?? 0;
