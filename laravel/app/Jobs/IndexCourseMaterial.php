@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Smalot\PdfParser\Config as PdfParserConfig;
 use Smalot\PdfParser\Parser;
+use Spatie\PdfToImage\Pdf as PdfImage;
 use thiagoalessio\TesseractOCR\TesseractOCR;
 
 class IndexCourseMaterial implements ShouldQueue
@@ -155,39 +156,12 @@ class IndexCourseMaterial implements ShouldQueue
 
     private function ocrPage(string $pdfPath, int $pageNumber): string
     {
-        $tempDir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'cmaterial-ocr-' . uniqid('', true);
-        if (!mkdir($tempDir) && !is_dir($tempDir)) {
-            throw new \RuntimeException("Could not create OCR temp directory at {$tempDir}.");
-        }
-
+        $tempPath = tempnam(sys_get_temp_dir(), 'ocr_') . '.png';
         try {
-            $pngPrefix = $tempDir . DIRECTORY_SEPARATOR . 'page';
-            $cmd = sprintf(
-                'pdftoppm -png -f %d -l %d -r 300 %s %s',
-                $pageNumber,
-                $pageNumber,
-                escapeshellarg($pdfPath),
-                escapeshellarg($pngPrefix)
-            );
-            exec($cmd . ' 2>&1', $output, $code);
-
-            if ($code !== 0) {
-                throw new \RuntimeException(
-                    "pdftoppm failed for page {$pageNumber} (exit {$code}): " . implode(' | ', $output)
-                );
-            }
-
-            $pngFiles = glob($pngPrefix . '*.png');
-            if (empty($pngFiles)) {
-                throw new \RuntimeException("pdftoppm produced no PNG for page {$pageNumber}.");
-            }
-
-            return (new TesseractOCR($pngFiles[0]))->run();
+            (new PdfImage($pdfPath))->resolution(300)->selectPage($pageNumber)->save($tempPath);
+            return (new TesseractOCR($tempPath))->run();
         } finally {
-            foreach (glob($tempDir . DIRECTORY_SEPARATOR . '*') ?: [] as $f) {
-                @unlink($f);
-            }
-            @rmdir($tempDir);
+            @unlink($tempPath);
         }
     }
 
@@ -204,7 +178,6 @@ class IndexCourseMaterial implements ShouldQueue
             }
         };
 
-        $check('pdftoppm -v', 'pdftoppm', '(Windows: `scoop install poppler`. Linux: `sudo apt install poppler-utils`.)');
         $check('tesseract --version', 'tesseract', '(Windows: `scoop install tesseract`. Linux: `sudo apt install tesseract-ocr`.)');
 
         exec('tesseract --list-langs 2>&1', $langOutput, $langCode);
