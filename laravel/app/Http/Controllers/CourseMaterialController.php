@@ -7,11 +7,13 @@ use App\Models\CourseMaterial;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
+use App\Support\PdfPageRenderer;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class CourseMaterialController extends Controller
@@ -165,6 +167,28 @@ class CourseMaterialController extends Controller
         abort_unless(Storage::disk('local')->exists($material->file_path), 404);
 
         return Storage::disk('local')->response($material->file_path, $material->file_name);
+    }
+
+    public function thumbnail(Request $request, $course_id, $material_id): Response
+    {
+        // If no page number is given in $request, just outputs first page
+
+        $material = CourseMaterial::where('id', $material_id)
+            ->where('course_id', $course_id)
+            ->firstOrFail();
+
+        $absolutePath = Storage::disk('local')->path($material->file_path);
+        abort_unless(file_exists($absolutePath), 404);
+
+        $page = $request->validate(['page' => ['sometimes', 'integer', 'min:1', 'max:' . $material->page_count]])['page'] ?? 1;
+
+        $pngPath = PdfPageRenderer::pdfToImage($absolutePath, $page, 96);
+        try {
+            return response(file_get_contents($pngPath), 200)
+                ->header('Content-Type', 'image/png');
+        } finally {
+            @unlink($pngPath);
+        }
     }
 
     private function assertIsEditor(int $course_id): void

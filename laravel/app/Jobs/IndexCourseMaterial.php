@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Smalot\PdfParser\Config as PdfParserConfig;
 use Smalot\PdfParser\Parser;
-use Spatie\PdfToImage\Pdf as PdfImage;
+use App\Support\PdfPageRenderer;
 use thiagoalessio\TesseractOCR\TesseractOCR;
 
 class IndexCourseMaterial implements ShouldQueue
@@ -156,12 +156,11 @@ class IndexCourseMaterial implements ShouldQueue
 
     private function ocrPage(string $pdfPath, int $pageNumber): string
     {
-        $tempPath = tempnam(sys_get_temp_dir(), 'ocr_') . '.png';
+        $pngPath = PdfPageRenderer::pdfToImage($pdfPath, $pageNumber, 300);
         try {
-            (new PdfImage($pdfPath))->resolution(300)->selectPage($pageNumber)->save($tempPath);
-            return (new TesseractOCR($tempPath))->run();
+            return (new TesseractOCR($pngPath))->run();
         } finally {
-            @unlink($tempPath);
+            @unlink($pngPath);
         }
     }
 
@@ -178,7 +177,8 @@ class IndexCourseMaterial implements ShouldQueue
             }
         };
 
-        $check('tesseract --version', 'tesseract', '(Windows: `scoop install tesseract`. Linux: `sudo apt install tesseract-ocr`.)');
+        $check('pdftoppm -v', 'pdftoppm', 'Make sure `poppler-utils` is installed.');
+        $check('tesseract --version', 'tesseract', 'Make sure `tesseract` is installed');
 
         exec('tesseract --list-langs 2>&1', $langOutput, $langCode);
         $langs = $langCode === 0 ? array_map('trim', $langOutput) : [];
