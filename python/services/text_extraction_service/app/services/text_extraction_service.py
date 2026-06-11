@@ -10,6 +10,7 @@ import io
 from pypdf import PdfReader
 from pypdf.errors import PdfReadError
 
+POLLING_INTERVAL_SECONDS = 2
 
 def _create_boto_session() -> boto3.Session:
     return boto3.Session(
@@ -45,14 +46,12 @@ def extract_text(file_bytes: bytes) -> list[dict]:
         except Exception as e:
             logger.info(f"Synchronous operation failed: {str(e)}, falling back to async")
 
-    # Use asynchronous operation for larger files or if synchronous fails
+    # Use asynchronous operation for multi-page PDFs or if synchronous fails
     # Upload to S3 first (async requires file to be on S3)
     s3_key = f"textract-jobs/{int(time.time())}-{os.urandom(4).hex()}.pdf"
     s3.put_object(Bucket=settings.AWS_S3_BUCKET, Key=s3_key, Body=file_bytes)
     logger.info(f"Uploaded file to s3://{settings.AWS_S3_BUCKET}/{s3_key}")
 
-    logger.info(f"Textract region: {textract.meta.region_name}")
-    logger.info(f"S3 region: {s3.meta.region_name}")
     logger.info(f"Starting async detection for Bucket={settings.AWS_S3_BUCKET}, Key={s3_key}")
 
     response = textract.start_document_text_detection(
@@ -114,6 +113,6 @@ def wait_for_job_completion(job_id, max_wait_seconds=600) -> list[dict]:
         elif status == "FAILED":
             raise Exception(f"Textract job {job_id} failed")
 
-        time.sleep(2)
+        time.sleep(POLLING_INTERVAL_SECONDS)
 
     raise Exception(f"Textract job {job_id} did not complete within {max_wait} seconds")
