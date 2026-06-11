@@ -118,27 +118,46 @@ class ProcessCourseSyllabiFile implements ShouldQueue
         }
 
         $courseTopics = $courseObject->topics ?? [];
-        foreach ($courseTopics as $ct) {
+        $topicsToInsert = [];
+        $timestamp = now();
+
+        foreach ($courseTopics as $index => $ct) {
             if (!empty($ct)) {
-                $courseTopic = new CourseTopic();
-                $courseTopic->course_id = $course->course_id;
-                $courseTopic->topic = $ct;
-                $courseTopic->save();
+                $topicsToInsert[] = [
+                    'course_id' => $course->course_id,
+                    'topic' => $ct,
+                    'position' => $index + 1,
+                    'created_at' => $timestamp,
+                    'updated_at' => $timestamp,
+                ];
             }
         }
 
-        $courseMaterials = $courseObject->materials ?? [];
-        foreach($courseMaterials as $cm){
-            if(!empty($cm)){
-                $courseMaterial = new CourseMaterial();
-                $courseMaterial->course_id = $course->course_id;
-                $courseMaterial->name = $cm->name;
-                $courseMaterial->type = $cm->type;
-                $courseMaterial->description = $cm->description;
-                $courseMaterial->is_required = false; #default would be false but user can change it if needed (more material found in syllabi are optional than required)
-                $courseMaterial->save();
-            }
+        if (!empty($topicsToInsert)) {
+            CourseTopic::insert($topicsToInsert);
+        }
 
+        $courseMaterials = $courseObject->materials ?? [];
+        $materialsToInsert = [];
+
+        foreach ($courseMaterials as $index => $cm) {
+            if (!empty($cm) && !empty($cm->name)) {
+                $materialsToInsert[] = [
+                    'course_id' => $course->course_id,
+                    'name' => $cm->name,
+                    'type' => $cm->type ?? null,
+                    'description' => $cm->description ?? null,
+                    'is_required' => false,
+                    'url' => null,
+                    'position' => $index + 1,
+                    'created_at' => $timestamp,
+                    'updated_at' => $timestamp,
+                ];
+            }
+        }
+
+        if (!empty($materialsToInsert)) {
+            CourseMaterial::insert($materialsToInsert);
         }
 
         $user = User::where('id', $this->userId)->first();

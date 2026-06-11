@@ -71,16 +71,25 @@ class CourseTopicController extends Controller
             }
             // add new Topics
             if ($newTopics) {
+                $topicsToInsert = [];
+                $timestamp = now();
+
                 foreach ($newTopics as $index => $newTopic) {
                     if (trim($newTopic) === '') {
                         continue;
                     }
 
-                    $newCourseTopic = new CourseTopic;
-                    $newCourseTopic->topic = $newTopic;
-                    $newCourseTopic->course_id = $courseId;
-                    $newCourseTopic->position = $index + 1;
-                    $newCourseTopic->save();
+                    $topicsToInsert[] = [
+                        'topic' => $newTopic,
+                        'course_id' => $courseId,
+                        'position' => $index + 1,
+                        'created_at' => $timestamp,
+                        'updated_at' => $timestamp,
+                    ];
+                }
+
+                if (!empty($topicsToInsert)) {
+                    CourseTopic::insert($topicsToInsert);
                 }
             }
 
@@ -142,9 +151,12 @@ class CourseTopicController extends Controller
      */
     public function destroy(Request $request, $course_topic_id): RedirectResponse
     {
-        //
-        $courseTopic = CourseTopic::where('course_topic_id', $course_topic_id)->first();
+
+        //looks up topic and course id, and also checks if the relationship matches
         $course_id = $request->input('course_id');
+        $courseTopic = CourseTopic::where('course_topic_id', $course_topic_id)
+            ->where('course_id', $course_id)
+            ->first();
 
         if ($courseTopic && $courseTopic->delete()) {
             // update courses 'updated_at' field

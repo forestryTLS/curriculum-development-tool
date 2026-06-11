@@ -82,24 +82,32 @@ class CourseMaterialController extends Controller
                 }
             }
 
-            //add new topics
+            //add new materials
 
             if($newMaterial){
-                foreach($newMaterial as $index => $newmat){
+                $materialsToInsert = [];
+                $timestamp = now();
+
+                foreach ($newMaterial as $index => $newmat) {
                     if (empty(trim($newmat['name'] ?? ''))) {
                         continue;
                     }
 
+                    $materialsToInsert[] = [
+                        'name' => $newmat['name'],
+                        'type' => $newmat['type'] ?? null,
+                        'description' => $newmat['description'] ?? null,
+                        'is_required' => isset($newmat['is_required']),
+                        'url' => $newmat['url'] ?? null,
+                        'course_id' => $courseId,
+                        'position' => $index + 1,
+                        'created_at' => $timestamp,
+                        'updated_at' => $timestamp,
+                    ];
+                }
 
-                    $newCourseMaterial = new CourseMaterial;
-                    $newCourseMaterial->name = $newmat['name'];
-                    $newCourseMaterial->type = $newmat['type'] ?? null;
-                    $newCourseMaterial->description = $newmat['description'] ?? null;
-                    $newCourseMaterial->is_required = isset($newmat['is_required']);
-                    $newCourseMaterial->url = $newmat['url'] ?? null;
-                    $newCourseMaterial->course_id = $courseId;
-                    $newCourseMaterial->position = $index + 1;
-                    $newCourseMaterial->save();
+                if (!empty($materialsToInsert)) {
+                    CourseMaterial::insert($materialsToInsert);
                 }
             }
 
@@ -161,9 +169,11 @@ class CourseMaterialController extends Controller
      */
     public function destroy(Request $request, $course_material_id): RedirectResponse
     {
-        //
-        $courseMaterial = CourseMaterial::where('course_material_id', $course_material_id)->first();
+        //looks up material and course id, and also checks if the relationship matches
         $course_id = $request->input('course_id');
+        $courseMaterial = CourseMaterial::where('course_material_id', $course_material_id)
+            ->where('course_id', $course_id)
+            ->first();
 
         if ($courseMaterial && $courseMaterial->delete()) {
             // update courses 'updated_at' field
