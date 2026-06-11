@@ -69,45 +69,45 @@ class IndexCourseMaterial implements ShouldQueue
 
         $absolutePath = Storage::disk('local')->path($material->file_path);
 
-            $config = new PdfParserConfig();
-            $config->setRetainImageContent(false);
+        $config = new PdfParserConfig();
+        $config->setRetainImageContent(false);
 
-            $parser = new Parser([], $config);
-            $pdf = $parser->parseFile($absolutePath);
-            $pages = $pdf->getPages();
+        $parser = new Parser([], $config);
+        $pdf = $parser->parseFile($absolutePath);
+        $pages = $pdf->getPages();
 
-            $material->update([
-                'page_count' => count($pages),
-                'pages_processed' => 0,
-            ]);
+        $material->update([
+            'page_count' => count($pages),
+            'pages_processed' => 0,
+        ]);
 
-            $rows = [];
-            $pageNumber = 0;
-            foreach ($pages as $page) {
-                $pageNumber++;
-                $text = trim($page->getText());
+        $rows = [];
+        $pageNumber = 0;
+        foreach ($pages as $page) {
+            $pageNumber++;
+            $text = trim($page->getText());
 
-                if ($material->ocr_enabled && mb_strlen($text) <= $material->ocr_threshold) {
-                    $text = trim($this->ocrPage($absolutePath, $pageNumber));
-                }
-
-                if ($text !== '') {
-                    $rows[] = [
-                        'course_material_id' => $material->id,
-                        'page_number' => $pageNumber,
-                        'chunk_index' => 0,
-                        'content' => $text,
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ];
-                }
+            if ($material->ocr_enabled && mb_strlen($text) <= $material->ocr_threshold) {
+                $text = trim($this->ocrPage($absolutePath, $pageNumber));
             }
 
-            if (!empty($rows)) {
-                foreach (array_chunk($rows, 100) as $batch) {
-                    CourseMaterialChunk::insert($batch);
-                }
+            if ($text !== '') {
+                $rows[] = [
+                    'course_material_id' => $material->id,
+                    'page_number' => $pageNumber,
+                    'chunk_index' => 0,
+                    'content' => $text,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
             }
+        }
+
+        if (!empty($rows)) {
+            foreach (array_chunk($rows, 100) as $batch) {
+                CourseMaterialChunk::insert($batch);
+            }
+        }
 
         $material->update([
             'status' => CourseMaterial::STATUS_INDEXED,
@@ -156,7 +156,8 @@ class IndexCourseMaterial implements ShouldQueue
 
     private function ocrPage(string $pdfPath, int $pageNumber): string
     {
-        $pngPath = PdfPageRenderer::pdfToImage($pdfPath, $pageNumber, 300);
+        // For OCR, we want a high DPI, otherwise Tesseract tends to mix up characters.
+        $pngPath = PdfPageRenderer::pdfToImage($pdfPath, $pageNumber, dpi: 300);
         try {
             return (new TesseractOCR($pngPath))->run();
         } finally {
