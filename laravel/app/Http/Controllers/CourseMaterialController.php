@@ -45,7 +45,6 @@ class CourseMaterialController extends Controller
             'uploaded_by' => Auth::id(),
             'file_name' => $uploaded->getClientOriginalName(),
             'file_path' => $diskPath,
-            'mime_type' => $uploaded->getClientMimeType() ?: 'application/pdf',
             'file_size' => $uploaded->getSize(),
             'status' => CourseMaterial::STATUS_PENDING,
             'extraction_engine' => $request->input('extraction_engine', 'tesseract'),
