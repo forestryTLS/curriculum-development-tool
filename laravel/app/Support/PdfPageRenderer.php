@@ -24,8 +24,10 @@ class PdfPageRenderer
         // This then appends the page number and extension,
         // so the final output is something like systemtempdir/pdf_page_someuniqueid-1.png
         // All args listed in https://man.archlinux.org/man/pdftoppm.1.
+        $binary = config('services.pdftoppm.path');
+
         $result = Process::run([
-            'pdftoppm', '-png',
+            $binary, '-png',
             '-f', (string) $page,
             '-l', (string) $page,
             '-r', (string) $dpi,

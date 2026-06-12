@@ -120,7 +120,7 @@ class IndexCourseMaterial implements ShouldQueue
         $absolutePath = Storage::disk('local')->path($material->file_path);
         $fileBytes = file_get_contents($absolutePath);
 
-        $response = Http::timeout(300)->post(config('services.text_extraction.url') . '/extract', [
+        $response = Http::timeout(300)->post(config('services.text_extraction.base_url') . '/extract', [
             'file' => base64_encode($fileBytes),
         ]);
 

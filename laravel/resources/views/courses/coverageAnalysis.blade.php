@@ -73,10 +73,10 @@
                                         </div>
                                         <div>{!! $result->snippet !!}</div>
                                     </div>
-                                    <div class="col-12 col-md-4">
+                                    <div class="col-12 col-md-4 text-md-end">
                                         <img src="{{ route('course.materials.thumbnail', ['course' => $course->course_id, 'materialId' => $result->material_id, 'page' => $result->page_number]) }}"
                                              alt="Page {{ $result->page_number }} thumbnail"
-                                             class="rounded w-100" style="height:auto;">
+                                             class="rounded img-fluid" style="max-height:120px;width:auto;object-fit:contain;">
                                     </div>
                                 </div>
                             </div>
