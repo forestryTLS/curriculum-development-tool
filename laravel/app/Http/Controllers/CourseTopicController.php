@@ -45,6 +45,12 @@ class CourseTopicController extends Controller
      */
     public function store(Request $request)
     {
+        $request->validate([
+            'course_id' => ['required', 'exists:courses,course_id'],
+            'current_topics.*' => ['required', 'string'],
+            'new_topics.*' => ['required', 'string'],
+        ]);
+
         // try update course topics
         try {
             $courseId = $request->input('course_id');

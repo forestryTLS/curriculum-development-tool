@@ -44,6 +44,12 @@ class CourseMaterialController extends Controller
      * @return \Illuminate\Http\Response
      */
     public function store(Request $request){
+        $request->validate([
+            'course_id' => ['required', 'exists:courses,course_id'],
+            'current_material.*.name' => ['required', 'string'],
+            'new_material.*.name' => ['required', 'string'],
+        ]);
+
         //try update course material
 
         try {
