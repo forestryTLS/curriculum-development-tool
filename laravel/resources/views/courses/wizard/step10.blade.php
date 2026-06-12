@@ -236,7 +236,7 @@
                 $(this).addClass('was-validated');
             }
             // readjust modal's position
-            document.querySelector('#addCourseMaterialsModal').handleUpdate();
+            $('#addCourseMaterialsModal').modal('handleUpdate');
 
         });
 
