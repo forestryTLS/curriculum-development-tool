@@ -99,27 +99,44 @@ class ProcessCourseSyllabiFile implements ShouldQueue
         $courseFile->save();
 
         $learningOutcomes = $courseObject->goals;
+        $learningOutcomesToInsert = [];
+        $timestamp = now();
 
         foreach($learningOutcomes as $lo){
-            $learningOutcome = new LearningOutcome();
-            $learningOutcome->l_outcome = $lo;
-            $learningOutcome->course_id = $course->course_id;
-            $learningOutcome->save();
+            $learningOutcomesToInsert[] = [
+                'l_outcome' => $lo,
+                'clo_shortphrase' => null,
+                'course_id' => $course->course_id,
+                'pos_in_alignment' => 0,
+                'created_at' => $timestamp,
+                'updated_at' => $timestamp,
+            ];
+        }
+
+        if (!empty($learningOutcomesToInsert)) {
+            LearningOutcome::insert($learningOutcomesToInsert);
         }
 
         $assessmentMethods = $courseObject->assessments;
+        $assessmentMethodsToInsert = [];
 
         foreach($assessmentMethods as $am){
-            $assessmentMethod = new AssessmentMethod();
-            $assessmentMethod->a_method = $am[0];
-            $assessmentMethod->weight = $am[1];
-            $assessmentMethod->course_id = $course->course_id;
-            $assessmentMethod->save();
+            $assessmentMethodsToInsert[] = [
+                'a_method' => $am[0],
+                'weight' => $am[1],
+                'course_id' => $course->course_id,
+                'pos_in_alignment' => 0,
+                'created_at' => $timestamp,
+                'updated_at' => $timestamp,
+            ];
+        }
+
+        if (!empty($assessmentMethodsToInsert)) {
+            AssessmentMethod::insert($assessmentMethodsToInsert);
         }
 
         $courseTopics = $courseObject->topics ?? [];
         $topicsToInsert = [];
-        $timestamp = now();
 
         foreach ($courseTopics as $index => $ct) {
             if (!empty($ct)) {
