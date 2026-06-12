@@ -177,7 +177,7 @@
                 $(this).addClass('was-validated');
             }
             // readjust modal's position 
-            document.querySelector('#addCourseTopicsModal').handleUpdate();
+            $('#addCourseTopicsModal').modal('handleUpdate');
 
         });
 
