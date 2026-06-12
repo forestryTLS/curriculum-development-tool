@@ -1167,7 +1167,7 @@ def encode_assessment_and_weight(assessment_and_weights: list[tuple[str, str]]) 
 
 def get_course_topics(doc: pymupdf.Document, doc_without_header: list[str] ) -> list[str]:
 
-    topic_pages = find_topic_section(doc_without_header) #get pages of where topic section falls
+    topic_pages = find_topic_section_page_indices(doc_without_header) #get pages of where topic section falls
     table_topics = get_topics_from_table(doc, topic_pages) #extract all cells from topic columns
     if(table_topics):
         return clean_topics(table_topics) #clean and filter all the topics 
@@ -1178,7 +1178,8 @@ def get_course_topics(doc: pymupdf.Document, doc_without_header: list[str] ) -> 
 
 
 
-def find_topic_section(doc: list[str]) -> list[int]:
+"""Find and return all page indices covered by the course topic section, including sections that span multiple pages."""
+def find_topic_section_page_indices(doc: list[str]) -> list[int]:
     topic_pages = []
     in_section = False
 
