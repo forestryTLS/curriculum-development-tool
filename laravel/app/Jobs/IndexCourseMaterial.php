@@ -12,10 +12,12 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Throwable;
 use Smalot\PdfParser\Config as PdfParserConfig;
 use Smalot\PdfParser\Parser;
 use App\Support\PdfPageRenderer;
 use thiagoalessio\TesseractOCR\TesseractOCR;
+
 
 class IndexCourseMaterial implements ShouldQueue
 {
@@ -24,8 +26,11 @@ class IndexCourseMaterial implements ShouldQueue
     public int $timeout = 1800;
     public int $tries = 1;
 
-    public function __construct(public int $courseMaterialId)
+    public int $courseMaterialId;
+
+    public function __construct(int $courseMaterialId)
     {
+        $this->courseMaterialId = $courseMaterialId;
     }
 
     public function handle(): void
@@ -33,7 +38,7 @@ class IndexCourseMaterial implements ShouldQueue
         $material = CourseMaterial::find($this->courseMaterialId);
 
         if (!$material) {
-            Log::warning("IndexCourseMaterial: material {$this->courseMaterialId} not found, skipping.");
+            Log::error("IndexCourseMaterial: material {$this->courseMaterialId} not found, cancelling.");
             return;
         }
 
@@ -41,81 +46,115 @@ class IndexCourseMaterial implements ShouldQueue
 
         try {
             $startTime = microtime(true);
-            if ($material->extraction_engine === 'textract') {
-                $this->indexWithTextract($material);
+            if ($material->ocr_enabled) {
+                if ($material->extraction_engine === 'textract') {
+                    $this->indexWithAWSTextractOCR($material);
+                } elseif ($material->extraction_engine === 'tesseract') {
+                    $this->indexWithTesseractOCR($material);
+                } else {
+                    Log::warning("Unknown OCR engine '{$material->extraction_engine}' for material {$material->id}, indexing without OCR instead.");
+                    $this->indexWithoutOCR($material);
+                }
             } else {
-                $this->indexWithLocalPipeline($material);
+                $this->indexWithoutOCR($material);
             }
             $processingTime = (int) round(microtime(true) - $startTime);
             $material->update(['processing_time_seconds' => $processingTime]);
-        } catch (\Throwable $e) {
-            Log::error("IndexCourseMaterial failed for material {$material->id}: " . $e->getMessage());
+        } catch (Throwable $exception) {
+            Log::error("IndexCourseMaterial failed for material {$material->id}: " . $exception->getMessage());
             $material->update([
                 'status' => CourseMaterial::STATUS_FAILED,
-                'error_message' => mb_substr($e->getMessage(), 0, 1000),
+                'error_message' => mb_substr($exception->getMessage(), 0, 1000),
             ]);
-            throw $e;
+            throw $exception;
         }
     }
 
-    private function indexWithLocalPipeline(CourseMaterial $material): void
+    private function indexWithoutOCR(CourseMaterial $material): void
+    {
+        $rows = [];
+        $pageNumber = 0;
+        foreach ($this->parsePages($material) as $page) {
+            $pageNumber++;
+            $text = trim($page->getText());
+
+            if ($text !== '') {
+                $rows[] = $this->courseMaterialChunkDBRow($material, $pageNumber, $text);
+            }
+        }
+
+        $this->saveTextChunks($material, $rows);
+    }
+
+    private function indexWithTesseractOCR(CourseMaterial $material): void
+    {
+        $this->assertEnglishOCRDataAvailable();
+
+        $absolutePath = Storage::disk('local')->path($material->file_path);
+
+        $rows = [];
+        $pageNumber = 0;
+        foreach ($this->parsePages($material) as $page) {
+            $pageNumber++;
+            $text = trim($page->getText());
+
+            if (mb_strlen($text) <= $material->ocr_threshold) {
+                // High DPI needed for OCR, otherwise smaller characters get mixed up
+                $pngPath = PdfPageRenderer::pdfToImage($absolutePath, $pageNumber, dpi: 300);
+                try {
+                    $text = trim((new TesseractOCR($pngPath))->run());
+                } finally {
+                    @unlink($pngPath);
+                }
+            }
+
+            if ($text !== '') {
+                $rows[] = $this->courseMaterialChunkDBRow($material, $pageNumber, $text);
+            }
+        }
+
+        $this->saveTextChunks($material, $rows);
+    }
+
+    private function parsePages(CourseMaterial $material): array
     {
         ini_set('memory_limit', '1024M');
         set_time_limit(0);
 
-        if ($material->ocr_enabled) {
-            $this->assertOcrBinariesAvailable();
-        }
-
-        $absolutePath = Storage::disk('local')->path($material->file_path);
-
         $config = new PdfParserConfig();
         $config->setRetainImageContent(false);
 
-        $parser = new Parser([], $config);
-        $pdf = $parser->parseFile($absolutePath);
-        $pages = $pdf->getPages();
+        $pages = (new Parser([], $config))
+            ->parseFile(Storage::disk('local')->path($material->file_path))
+            ->getPages();
 
-        $material->update([
-            'page_count' => count($pages),
-            'pages_processed' => 0,
-        ]);
+        $material->update(['page_count' => count($pages)]);
 
-        $rows = [];
-        $pageNumber = 0;
-        foreach ($pages as $page) {
-            $pageNumber++;
-            $text = trim($page->getText());
-
-            if ($material->ocr_enabled && mb_strlen($text) <= $material->ocr_threshold) {
-                $text = trim($this->ocrPage($absolutePath, $pageNumber));
-            }
-
-            if ($text !== '') {
-                $rows[] = [
-                    'course_material_id' => $material->id,
-                    'page_number' => $pageNumber,
-                    'chunk_index' => 0,
-                    'content' => $text,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ];
-            }
-        }
-
-        if (!empty($rows)) {
-            foreach (array_chunk($rows, 100) as $batch) {
-                CourseMaterialChunk::insert($batch);
-            }
-        }
-
-        $material->update([
-            'status' => CourseMaterial::STATUS_INDEXED,
-            'page_count' => $pageNumber,
-        ]);
+        return $pages;
     }
 
-    private function indexWithTextract(CourseMaterial $material): void
+    private function courseMaterialChunkDBRow(CourseMaterial $material, int $pageNumber, string $text): array
+    {
+        return [
+            'course_material_id' => $material->id,
+            'page_number' => $pageNumber,
+            'chunk_index' => 0,
+            'content' => $text,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ];
+    }
+
+    private function saveTextChunks(CourseMaterial $material, array $rows): void
+    {
+        foreach (array_chunk($rows, 100) as $batch) {
+            CourseMaterialChunk::insert($batch);
+        }
+
+        $material->update(['status' => CourseMaterial::STATUS_INDEXED]);
+    }
+
+    private function indexWithAWSTextractOCR(CourseMaterial $material): void
     {
         $absolutePath = Storage::disk('local')->path($material->file_path);
         $fileBytes = file_get_contents($absolutePath);
@@ -128,65 +167,25 @@ class IndexCourseMaterial implements ShouldQueue
         $data = $response->json();
         $pages = $data['pages'] ?? [];
 
+        $material->update(['page_count' => count($pages)]);
+
         $rows = [];
         foreach ($pages as $page) {
             if (!empty($page['content'])) {
-                $rows[] = [
-                    'course_material_id' => $material->id,
-                    'page_number' => $page['page_number'],
-                    'chunk_index' => 0,
-                    'content' => $page['content'],
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ];
+                $rows[] = $this->courseMaterialChunkDBRow($material, $page['page_number'], $page['content']);
             }
         }
 
-        if (!empty($rows)) {
-            foreach (array_chunk($rows, 100) as $batch) {
-                CourseMaterialChunk::insert($batch);
-            }
-        }
-
-        $material->update([
-            'status' => CourseMaterial::STATUS_INDEXED,
-            'page_count' => count($pages),
-        ]);
+        $this->saveTextChunks($material, $rows);
     }
 
-    private function ocrPage(string $pdfPath, int $pageNumber): string
+    private function assertEnglishOCRDataAvailable(): void
     {
-        // For OCR, we want a high DPI, otherwise Tesseract tends to mix up characters.
-        $pngPath = PdfPageRenderer::pdfToImage($pdfPath, $pageNumber, dpi: 300);
-        try {
-            return (new TesseractOCR($pngPath))->run();
-        } finally {
-            @unlink($pngPath);
-        }
-    }
-
-    private function assertOcrBinariesAvailable(): void
-    {
-        $check = function (string $command, string $name, string $installHint): void {
-            exec($command . ' 2>&1', $output, $code);
-            if ($code !== 0) {
-                throw new \RuntimeException(
-                    "OCR is enabled but the '{$name}' binary is not available on PATH. "
-                    . "Install it and restart the queue worker. {$installHint} "
-                    . "See docs/Setup.md for full instructions."
-                );
-            }
-        };
-
-        $check('pdftoppm -v', 'pdftoppm', 'Make sure `poppler-utils` is installed.');
-        $check('tesseract --version', 'tesseract', 'Make sure `tesseract` is installed');
-
         exec('tesseract --list-langs 2>&1', $langOutput, $langCode);
         $langs = $langCode === 0 ? array_map('trim', $langOutput) : [];
         if (!in_array('eng', $langs, true)) {
             throw new \RuntimeException(
-                "OCR is enabled but Tesseract's English language data (eng.traineddata) is not installed. "
-                . "Download it into your Tesseract installation's tessdata directory. "
+                "Tesseract OCR is installed but English language data for it isn't. "
                 . "See docs/Setup.md for instructions."
             );
         }
