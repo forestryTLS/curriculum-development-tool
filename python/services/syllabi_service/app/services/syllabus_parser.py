@@ -1277,11 +1277,7 @@ def is_section_boundary(line: str, stop_headings: set[str], topic_headings: set[
     if clean_line in stop_headings:
         return True
 
-    clean_without_number = normalize_section_line(clean_line)
-    if clean_without_number in stop_headings:
-        return True
-
-    words = clean_without_number.split()
+    words = clean_line.split()
     if len(words) > 6:
         return False
 
