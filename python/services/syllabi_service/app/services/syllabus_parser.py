@@ -26,6 +26,9 @@ learning_goals_starting_words = ('demonstrate', 'develop', 'conduct', 'describe'
                       "thoughtfully reflect on", "clearly and concisely communicate", "summarize", "choose")
 
 only_bullet_pattern = re.compile(r"^([(]?\d+(\.\d+)*[.)]?|[•\-–*¢●]|\([a-zA-Z]\))\s*")
+topic_word_pattern = re.compile(r"[^\W\d_]{2,}(?:[-‐‑–—][^\W\d_]{2,})*")
+whitespace_pattern = re.compile(r"\s+")
+special_dash_pattern = re.compile(r"[–—]")
 
 TOPIC_SECTION_HEADINGS = {"schedule of topics", "topics", "course topics", "schedule", "schedule of learning topics",
                         "course schedule", "lecture schedule", "tentative lecture schedule", "tentative schedule",
@@ -1328,7 +1331,7 @@ def get_topics_from_table(doc: pymupdf.Document, topic_pages: list[int]) -> list
             extracted_table = table.extract()
             if not extracted_table or len(extracted_table) < 2:
                 if extracted_table and len(extracted_table) == 1:
-                    previous_header = [normalize_table_heading(cell or "").lower() for cell in extracted_table[0]] # Some PDFs split the header row from the table body across pages
+                    previous_header = [normalize_table_heading(cell or "") for cell in extracted_table[0]] # Some PDFs split the header row from the table body across pages
                 continue
 
             cleaned_table = []
@@ -1423,7 +1426,7 @@ def get_topics_from_table(doc: pymupdf.Document, topic_pages: list[int]) -> list
 
                     has_title_like_module = False
                     for cell in module_cells:
-                        clean_cell = re.sub(r"\s+", " ", cell).strip()
+                        clean_cell = whitespace_pattern.sub(" ", cell).strip()
                         if re.fullmatch(r"(module|unit|week)\s+(\d+|[ivxlcdm]+)", clean_cell, re.IGNORECASE):
                             continue
                         if len(clean_cell.split()) >= 3:
@@ -1512,7 +1515,7 @@ def normalize_table_heading(heading: str) -> str:
     heading = heading.replace("&", "and")
     heading = heading.replace("/", " ")
     heading = re.sub(r"[%()*:]", "", heading)
-    heading = re.sub(r"\s+", " ", heading)
+    heading = whitespace_pattern.sub(" ", heading)
     return heading.strip()
 
 
@@ -1524,13 +1527,13 @@ def count_topic_like_cells(rows: list[list[str]], column_index: int) -> tuple[in
     for row in rows[:6]:
         if column_index >= len(row):
             continue
-        cell = re.sub(r"\s+", " ", row[column_index]).strip()
+        cell = whitespace_pattern.sub(" ", row[column_index]).strip()
         if not cell:
             continue
 
         non_empty_count += 1
         lower_cell = cell.lower()
-        word_count = len(re.findall(r"[A-Za-z]{3,}", cell))
+        word_count = len(topic_word_pattern.findall(cell))
 
         looks_bad = (
             re.fullmatch(r"(day|week|module|unit)\s*[\divxlcdm/ -]+", lower_cell, re.IGNORECASE) or
@@ -1582,7 +1585,7 @@ def split_topic_cell(cell: str) -> list[str]:
         if not item:
             continue
 
-        clean_item = re.sub(r"\s+", " ", item.lower()).strip()
+        clean_item = whitespace_pattern.sub(" ", item.lower()).strip()
         if clean_item == "time" or re.match(r"^(note:|midterm|mid term|final exam|exam|quiz)\b", clean_item):
             continue # drops admin lines before joining wrapped topic cells
 
@@ -1596,52 +1599,49 @@ def split_topic_cell(cell: str) -> list[str]:
     if not lines:
         return []
 
-    numbered_or_bulleted_lines = []
+    list_marker_count = 0
+    split_topics = []
+    current_topic = ""
+
+    # Count list markers and build the possible topics in one pass.
     for item in lines:
-        if re.match(r"^(\d+[\.)]|[-•*])\s+", item):
-            numbered_or_bulleted_lines.append(item)
+        marker_match = re.match(r"^(\d+[\.)]|[-•*])\s+", item)
 
-    if len(numbered_or_bulleted_lines) > 1:
-        split_topics = []
-        current_topic = ""
+        if marker_match:
+            list_marker_count += 1
+            if current_topic:
+                split_topics.append(current_topic.strip())
+            current_topic = item[marker_match.end():].strip()
+        else:
+            current_topic = f"{current_topic} {item}".strip()
 
-        # only split when the cell clearly contains a list - plain newlines in PDF tables are usually just wrapped text
-        for item in lines:
-            starts_new_topic = re.match(r"^(\d+[\.)]|[-•*])\s+", item)
+    if current_topic:
+        split_topics.append(current_topic.strip())
 
-            if starts_new_topic:
-                if current_topic:
-                    split_topics.append(current_topic.strip())
-                current_topic = re.sub(r"^(\d+[\.)]|[-•*])\s+", "", item).strip()
-            else:
-                current_topic = f"{current_topic} {item}".strip()
-
-        if current_topic:
-            split_topics.append(current_topic.strip())
-
+    # Plain PDF line wrapping stays as one topic unless the cell contains a clear list.
+    if list_marker_count > 1:
         return split_topics
 
-    module_lines = []
+    module_count = 0
+    split_topics = []
+    current_topic = ""
+
+    # Count module markers and build the possible topics in one pass.
     for item in lines:
-        if re.match(r"^module\s+\d+:", item, re.IGNORECASE):
-            module_lines.append(item)
+        module_match = re.match(r"^module\s+\d+:", item, re.IGNORECASE)
 
-    if len(module_lines) > 1:
-        split_topics = []
-        current_topic = ""
+        if module_match:
+            module_count += 1
+            if current_topic:
+                split_topics.append(current_topic.strip())
+            current_topic = item
+        else:
+            current_topic = f"{current_topic} {item}".strip()
 
-        #module tables sometimes put two module topics in one cell, while other newlines are just wrapped text
-        for item in lines:
-            if re.match(r"^module\s+\d+:", item, re.IGNORECASE):
-                if current_topic:
-                    split_topics.append(current_topic.strip())
-                current_topic = item
-            else:
-                current_topic = f"{current_topic} {item}".strip()
+    if current_topic:
+        split_topics.append(current_topic.strip())
 
-        if current_topic:
-            split_topics.append(current_topic.strip())
-
+    if module_count > 1:
         return split_topics
 
     return [" ".join(lines).strip()] #prefer one topic for wrapped table cells unless there is a real list marker
@@ -1666,7 +1666,7 @@ def clean_topics(topics: list[str]) -> list[str]:
     for topic in topics:
         topic = topic.strip()
         topic = only_bullet_pattern.sub("", topic).strip()
-        topic = topic.replace("–", "-").replace("—", "-")
+        topic = special_dash_pattern.sub("-", topic) #there are diff dashes that python treats differently
         topic = topic.rstrip("*").strip() #test syllabi were outputted with topics that had "*" attatched to the end, this is why this is here
         if " Workshop:" in topic:
             topic = topic.split(" Workshop:", 1)[0].strip() # Keep the topic but drop a joined workshop/assignment note from the same table cell.
@@ -1683,9 +1683,8 @@ def clean_topics(topics: list[str]) -> list[str]:
             continue
 
         lower_topic = topic.lower()
-        lower_topic = lower_topic.replace("–", "-").replace("—", "-") #there are diff dashes that python treats differently
         
-        lower_topic = re.sub(r"\s+", " ", lower_topic).strip()
+        lower_topic = whitespace_pattern.sub(" ", lower_topic).strip()
         if any(ignore_topic in lower_topic for ignore_topic in ignore_topics):
             continue
         topic = re.sub(r"\s*\([^)]*(dr\.|instructor|ta|teaching assistant|prof|professor|teacher)[^)]*\)\s*$", "", topic, flags=re.IGNORECASE).strip() #strips instructor-style parenthesis
@@ -2058,8 +2057,8 @@ def get_materials_from_text(doc: list[str], pages: list[int]) -> list[dict]:
                     material_name = next_line_description
                     skip_line_indexes.add(line_index + 1) # PymuPDF can split a bullet marker and its text onto separate lines, so treat the next line as the bullet item.
                 clean_material_name = material_name.lower()
-                clean_material_name = clean_material_name.replace("–", "-").replace("—", "-")
-                clean_material_name = re.sub(r"\s+", " ", clean_material_name).strip()
+                clean_material_name = special_dash_pattern.sub("-", clean_material_name)
+                clean_material_name = whitespace_pattern.sub(" ", clean_material_name).strip()
                 if clean_material_name in ignore_lines:
                     continue
                 if "primary textbook for this course is" in clean_material_name:
@@ -2294,8 +2293,6 @@ def infer_material_type(name: str, description: str) -> str:
     for t in material_types:
         if t in name:
             return t
-    if "websites and online articles" in description and "article" in name:
-        return "article"
     # if the name did not reveal the type, fall back to the section label/description.
     for t in material_types:
         if t in description:
@@ -2322,12 +2319,12 @@ def clean_materials(materials: list[dict]) -> list[dict]:
         description = material.get("description", "")
 
 
-        name = re.sub(r"\s+", " ", name).strip()
-        material_type = re.sub(r"\s+", " ", material_type).strip()
-        description = re.sub(r"\s+", " ", description).strip()
+        name = whitespace_pattern.sub(" ", name).strip()
+        material_type = whitespace_pattern.sub(" ", material_type).strip()
+        description = whitespace_pattern.sub(" ", description).strip()
 
-        name = name.replace("–", "-").replace("—", "-")
-        description = description.replace("–", "-").replace("—", "-")
+        name = special_dash_pattern.sub("-", name)
+        description = special_dash_pattern.sub("-", description)
 
         if ":" in name and description == name:
             name, description = [part.strip() for part in name.split(":", 1)] 
