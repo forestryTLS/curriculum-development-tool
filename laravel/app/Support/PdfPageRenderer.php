@@ -17,17 +17,17 @@ class PdfPageRenderer
 
     public static function pdfToImage(string $pdfPath, int $page, int $dpi = 96): string
     {
-        // Basically creates a temporary file for the output image,
+        // Creates a temporary file for the output image,
         // in the format systempdir/pdf_page_someuniqueid
         $tmpBase = sys_get_temp_dir() . DIRECTORY_SEPARATOR . uniqid('pdf_page_', true);
 
-        // This then appends the page number and extension,
-        // so the final output is something like systemtempdir/pdf_page_someuniqueid-1.png
-        // All args listed in https://man.archlinux.org/man/pdftoppm.1.
-        $binary = config('services.pdftoppm.path');
+        $executable = config('services.pdftoppm.path');
 
+        // This then appends the page number and extension,
+        // so the final output format is systemtempdir/pdf_page_someuniqueid-1.png
+        // All args listed in https://man.archlinux.org/man/pdftoppm.1.
         $result = Process::run([
-            $binary, '-png',
+            $executable, '-png',
             '-f', (string) $page,
             '-l', (string) $page,
             '-r', (string) $dpi,

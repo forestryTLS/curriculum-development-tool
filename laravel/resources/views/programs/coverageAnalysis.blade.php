@@ -163,6 +163,14 @@
                                     <div id="{{ $body }}" class="accordion-collapse collapse"
                                         aria-labelledby="{{ $heading }}" data-bs-parent="#programAccordion{{ $course->course_id }}">
                                         <div class="accordion-body">
+
+                                            <div class="d-flex gap-2 mb-3">
+                                                <a class="btn btn-sm btn-outline-primary"
+                                                    href="{{ route('course.materials.download', ['course' => $course->course_id, 'materialId' => $material->id]) }}">
+                                                    <i class="bi bi-download"></i> Download original
+                                                </a>
+                                            </div>
+
                                             @if ($material->status === 'FAILED')
                                                 <div class="alert alert-danger">
                                                     <strong>Indexing failed.</strong>
@@ -180,7 +188,7 @@
                                                 @endif
                                             @else
                                                 <p class="text-muted small">
-                                                    {{ $material->chunks->count() }} chunk(s) extracted.
+                                                    {{ $material->chunks->count() }} page(s) extracted.
                                                 </p>
                                                 @foreach ($material->chunks as $chunk)
                                                     <details class="mb-2">

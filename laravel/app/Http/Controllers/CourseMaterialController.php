@@ -32,7 +32,7 @@ class CourseMaterialController extends Controller
             'file' => ['required', 'file', 'mimes:pdf', 'max:51200'],
             'ocr_enabled' => ['sometimes', 'boolean'],
             'extraction_engine' => ['required_if:ocr_enabled,1', 'in:tesseract,textract'],
-            'ocr_threshold' => ['sometimes', 'integer', 'min:0', 'max:10000'],
+            'ocr_threshold' => ['sometimes', 'integer', 'min:0', 'max:100000'],
         ]);
 
         $uploaded = $request->file('file');

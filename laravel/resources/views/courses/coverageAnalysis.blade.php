@@ -131,7 +131,7 @@
                                             style="cursor: help;"
                                             data-bs-toggle="tooltip"
                                             data-bs-placement="right"
-                                            title="Local: uses Tesseract OCR on your server (free, slower). Textract: AWS cloud service (faster, ~$0.15 per 100 pages)."></i>
+                                            title="Local Tesseract: runs on laravel-end, good for smaller files. AWS Textract: cloud service, good for large files, ~$0.15 per 1000 pages."></i>
                                     </label>
                                     <select id="extractionEngine" name="extraction_engine" class="form-select form-select-sm" onchange="toggleThresholdByEngine(this)">
                                         <option value="tesseract">Local (Tesseract OCR)</option>
@@ -148,9 +148,9 @@
                                             style="cursor: help;"
                                             data-bs-toggle="tooltip"
                                             data-bs-placement="right"
-                                            title="OCR kicks in for any page whose directly extracted text is at most this many characters long. 0 (default) means only fully empty pages get OCR'd. Bump it higher if your PDF has pages where extraction returns trivial junk (a stray page number, a header) but the real content is an image."></i>
+                                            title="If the number of words of selectable text on a page is less than or equal to the OCR threshold, then perform OCR on the page. Otherwise, just extract selectable text."></i>
                                     </label>
-                                    <input type="number" id="ocrThreshold" name="ocr_threshold" min="0" max="10000" value="0" class="form-control form-control-sm">
+                                    <input type="number" id="ocrThreshold" name="ocr_threshold" min="0" max="100000" value="0" class="form-control form-control-sm">
                                 </div>
                             </div>
                         </div>
@@ -271,7 +271,7 @@
                                         @endif
                                     @else
                                         <p class="text-muted small">
-                                            {{ $material->chunks->count() }} chunk(s) extracted. Showing raw text per page.
+                                            {{ $material->chunks->count() }} page(s) extracted. Showing raw text per page.
                                         </p>
                                         @foreach ($material->chunks as $chunk)
                                             <details class="mb-2">
