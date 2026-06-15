@@ -21,6 +21,8 @@ use thiagoalessio\TesseractOCR\TesseractOCR;
 
 class IndexCourseMaterial implements ShouldQueue
 {
+    // 'Chunk' here currently means a whole page, but we can more finely index later
+
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public int $timeout = 1800;
@@ -51,9 +53,6 @@ class IndexCourseMaterial implements ShouldQueue
                     $this->indexWithAWSTextractOCR($material);
                 } elseif ($material->extraction_engine === 'tesseract') {
                     $this->indexWithTesseractOCR($material);
-                } else {
-                    Log::warning("Unknown OCR engine '{$material->extraction_engine}' for material {$material->id}, indexing without OCR instead.");
-                    $this->indexWithoutOCR($material);
                 }
             } else {
                 $this->indexWithoutOCR($material);
