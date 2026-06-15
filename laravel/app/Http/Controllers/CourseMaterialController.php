@@ -9,10 +9,8 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use Illuminate\View\View;
 use App\Support\PdfPageRenderer;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -57,75 +55,6 @@ class CourseMaterialController extends Controller
         return redirect()
             ->route('course.coverageAnalysis', ['course' => $course_id])
             ->with('success', 'Material uploaded. Indexing in the background.');
-    }
-
-    public function searchCourse(Request $request, $course_id): View|RedirectResponse
-    {
-        $limit = 5; // TODO: Make this dynamic
-
-        $this->assertIsEditor((int) $course_id);
-
-        $searchTerm = trim($request->input('query', ''));
-
-        if ($searchTerm === '') {
-            return redirect()->route('course.coverageAnalysis', ['course' => $course_id]);
-        }
-
-        $results = DB::table('course_material_chunks as c')
-            ->join('course_materials as m', 'm.id', '=', 'c.course_material_id')
-            ->where('m.course_id', $course_id)
-            ->whereRaw("c.content_tsv @@ plainto_tsquery('english', ?)", [$searchTerm])
-            ->selectRaw("
-                m.id as material_id,
-                m.file_name,
-                c.page_number,
-                ts_rank(c.content_tsv, plainto_tsquery('english', ?)) as rank,
-                ts_headline('english', c.content, plainto_tsquery('english', ?),
-                    'StartSel=<mark>, StopSel=</mark>, MaxFragments=2, MinWords=5, MaxWords=25') as snippet
-            ", [$searchTerm, $searchTerm])
-            ->orderByDesc('rank')
-            ->limit($limit)
-            ->get();
-
-        return redirect()
-            ->route('course.coverageAnalysis', ['course' => $course_id])
-            ->with('search_results', $results)
-            ->with('search_query', $searchTerm);
-    }
-
-    public function searchProgram(Request $request, $program_id): RedirectResponse
-    {
-        $searchTerm = trim($request->input('query', ''));
-
-        if ($searchTerm === '') {
-            return redirect()->route('program.coverageAnalysis', ['program' => $program_id]);
-        }
-
-        $courseIds = DB::table('course_programs')
-            ->where('program_id', $program_id)
-            ->pluck('course_id');
-
-        $results = DB::table('course_material_chunks as c')
-            ->join('course_materials as m', 'm.id', '=', 'c.course_material_id')
-            ->whereIn('m.course_id', $courseIds)
-            ->whereRaw("c.content_tsv @@ plainto_tsquery('english', ?)", [$searchTerm])
-            ->selectRaw("
-                m.id as material_id,
-                m.file_name,
-                m.course_id,
-                c.page_number,
-                ts_rank(c.content_tsv, plainto_tsquery('english', ?)) as rank,
-                ts_headline('english', c.content, plainto_tsquery('english', ?),
-                    'StartSel=<mark>, StopSel=</mark>, MaxFragments=2, MinWords=5, MaxWords=25') as snippet
-            ", [$searchTerm, $searchTerm])
-            ->orderByDesc('rank')
-            ->limit(5)
-            ->get();
-
-        return redirect()
-            ->route('program.coverageAnalysis', ['program' => $program_id])
-            ->with('search_results', $results)
-            ->with('search_query', $searchTerm);
     }
 
     public function destroy($course_id, $material_id): RedirectResponse

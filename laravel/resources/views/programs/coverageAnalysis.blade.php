@@ -58,11 +58,18 @@
                         <a href="{{ route('course.materials.view', ['course' => $result->course_id, 'materialId' => $result->material_id]) }}#page={{ $result->page_number }}"
                            target="_blank" class="text-decoration-none text-reset">
                             <div class="border rounded p-3 mb-2">
-                                <div class="mb-1">
-                                    <strong>{{ $result->file_name }}</strong>
-                                    <span class="text-muted ms-2">Page {{ $result->page_number }}</span>
+                                <div class="row g-3 align-items-center"></div>
+                                    <div class="col-12 col-md mb-1">
+                                        <strong>{{ $result->file_name }}</strong>
+                                        <span class="text-muted ms-2">Page {{ $result->page_number }}</span>
+                                    </div>
+                                    <div>{!! $result->snippet !!}</div>
+                                    <div class="col-12 col-md-4 text-md-end">
+                                        <img src="{{ route('course.materials.thumbnail', ['course' => $course->course_id, 'materialId' => $result->material_id, 'page' => $result->page_number]) }}"
+                                        alt="Page {{ $result->page_number }} thumbnail"
+                                        class="rounded img-fluid" style="max-height:120px;width:auto;object-fit:contain;">
+                                    </div>
                                 </div>
-                                <div>{!! $result->snippet !!}</div>
                             </div>
                         </a>
                     @endforeach
