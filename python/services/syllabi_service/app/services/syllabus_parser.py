@@ -1178,8 +1178,9 @@ def get_course_topics(doc: pymupdf.Document, doc_without_header: list[str] ) -> 
 
 
 
-"""Find and return all page indices covered by the course topic section, including sections that span multiple pages."""
+
 def find_topic_section_page_indices(doc: list[str]) -> list[int]:
+    """Find and return all page indices covered by the course topic section, including sections that span multiple pages."""
     topic_pages = []
     in_section = False
 
@@ -1193,7 +1194,7 @@ def find_topic_section_page_indices(doc: list[str]) -> list[int]:
             continue
 
         if not in_section:
-            for line in lines:
+            for line_index, line in enumerate(lines):
                 # some syllabi prefix section headings with course info such as
                 # LAND 304: Tentative Lecture Schedule Check both the full line and
                 # the text after the colon so prefixed headings can still match our known
@@ -1208,6 +1209,11 @@ def find_topic_section_page_indices(doc: list[str]) -> list[int]:
                 if heading_candidates & TOPIC_SECTION_HEADINGS:
                     in_section = True
                     topic_pages.append(page_index)
+
+                    for remaining_line in lines[line_index + 1:]:
+                        if normalize_section_line(remaining_line) in TOPIC_SECTION_STOP_HEADINGS:
+                            return topic_pages
+
                     break
 
             continue
@@ -1230,12 +1236,17 @@ def find_topic_section_page_indices(doc: list[str]) -> list[int]:
     # but course strucute often also outlines course logistics, so we must use this after already exauhsting expected headings
     for page_index, page_text in enumerate(doc):
         lines = page_text.split("\n")
-        for line in lines:
+        for line_index, line in enumerate(lines):
             clean_line = normalize_section_line(line)
 
             if clean_line == "course structure":
                 topic_pages.append(page_index)
                 in_section = True
+
+                for remaining_line in lines[line_index + 1:]:
+                    if normalize_section_line(remaining_line) in TOPIC_SECTION_STOP_HEADINGS:
+                        return topic_pages
+
                 break
 
         if in_section:

@@ -30,6 +30,14 @@ EXPECTED_TEST_MATERIALS = [
     }
 ]
 
+def test_topic_section_stops_on_start_page():
+    doc = [
+        "Schedule of Topics\nClimate Change\nAssessment Methods",
+        "Unrelated content",
+    ]
+
+    assert sp.find_topic_section_page_indices(doc) == [0]
+
 def test_syllabi_bad_file_raises_error():
     file_path = BASE_DIR / "data" / "badFileExample.pdf"
     file_name = "badFileExample.pdf"
