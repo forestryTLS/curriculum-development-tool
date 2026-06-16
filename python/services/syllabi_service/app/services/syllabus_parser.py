@@ -26,9 +26,11 @@ learning_goals_starting_words = ('demonstrate', 'develop', 'conduct', 'describe'
                       "thoughtfully reflect on", "clearly and concisely communicate", "summarize", "choose")
 
 only_bullet_pattern = re.compile(r"^([(]?\d+(\.\d+)*[.)]?|[•\-–*¢●]|\([a-zA-Z]\))\s*")
-topic_word_pattern = re.compile(r"[^\W\d_]{2,}(?:[-‐‑–—][^\W\d_]{2,})*")
+topic_word_pattern = re.compile(r"[^\W\d_]{2,}(?:[-‐‑–—][^\W\d_]{2,})*") 
 whitespace_pattern = re.compile(r"\s+")
 special_dash_pattern = re.compile(r"[–—]")
+CITATION_PATTERN = re.compile(r"^[A-Z][A-Za-z'’.-]+(?:[,\s&]+[A-Za-z'’.-]+\.?)*\s+(?:\(\d{4}\)|\d{4})\.\s+.+\.?$")
+BIBLIOGRAPHY_CITATION_PATTERN = re.compile(r"^[A-Z][^\n]{0,120},[^\n]*\b(?:\(\d{4}\)|\d{4})\b\.?\s+.+")
 
 TOPIC_SECTION_HEADINGS = {"schedule of topics", "topics", "course topics", "schedule", "schedule of learning topics",
                         "course schedule", "lecture schedule", "tentative lecture schedule", "tentative schedule",
@@ -64,6 +66,24 @@ TOPIC_TEXT_STOP_HEADINGS = {
 }
 
 IGNORED_SECTION_CONTEXTS = {"table of contents", "syllabus contents", "document contents", "overview of contents", "summary of contents"}
+
+TOPIC_COLUMN_HEADINGS = {
+    "topic","topics","lecture","lecture topic","lecture topics","lab topic","lab topics",
+    "class topic","class topics","course topic","course topics","module topics","weekly topics","weekly topic",
+    "topic speaker","topic and speaker","topics and speakers","speaker topic","speaker and topic",
+    "topic presenter","topic facilitator","learning topic","learning topics","topics covered","topic description", "theme",
+    "topic covered", "topic of lecture", "module"
+}
+TITLE_COLUMN_HEADINGS = {"title", "name", "topic name", "topic title", "topics title"}
+SCHEDULE_COLUMN_HEADINGS = {"week", "date", "dates", "module", "unit", "lecture"}
+MODULE_TOPIC_COLUMN_HEADINGS = {"module", "module name", "course module"}
+THEME_TOPIC_COLUMN_HEADINGS = {"theme", "themes"}
+IGNORED_TOPIC_COLUMN_HEADINGS = {
+    "reading","readings","readings deadlines","readings and deadlines","deadline","deadlines","due date","assessment","assessments",
+    "activity","activities","mark","marks","weight","weight %","percentage","%","number","#","week","in-class", "in class", "work"
+}
+ASSESSMENT_TABLE_HEADINGS = {"item", "mark", "marks", "weight", "due date", "assessment", "assessments", "assignment", "assignments"}
+ITINERARY_TABLE_HEADINGS = {"activity", "activities", "transpo", "transportation", "accoms", "accommodations", "meals", "meals provided", "course deliverables", "course deliverables and notes"}
 
 MATERIAL_SECTION_HEADINGS = {"learning materials", "course materials", "required readings", "recommended readings","textbook","textbooks",
     "required textbook","required textbooks","course resources","learning resources", "materials and resources","textbook and references","textbook and readings","course materials and learning resources",
@@ -1169,6 +1189,16 @@ def encode_assessment_and_weight(assessment_and_weights: list[tuple[str, str]]) 
 
 
 def get_course_topics(doc: pymupdf.Document, doc_without_header: list[str] ) -> list[str]:
+    """
+    Finds the topic sections pages, then attempts to find pdf tables in returned pages and extract
+    topics. If topics are found, returns topics as a list. Otherwise, falls back to extracting from
+    syllabus plain text.
+    
+    Args: doc (pymupdf.Document): pymupdf.document (without header) of syllabus we want extracted,
+          doc_without_header (list[str]): same document in a list of strings format, without headers 
+
+    Returns: list[str]: returns a list of topics extracted from syllabus
+    """
 
     topic_pages = find_topic_section_page_indices(doc_without_header) #get pages of where topic section falls
     table_topics = get_topics_from_table(doc, topic_pages) #extract all cells from topic columns
@@ -1183,11 +1213,16 @@ def get_course_topics(doc: pymupdf.Document, doc_without_header: list[str] ) -> 
 
 
 def find_topic_section_page_indices(doc: list[str]) -> list[int]:
-    """Find and return all page indices covered by the course topic section, including sections that span multiple pages."""
+    """Find and return all page indices covered by the course topic section,
+    including sections that span multiple pages.
+
+    Args: doc (list[str]): the pdf document we want the page indices for
+
+    Returns: List[int]: list of page indices syllabus topic section belongs to
+    
+    """
     topic_pages = []
     in_section = False
-
-    
     
     for page_index, page_text in enumerate(doc):
         lines = page_text.split("\n")
@@ -1230,7 +1265,6 @@ def find_topic_section_page_indices(doc: list[str]) -> list[int]:
 
             if clean_line in TOPIC_SECTION_STOP_HEADINGS:
                 return topic_pages
-
         
     if topic_pages:
         return topic_pages
@@ -1267,9 +1301,20 @@ def find_topic_section_page_indices(doc: list[str]) -> list[int]:
 
     return topic_pages
 
-
-#if a line looks like a start of a new syllabus section, return true
 def is_section_boundary(line: str, stop_headings: set[str], topic_headings: set[str]) -> bool:
+    """
+    If a line looks like the start of a different section from the one currently on, return true,
+    indicating the start of a new section in the syllabus.
+
+    Args: 
+        line (str): The line we want to determine if it is a section boundary,
+        stop_headings (set[str]): set of strings that are potential section titles
+        that indicate the start of a new section
+    
+    Returns:
+        bool: true if the line seems to be the start of a new section, false otherwise
+
+    """
     stripped_line = line.strip()
     clean_line = normalize_section_line(stripped_line)
 
@@ -1282,42 +1327,35 @@ def is_section_boundary(line: str, stop_headings: set[str], topic_headings: set[
 
     words = clean_line.split()
     if len(words) > 6:
-        return False
+        return False # Long lines are usually content paragraphs, not section headings
 
-    if stripped_line.isupper() and len(words) >= 1:
+    if stripped_line.isupper() and len(words) >= 1: # All-caps short lines are commonly used as syllabus section headings
         return True
 
-    if re.match(r"^\d+(\.\d+)*[.)]?\s+[A-Z][A-Za-z&/ -]+$", stripped_line):
-        return True
+    if re.match(r"^\d+(\.\d+)*[.)]?\s+[A-Z][A-Za-z&/ -]+$", stripped_line): 
+        return True # Numbered title-style lines like "3. Course Policies" usually mark new sections.
 
     return False
 
 
 def get_topics_from_table(doc: pymupdf.Document, topic_pages: list[int]) -> list[str]:
+    """
+    main table extraction function for topics. Finds topic schedule table and atempts to extract
+    the correct columns that contain all course topics.
+
+    Args:
+        doc (pymupdf.Document): pymupdf syllabus that needs to be extracted for topics
+        topic_pages (list[int]): list of topic section page indices returned by
+        find_topic_section_page_indices - function only runs on these pages
+    
+    Returns:
+        list[str]: returns a list of topics extracted using any found table/s in the topic section pages
+    """
     topics = []
     previous_topic_column_indexes = []
     previous_header = []
 
     found_topic_table = False
-
-    topic_column_headings = {
-        "topic","topics","lecture","lecture topic","lecture topics","lab topic","lab topics",
-        "class topic","class topics","course topic","course topics","module topics","weekly topics","weekly topic",
-        "topic speaker","topic and speaker","topics and speakers","speaker topic","speaker and topic",
-        "topic presenter","topic facilitator","learning topic","learning topics","topics covered","topic description", "theme",
-        "topic covered", "topic of lecture", "module"
-    }
-
-    title_column_headings = {"title", "name", "topic name", "topic title", "topics title"}
-    schedule_column_headings = {"week", "date", "dates", "module", "unit", "lecture"}
-    module_topic_column_headings = {"module", "module name", "course module"}
-    theme_topic_column_headings = {"theme", "themes"}
-
-    ignored_column_headings = {"reading","readings","readings deadlines","readings and deadlines","deadline","deadlines","due date","assessment","assessments",
-        "activity","activities","mark","marks","weight","weight %","percentage","%","number","#","week","in-class", "in class", "work"}
-    
-    assessment_table_headings = {"item", "mark", "marks", "weight", "due date", "assessment", "assessments", "assignment", "assignments"}
-    itinerary_table_headings = {"activity", "activities", "transpo", "transportation", "accoms", "accommodations", "meals", "meals provided", "course deliverables", "course deliverables and notes"}
 
     for page_index in topic_pages: 
         if page_index < 0 or page_index >= len(doc):
@@ -1334,68 +1372,29 @@ def get_topics_from_table(doc: pymupdf.Document, topic_pages: list[int]) -> list
                     previous_header = [normalize_table_heading(cell or "") for cell in extracted_table[0]] # Some PDFs split the header row from the table body across pages
                 continue
 
-            cleaned_table = []
-            for row in extracted_table: #extract and clean the table
-                row_has_content = False
-                cleaned_row = []
-
-                for cell in row:
-                    if isinstance(cell, str):
-                        cleaned_cell = cell.strip()
-                    else:
-                        cleaned_cell = ""
-
-                    if cleaned_cell:
-                        row_has_content = True
-
-                    cleaned_row.append(cleaned_cell)
-
-                if row_has_content:
-                    cleaned_table.append(cleaned_row)
+            cleaned_table = clean_extracted_table(extracted_table)
 
             if len(cleaned_table) < 2:
                 continue
 
-            header = []
-            for cell in cleaned_table[0]:
-                header.append(normalize_table_heading(cell).lower()) #get header from cleaned table
-            header_rows_to_skip = 1
-
-            if not (set(header) & (topic_column_headings | title_column_headings | module_topic_column_headings | theme_topic_column_headings)) and len(cleaned_table) > 2: #if the first row doesn't look like known headers, try combining the first 2 rows (pymupdf can mess up on cells that split headers into 2 lines)
-                stacked_header = []
-                max_column_count = max(len(row) for row in cleaned_table[:2])
-
-                for column_index in range(max_column_count):
-                    heading_parts = []
-
-                    for row in cleaned_table[:2]:
-                        if column_index < len(row):
-                            normalized_heading = normalize_table_heading(row[column_index]).lower()
-                            if normalized_heading:
-                                heading_parts.append(normalized_heading)
-
-                    stacked_header.append(" ".join(heading_parts).strip())
-
-                if set(stacked_header) & topic_column_headings:
-                    header = stacked_header
-                    header_rows_to_skip = 2 
-
-            if not (set(header) & (topic_column_headings | title_column_headings | module_topic_column_headings | theme_topic_column_headings)) and previous_header and len(previous_header) == len(header):
-                header = previous_header # use a remembered prev header when PymuPDF extracts the body rows as a separate table
+            header, header_rows_to_skip = build_topic_table_header(
+                cleaned_table,
+                previous_header,
+            )
 
 
             header_set = set(header)
-            has_topic_header = bool(header_set & topic_column_headings)
-            has_assessment_header = bool(header_set & assessment_table_headings)
+            has_topic_header = bool(header_set & TOPIC_COLUMN_HEADINGS)
+            has_assessment_header = bool(header_set & ASSESSMENT_TABLE_HEADINGS)
             table_context_headings = set()
             for row in cleaned_table[:12]:
                 for cell in row:
                     table_context_headings.add(normalize_table_heading(cell).lower())
-            has_itinerary_header = bool((header_set | table_context_headings) & itinerary_table_headings)
+            has_itinerary_header = bool((header_set | table_context_headings) & ITINERARY_TABLE_HEADINGS)
 
             if has_assessment_header and not has_topic_header:
                 if found_topic_table or previous_topic_column_indexes:
-                    if header_set & schedule_column_headings:
+                    if header_set & SCHEDULE_COLUMN_HEADINGS:
                         continue # some schedules include assessment looking columns before more topic rows so skip the table but keep scanning
                     break # pure assessment/grading tables after the schedule mean topic extraction is done
                 continue 
@@ -1405,18 +1404,18 @@ def get_topics_from_table(doc: pymupdf.Document, topic_pages: list[int]) -> list
                     break # once the real topic table is done itinerary/logistics tables should not reuse its topic column.
                 continue
 
-            if header_set & ignored_column_headings and not header_set & schedule_column_headings and not header_set & topic_column_headings and not header_set & module_topic_column_headings and not (header_set & theme_topic_column_headings and header_set & schedule_column_headings) and not previous_topic_column_indexes: # skip unrelated tables unless this looks like a continued topic table
+            if header_set & IGNORED_TOPIC_COLUMN_HEADINGS and not header_set & SCHEDULE_COLUMN_HEADINGS and not header_set & TOPIC_COLUMN_HEADINGS and not header_set & MODULE_TOPIC_COLUMN_HEADINGS and not (header_set & THEME_TOPIC_COLUMN_HEADINGS and header_set & SCHEDULE_COLUMN_HEADINGS) and not previous_topic_column_indexes: # skip unrelated tables unless this looks like a continued topic table
                 continue
 
             topic_column_indexes = []
             for index, heading in enumerate(header): #get column indexes for topic columns  
-                if heading in topic_column_headings:
+                if heading in TOPIC_COLUMN_HEADINGS:
                     topic_column_indexes.append(index)
 
             #some syllabi use "module" as their actual topic column, so of proper headings are not found we look at module-like headings
             if not topic_column_indexes:
                 for index, heading in enumerate(header):
-                    if heading not in module_topic_column_headings:
+                    if heading not in MODULE_TOPIC_COLUMN_HEADINGS:
                         continue
 
                     module_cells = [] #since module can just mean: "module 1, module 2," we can sample cells to make sure it includes real topics/module titles
@@ -1436,26 +1435,26 @@ def get_topics_from_table(doc: pymupdf.Document, topic_pages: list[int]) -> list
                     if has_title_like_module:
                         topic_column_indexes.append(index)
 
-            if not topic_column_indexes and header_set & schedule_column_headings:
+            if not topic_column_indexes and header_set & SCHEDULE_COLUMN_HEADINGS:
                 for index, heading in enumerate(header):
-                    if heading in theme_topic_column_headings:
+                    if heading in THEME_TOPIC_COLUMN_HEADINGS:
                         topic_column_indexes.append(index) # Some schedules name the topic column "Theme" instead of "Topic".
 
 
             title_column_indexes = []
             for index, heading in enumerate(header): #get column indexes for title columns
-                if heading in title_column_headings:
+                if heading in TITLE_COLUMN_HEADINGS:
                     title_column_indexes.append(index)
 
 
-            if title_column_indexes and header_set & (schedule_column_headings | topic_column_headings):
+            if title_column_indexes and header_set & (SCHEDULE_COLUMN_HEADINGS | TOPIC_COLUMN_HEADINGS):
                 for title_column_index in title_column_indexes:
                     topic_column_indexes.append(title_column_index) #if there is a title column and also schedule/topic column, the title column is likely the topic name, so add it to topic indexing
             #we would treate the titel_column like a topic column but it would still end up extracting all columns (including the topic column that only has numbers), so clean_topics() must take care of this
 
             filtered_topic_column_indexes = []
             for index in topic_column_indexes:  
-                if header[index] not in ignored_column_headings:
+                if header[index] not in IGNORED_TOPIC_COLUMN_HEADINGS:
                     filtered_topic_column_indexes.append(index)
 
 
@@ -1471,10 +1470,10 @@ def get_topics_from_table(doc: pymupdf.Document, topic_pages: list[int]) -> list
             if not topic_column_indexes:
                 continue
 
-            if topic_column_indexes and header_set & (module_topic_column_headings | theme_topic_column_headings):
+            if topic_column_indexes and header_set & (MODULE_TOPIC_COLUMN_HEADINGS | THEME_TOPIC_COLUMN_HEADINGS):
                 has_topic_header = True 
 
-            rows_for_rescue = cleaned_table[header_rows_to_skip:] if has_topic_header or header_rows_to_skip > 1 or header_set & (module_topic_column_headings | theme_topic_column_headings | title_column_headings) else cleaned_table
+            rows_for_rescue = cleaned_table[header_rows_to_skip:] if has_topic_header or header_rows_to_skip > 1 or header_set & (MODULE_TOPIC_COLUMN_HEADINGS | THEME_TOPIC_COLUMN_HEADINGS | TITLE_COLUMN_HEADINGS) else cleaned_table
             rescued_topic_column_indexes = [] #pymudpdf error: for handeling misalignments - if the header lands in one column but actual topic values are in an adjecent column, shift to that column
             for topic_column_index in topic_column_indexes:
                 rescued_index = rescue_topic_column_index(rows_for_rescue, topic_column_index)
@@ -1491,26 +1490,136 @@ def get_topics_from_table(doc: pymupdf.Document, topic_pages: list[int]) -> list
             else:
                 rows_to_process = cleaned_table
 
-            for row in rows_to_process:
-                for topic_column_index in topic_column_indexes:
-                    if topic_column_index >= len(row):
-                        continue
+            topics.extend(
+                extract_topics_from_rows(
+                    rows_to_process,
+                    header,
+                    topic_column_indexes,
+                )
+            )
 
-                    cell = row[topic_column_index].strip()
-                    if not cell and header[topic_column_index] == "topic speaker" and topic_column_index > 0 and not header[topic_column_index - 1]:
-                        cell = row[topic_column_index - 1].strip() # PyMuPDF can put Topic/Speaker text in the blank spacer column beside the header
-                    if not cell and header[topic_column_index] in theme_topic_column_headings and topic_column_index > 0 and not header[topic_column_index - 1]:
-                        cell = row[topic_column_index - 1].strip() # PyMuPDF can put values in the blank spacer column just before a topic-like header
+    return topics
 
-                    if not cell:
-                        continue
 
-                    topics.extend(split_topic_cell(cell))
+def clean_extracted_table(extracted_table: list[list]) -> list[list[str]]:
+    """
+    takes a given extracted table, and cleans the table cells and rows for robust extraction
+
+    Args:
+        extracted_table (list[list]): table we want cleaned, in a list[list] format. Each item in
+        the outer list is a row and each item in the inner list is a cell.
+    
+    Returns:
+        list[list[str]]: returns the table with the cleaned rows and cells.
+    """
+    cleaned_table = []
+
+    for row in extracted_table:
+        row_has_content = False
+        cleaned_row = []
+
+        for cell in row:
+            if isinstance(cell, str):
+                cleaned_cell = cell.strip()
+            else:
+                cleaned_cell = ""
+
+            if cleaned_cell:
+                row_has_content = True
+
+            cleaned_row.append(cleaned_cell)
+
+        if row_has_content:
+            cleaned_table.append(cleaned_row)
+
+    return cleaned_table
+
+
+def build_topic_table_header(cleaned_table: list[list[str]],previous_header: list[str],) -> tuple[list[str], int]:
+    """
+    Builds the table header row used for topic table extraction.
+
+    Args:
+        cleaned_table (list[list[str]]): cleaned table rows extracted from the syllabus.
+        previous_header (list[str]): header from the previous table, used when PyMuPDF splits
+        a continued table from its header
+
+    Returns:
+        tuple[list[str], int]: returns the selected header row and the number of header rows
+        to skip before reading topic rows
+    """
+    
+    header = []
+    for cell in cleaned_table[0]:
+        header.append(normalize_table_heading(cell).lower())
+    header_rows_to_skip = 1
+
+    known_headings = TOPIC_COLUMN_HEADINGS | TITLE_COLUMN_HEADINGS | MODULE_TOPIC_COLUMN_HEADINGS | THEME_TOPIC_COLUMN_HEADINGS
+
+    if not (set(header) & known_headings) and len(cleaned_table) > 2:
+        stacked_header = []
+        max_column_count = max(len(row) for row in cleaned_table[:2])
+
+        for column_index in range(max_column_count):
+            heading_parts = []
+
+            for row in cleaned_table[:2]:
+                if column_index < len(row):
+                    normalized_heading = normalize_table_heading(row[column_index]).lower()
+                    if normalized_heading:
+                        heading_parts.append(normalized_heading)
+
+            stacked_header.append(" ".join(heading_parts).strip())
+
+        if set(stacked_header) & TOPIC_COLUMN_HEADINGS:
+            header = stacked_header
+            header_rows_to_skip = 2
+
+    if not (set(header) & known_headings) and previous_header and len(previous_header) == len(header):
+        header = previous_header
+
+    return header, header_rows_to_skip
+
+
+def extract_topics_from_rows(rows: list[list[str]],header: list[str],topic_column_indexes: list[int],) -> list[str]:
+    """
+    Extracts topic names from selected topic columns in table rows.
+
+    Args:
+        rows (list[list[str]]): table rows to extract topics from
+        header (list[str]): normalized table header used to identify special topic columns
+        topic_column_indexes (list[int]): indexes of columns that should be read as topic columns
+
+    Returns:
+        list[str]: returns the extracted topic names from the selected table cells
+    """
+
+    topics = []
+
+    for row in rows:
+        for topic_column_index in topic_column_indexes:
+            if topic_column_index >= len(row):
+                continue
+
+            cell = row[topic_column_index].strip()
+            if not cell and header[topic_column_index] == "topic speaker" and topic_column_index > 0 and not header[topic_column_index - 1]:
+                cell = row[topic_column_index - 1].strip() # PyMuPDF can put Topic/Speaker text in the blank spacer column beside the header
+            if not cell and header[topic_column_index] in THEME_TOPIC_COLUMN_HEADINGS and topic_column_index > 0 and not header[topic_column_index - 1]:
+                cell = row[topic_column_index - 1].strip() # PyMuPDF can put values in the blank spacer column just before a topic-like header
+
+            if not cell:
+                continue
+
+            topics.extend(split_topic_cell(cell))
 
     return topics
 
 
 def normalize_table_heading(heading: str) -> str:
+    """
+    Normalizes a table heading for easier comparison.
+    """
+
     heading = heading.strip().lower()
     heading = heading.replace("&", "and")
     heading = heading.replace("/", " ")
@@ -1520,6 +1629,17 @@ def normalize_table_heading(heading: str) -> str:
 
 
 def count_topic_like_cells(rows: list[list[str]], column_index: int) -> tuple[int, int, int]:
+    """
+    Counts how many sampled cells in a column look like valid topic text.
+
+    Args:
+        rows (list[list[str]]): table rows used to sample the column.
+        column_index (int): index of the column being checked.
+
+    Returns:
+        tuple[int, int, int]: returns the number of non-empty cells, topic-like cells,
+        and alos any cells that look like dates, assessments, logistics, or other non-topic text
+    """
     non_empty_count = 0
     topic_like_count = 0
     bad_count = 0
@@ -1536,10 +1656,19 @@ def count_topic_like_cells(rows: list[list[str]], column_index: int) -> tuple[in
         word_count = len(topic_word_pattern.findall(cell))
 
         looks_bad = (
+            # Labels like "Week 1" or "Module II" identify schedule structure, not topic content
             re.fullmatch(r"(day|week|module|unit)\s*[\divxlcdm/ -]+", lower_cell, re.IGNORECASE) or
+
+            # Time values usually come from date/time columns
             re.search(r"\b\d{1,2}:\d{2}\b", lower_cell) or
+
+            # Day and month names usually indicate schedule/date columns
             re.search(r"\b(mon|tue|wed|thu|fri|monday|tuesday|wednesday|thursday|friday|jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)\b", lower_cell) or
+
+            # Admin, assessment, LMS, location, and grading terms are usually not topic names
             re.search(r"\b(canvas|reading|readings|assignment|assignments|due|quiz|exam|test|prep|slides?|http|www|room|location|mark|weight)\b", lower_cell) or
+
+            # Citation-like years usually mean the cell is a reading/material, not a topic
             re.search(r"\b(?:\(\d{4}\)|\d{4})\.", cell)
         )
 
@@ -1554,6 +1683,18 @@ def count_topic_like_cells(rows: list[list[str]], column_index: int) -> tuple[in
 
 
 def rescue_topic_column_index(rows: list[list[str]], topic_column_index: int) -> int:
+    """
+    Finds the best topic column index when PyMuPDF shifts table content into a nearby column
+    (rescues extraction in the case of PyMuPDF making errors).
+
+    Args:
+        rows (list[list[str]]): table rows used to compare the current and nearby columns
+        topic_column_index (int): original topic column index selected from the table header
+
+    Returns:
+        int: returns the original topic column index, or a nearby column index if it contains
+        stronger topic-like content.
+    """
     current_non_empty, current_good, current_bad = count_topic_like_cells(rows, topic_column_index)
     current_is_usable = current_non_empty > 0 and current_good >= 1 and current_bad <= current_good
 
@@ -1578,6 +1719,17 @@ def rescue_topic_column_index(rows: list[list[str]], topic_column_index: int) ->
 
 #to decide if a given cell should become one topic or multiple topics
 def split_topic_cell(cell: str) -> list[str]:
+    """
+    Splits a table cell into one or more topic names when it clearly contains multiple topics.
+
+    Args:
+        cell (str): topic table cell text, which may contain wrapped lines, bullets, numbers,
+        or module entries
+
+    Returns:
+        list[str]: returns one topic for wrapped text that appears to be one topic, or multiple topics 
+        when list/modulemarkers show that the cell contains separate topic items
+    """
     lines = []
 
     for item in cell.split("\n"):
@@ -1648,6 +1800,15 @@ def split_topic_cell(cell: str) -> list[str]:
 
 
 def clean_topics(topics: list[str]) -> list[str]:
+    """
+    given a list of topics, cleans and filters out noise from list to return only concrete topics.
+
+    Args:
+        topics (list[str]): list of extracted topics as strings for the function to clean and filter
+
+    Returns:
+        list[str]: filtered/cleaned list of topics
+    """
     cleaned_topics = []
     ignore_topics = {"no lab", "no labs", "mid term", "mid term 1", "mid term 2", "no class", "class canceled",
                      "final exam", "final", "tba", "getting started", "no readings", "no assignments", "review",
@@ -1674,13 +1835,13 @@ def clean_topics(topics: list[str]) -> list[str]:
         if not topic:
             continue
         if re.fullmatch(r"week\s+\d+\s*-\s*\d+", topic, re.IGNORECASE): 
-            continue
+            continue # Remove week ranges like "Week 5 - 7" because they are schedule labels
         if re.fullmatch(r"[A-Za-z]?\d+(\.\d+)*[.)]?", topic):
-            continue
-        if re.fullmatch(r"\d+(\.\d+)*[.)]?", topic): #remove if toppic is a number like value
-            continue
+            continue # Remove outline/list markers like "A1", "1.2", or "3)" when extracted alone
+        if re.fullmatch(r"\d+(\.\d+)*[.)]?", topic):
+            continue #remove if toppic is a number like value
         if re.match(r"^quiz unit \d+$", topic) or re.match(r"^assignment \d+", topic) or re.match(r".*\bdue\b.*", topic):
-            continue
+            continue # Remove assessment/deadline entries that can appear in schedule tables.
 
         lower_topic = topic.lower()
         
@@ -1698,9 +1859,21 @@ def clean_topics(topics: list[str]) -> list[str]:
 
 
 def extract_list_topics_from_lines(lines: list[str], stop_headings: set[str], expected_headings: set[str]) -> list[str]:
+    """
+    Extracts topic names from numbered or bulleted lines in a text-based topic section.
+
+    Args:
+        lines (list[str]): lines from the topic section text
+        stop_headings (set[str]): section headings that should stop topic extraction
+        expected_headings (set[str]): topic headings that should not be treated as stop 
+        boundaries; these headings are expected.
+
+    Returns:
+        list[str]: returns extracted list-item topics, or an empty list if no list markers are found
+    """
     topics = []
-    list_marker_pattern = re.compile(r"^((?:\d+|[ivxlcdm]+)[.)]|[•\-–*¢●])\s*(.*)$", re.IGNORECASE)
-    found_list = False
+    list_marker_pattern = re.compile(r"^((?:\d+|[ivxlcdm]+)[.)]|[•\-–*¢●])\s*(.*)$", re.IGNORECASE) # matches numbered, roman numeral, and bullet list items
+    found_list = False 
     waiting_for_marker_topic = False #for cases when the marker is one line, and the topic is on the line under
 
     for line in lines:
@@ -1708,8 +1881,10 @@ def extract_list_topics_from_lines(lines: list[str], stop_headings: set[str], ex
         if not line:
             continue
         if found_list and is_section_boundary(line, stop_headings, expected_headings) and not re.match(r"^(?:\d+|[ivxlcdm]+)[.)]\s*$", line, re.IGNORECASE):
-            break
+            break  # Stop once a new section heading appears, but do not stop on standalone list markers the regex represents
 
+
+        #etract the topic text after each list marker - if the marker is alone, use the next line as the topic
         marker_match = list_marker_pattern.match(line)
         if marker_match:
             found_list = True
@@ -1732,6 +1907,17 @@ def extract_list_topics_from_lines(lines: list[str], stop_headings: set[str], ex
 
 
 def get_topics_from_text(doc: list[str], topic_pages: list[int]) -> list[str]:
+    """
+    Extracts course topics from text-based topic sections when table extraction is not enough/ no tables are found.
+
+    Args:
+        doc (list[str]): syllabus pages as plain text with one string per page
+        topic_pages (list[int]): page indexes where the topic section was found
+
+    Returns:
+        list[str]: returns topics extracted from bullet lists, module style lines, or paragraph
+        fallback text within the detected topic section
+    """
     topics = []
     expected_headings = TOPIC_TEXT_HEADINGS
     ignored_lines = {"week", "weeks", "date", "dates", "day", "days", "topic", "topics", "title", "name", "lecture", "lectures", "module", "modules",
@@ -1835,7 +2021,18 @@ def get_topics_from_text(doc: list[str], topic_pages: list[int]) -> list[str]:
 
 
 def get_course_materials(doc: pymupdf.Document, doc_without_header: list[str]) -> list[dict]:
-    material_pages = find_material_section(doc_without_header)
+    """
+    Extracts course materials from the detected materials section of the given syllabus.
+
+    Args:
+        doc (pymupdf.Document): pymupdf syllabus document used for table-based extraction if needed.
+        doc_without_header (list[str]): syllabus page text after removing repeated headers and footers.
+
+    Returns:
+        list[dict]: returns cleaned course materials, including each materials name, type,
+        and description
+    """
+    material_pages = find_material_section_page_indices(doc_without_header)
 
     text_materials = get_materials_from_text(doc_without_header, material_pages)
     if(text_materials):
@@ -1847,7 +2044,17 @@ def get_course_materials(doc: pymupdf.Document, doc_without_header: list[str]) -
 
 
 
-def find_material_section(doc: list[str]) -> list[int]:
+def find_material_section_page_indices(doc: list[str]) -> list[int]:
+    """
+    Find and return all page indices covered by the course materials section,
+    including sections that span multiple pages.
+
+    Args: doc (list[str]): the pdf document we want the page indices for
+
+    Returns: List[int]: list of page indices syllabus material section belongs to
+    
+    """
+
     pages = []
     in_section = False
     
@@ -1887,7 +2094,110 @@ def find_material_section(doc: list[str]) -> list[int]:
     return pages
 
 
+def extract_recommended_books_from_no_textbook_paragraph(
+    lines: list[str],
+    line_index: int,
+    stop_headings: set[str],
+    expected_headings: set[str],
+) -> tuple[list[str], set[int]]:
+    """
+    Helper for optional textbooks extractoin that extracts recommended books from a paragraph that
+    states there is no required textbook. 
+
+    Args:
+        lines (list[str]): lines from the current materials section page.
+        line_index (int): index of the line containing the no-required-textbook statement
+        stop_headings (set[str]): headings that should stop paragraph continuation
+        expected_headings (set[str]): material headings that should not be treated as stop boundaries
+
+    Returns:
+        tuple[list[str], set[int]]: returns the recommended book names and the line indexes
+        consumed while rebuilding the wrapped paragraph
+
+    """
+    
+
+    paragraph = lines[line_index].strip()
+    consumed_line_indexes = set()
+    next_index = line_index + 1
+
+    # Join wrapped paragraph lines until the text reaches another section or unrelated student instructions.
+    while next_index < len(lines):
+        continuation = lines[next_index].strip()
+        clean_continuation = continuation.lower().rstrip(":")
+        if not continuation or clean_continuation.startswith("students will be asked") or is_section_boundary(continuation, stop_headings, expected_headings):
+            break
+
+        paragraph = f"{paragraph} {continuation}".strip()
+        consumed_line_indexes.add(next_index)
+        next_index += 1
+
+    recommended_books_match = re.search(r"recommended reading:\s*(.+?\(\d{4}\))\s+and\s+(.+?\(\d{4}\))", paragraph, re.IGNORECASE) #extract recommended book citations listed after "recommended reading"
+    if not recommended_books_match:
+        return [], consumed_line_indexes
+
+    recommended_books = []
+    for book_name in recommended_books_match.groups():
+        recommended_books.append(book_name.strip(" ,."))
+
+    return recommended_books, consumed_line_indexes
+
+
+def collect_wrapped_citation(
+    lines: list[str],
+    line_index: int,
+    material_labels: set[str],
+    stop_headings: set[str],
+    expected_headings: set[str],
+) -> tuple[str, set[int]]:
+    
+    """
+    Collects a citation that has been split across multiple extracted text lines.
+
+    Args:
+        lines (list[str]): lines from the current materials section page
+        line_index (int): index of the line where the citation starts
+    material_labels (set[str]): material labels that should stop citation continuation
+    stop_headings (set[str]): section headings that should stop citation continuation
+        expected_headings (set[str]): material headings that should not be treated as stop boundaries
+
+    Returns:
+        tuple[str, set[int]]: returns the joined citation text and the line indexes consumed
+        while joining wrapped citation lines.
+
+    """
+    
+    citation_name = lines[line_index].strip()
+    consumed_line_indexes = set()
+    next_index = line_index + 1
+
+    while next_index < len(lines):
+        continuation = lines[next_index].strip()
+        clean_continuation = continuation.lower().rstrip(":")
+        if not continuation or clean_continuation in material_labels or is_section_boundary(continuation, stop_headings, expected_headings):
+            break
+        if CITATION_PATTERN.match(continuation) or BIBLIOGRAPHY_CITATION_PATTERN.match(continuation):
+            break
+
+        citation_name = f"{citation_name} {continuation}".strip()
+        consumed_line_indexes.add(next_index)
+        next_index += 1
+
+    return citation_name, consumed_line_indexes
+
+
 def get_materials_from_text(doc: list[str], pages: list[int]) -> list[dict]:
+    """
+    Extracts course materials from text lines within detected materials section pages.
+
+    Args:
+        doc (list[str]): syllabus pages as plain text with one string per page
+        pages (list[int]): page indexes where the materials section was found
+
+    Returns:
+        list[dict]: returns extracted course materials with name, type, and description before
+        final cleanup and deduplication
+    """
     materials = []
     expected_headings = MATERIAL_SECTION_HEADINGS
     stop_headings = MATERIAL_TEXT_STOP_HEADINGS
@@ -1917,8 +2227,6 @@ def get_materials_from_text(doc: list[str], pages: list[int]) -> list[dict]:
     "case studies", "documentary", "video", "podcast", "website","portal", "articles", "article", "book"
 }
     named_material_keywords = material_keywords - {"canvas", "readings", "reading", "slides"}
-    citation_pattern = re.compile(r"^[A-Z][A-Za-z'’.-]+(?:[,\s&]+[A-Za-z'’.-]+\.?)*\s+(?:\(\d{4}\)|\d{4})\.\s+.+\.?$") #regex to spot citation patterns
-    bibliography_citation_pattern = re.compile(r"^[A-Z][^\n]{0,120},[^\n]*\b(?:\(\d{4}\)|\d{4})\b\.?\s+.+") # catches bibliography lists with initials, multiple authors, or "and others"
     material_instruction_phrases = ("students can access", "students can purchase", "hardcopies are also available", "most required readings", "required readings that are not from", "course canvas website", "supplementary readings", "all course materials will be posted",
                                     "use of canvas", "make sure that you can access canvas", "sure that you can access canvas", "problem, please contact", "note: to download", "to download this book",
                                     "students can read parts of", "another good overview", "downloaded from", "book by dustin mulvaney called", "suggested technical requirements",
@@ -1990,46 +2298,32 @@ def get_materials_from_text(doc: list[str], pages: list[int]) -> list[dict]:
                 continue 
 
             if "no required textbook" in clean_line: #if there is no "required" textbook but syl still has reccomended textbook/resources
-                paragraph = line
-                next_index = line_index + 1
-                while next_index < len(lines):
-
-                    continuation = lines[next_index].strip()
-                    clean_continuation = continuation.lower().rstrip(":")
-                    if not continuation or clean_continuation.startswith("students will be asked") or is_section_boundary(continuation, stop_headings, expected_headings):
-                        break
-
-
-                    paragraph = f"{paragraph} {continuation}".strip()
-                    skip_line_indexes.add(next_index) 
-                    next_index += 1
-
-                recommended_books_match = re.search(r"recommended reading:\s*(.+?\(\d{4}\))\s+and\s+(.+?\(\d{4}\))", paragraph, re.IGNORECASE)
-                if recommended_books_match:
-                    for book_name in recommended_books_match.groups():
-                        append_material(materials, book_name.strip(" ,."), "recommended reading")
+                recommended_books, consumed_line_indexes = extract_recommended_books_from_no_textbook_paragraph(
+                    lines,
+                    line_index,
+                    stop_headings,
+                    expected_headings,
+                ) #this puts us in the "no required textbook state", so we call extract_recommended_books_from_no_textbook_paragraph()
+                skip_line_indexes.update(consumed_line_indexes)
+                for book_name in recommended_books:
+                    append_material(materials, book_name, "recommended reading")
                 continue
 
-            if bibliography_citation_pattern.match(line) and not re.match(r"^G\s+", line):
-                citation_name = line
-                next_index = line_index + 1
-                while next_index < len(lines):
-                    continuation = lines[next_index].strip()
-                    clean_continuation = continuation.lower().rstrip(":")
-                    if not continuation or clean_continuation in material_labels or is_section_boundary(continuation, stop_headings, expected_headings):
-                        break
-                    if citation_pattern.match(continuation) or bibliography_citation_pattern.match(continuation):
-                        break
-
-                    citation_name = f"{citation_name} {continuation}".strip()
-                    skip_line_indexes.add(next_index) # bibliography entries often wrap across PDF lines so this keeps one citation as one material.
-                    next_index += 1
+            if BIBLIOGRAPHY_CITATION_PATTERN.match(line) and not re.match(r"^G\s+", line):# Treat bibliography style lines as materials, but ignore PyMuPDF bullet artifacts that start with G
+                citation_name, consumed_line_indexes = collect_wrapped_citation(
+                    lines,
+                    line_index,
+                    material_labels,
+                    stop_headings,
+                    expected_headings,
+                )
+                skip_line_indexes.update(consumed_line_indexes)
 
                 append_material(materials, citation_name, current_description or "Course materials", infer_description=current_description)
                 continue
 
 
-            numbered_material_match = re.match(r"^\d{1,2}[.)]\s+(.+)$", line)
+            numbered_material_match = re.match(r"^\d{1,2}[.)]\s+(.+)$", line) #matches numbered material entries like "1. Textbook title" or "2) Article title
             if numbered_material_match:
                 material_name = numbered_material_match.group(1).strip()
                 next_index = line_index + 1
@@ -2037,13 +2331,14 @@ def get_materials_from_text(doc: list[str], pages: list[int]) -> list[dict]:
                     continuation = lines[next_index].strip()
                     clean_continuation = continuation.lower().rstrip(":")
                     if not continuation or re.match(r"^\d{1,2}[.)]\s+", continuation) or any(phrase in clean_continuation for phrase in material_instruction_phrases) or clean_continuation in material_labels or is_section_boundary(continuation, stop_headings, expected_headings):
-                        break
+                        break #stop joining when the next numbered item, instruction text, label, or section heading begins.
 
                     material_name = f"{material_name} {continuation}".strip()
                     skip_line_indexes.add(next_index) 
                     next_index += 1
 
                 if re.search(r"\b(?:19|20)\d{2}\b", material_name) or re.search(r"\b(Springer|CRC|Wiley|Press|Publishing|Editions|journal|proceedings)\b", material_name, re.IGNORECASE):
+                    #keep numbered entries only when they look like real publications through a year or publisher/journal term
                     append_material(materials, material_name, current_description or "Course materials", infer_description=current_description)
                 continue
 
@@ -2089,7 +2384,8 @@ def get_materials_from_text(doc: list[str], pages: list[int]) -> list[dict]:
                         continue
 
 
-                if citation_pattern.match(material_name) or re.search(r"\b(?:\(\d{4}\)|\d{4})\.$", material_name): # likely a textbook citation
+                if CITATION_PATTERN.match(material_name) or re.search(r"\b(?:\(\d{4}\)|\d{4})\.$", material_name):
+                    #treat bullet items as citation-style materials when they match a citation pattern or end with a publication year
                     if current_description == "":
                         current_description = "Required Textbook"
 
@@ -2124,7 +2420,8 @@ def get_materials_from_text(doc: list[str], pages: list[int]) -> list[dict]:
                 continue
             ### end of bullet points extraction
 
-            bookish_material_match = (re.match(r"^[A-Z][A-Za-z'’.-]+,\s+[A-Z][A-Za-z'’.-]+\. .+", line) or re.match(r"^[A-Z][A-Za-z &.-]+\. [A-Z].+", line)) and not citation_pattern.match(line)
+            bookish_material_match = (re.match(r"^[A-Z][A-Za-z'’.-]+,\s+[A-Z][A-Za-z'’.-]+\. .+", line) or re.match(r"^[A-Z][A-Za-z &.-]+\. [A-Z].+", line)) and not CITATION_PATTERN.match(line)
+            #Detect book-like author/title lines that do not match the stricter citation pattern
             if bookish_material_match:
                 material_name = line
                 next_index = line_index + 1
@@ -2133,14 +2430,14 @@ def get_materials_from_text(doc: list[str], pages: list[int]) -> list[dict]:
                     clean_continuation = continuation.lower().rstrip(":")
                     if not continuation or clean_continuation.startswith("note:") or clean_continuation.startswith("http") or any(phrase in clean_continuation for phrase in material_instruction_phrases) or is_section_boundary(continuation, stop_headings, expected_headings):
                         break
-                    if citation_pattern.match(continuation) or re.match(r"^[A-Z][A-Za-z'’.-]+,\s+[A-Z][A-Za-z'’.-]+\. .+", continuation):
+                    if CITATION_PATTERN.match(continuation) or re.match(r"^[A-Z][A-Za-z'’.-]+,\s+[A-Z][A-Za-z'’.-]+\. .+", continuation):
                         break
 
                     material_name = f"{material_name} {continuation}".strip()
                     skip_line_indexes.add(next_index)
                     next_index += 1
 
-                if re.search(r"\b(Springer|Cambridge University Press|Routledge|University Press|Press)\b", material_name):
+                if re.search(r"\b(Springer|Cambridge University Press|Routledge|University Press|Press)\b", material_name): # Stop joining when the next line starts a new LastName, Initial. style citation.
                     append_material(materials, material_name, current_description or "Course materials", infer_description=current_description)
                     continue
 
@@ -2184,6 +2481,7 @@ def get_materials_from_text(doc: list[str], pages: list[int]) -> list[dict]:
                 append_material(materials, name, description)
                 continue
 
+            # Extract textbook names from phrases like "your required textbook is:" while ignoring trailing additional-reading notes
             required_textbook_match = re.search(r"(?:your\s+)?required textbook(?:\s+is)?\s*:?\s*(.+?)(?:\s+additional readings.*)?$", line, re.IGNORECASE)
             if required_textbook_match:
                 name = required_textbook_match.group(1).strip()
@@ -2217,13 +2515,13 @@ def get_materials_from_text(doc: list[str], pages: list[int]) -> list[dict]:
                         append_material(materials, name, description)
                         continue
 
-                    # If the colon is part of the title, keep the full line and let the generic material rules handle it.
+                    # If the colon is part of the title, keep the full line and let the generic material rules handle it. 
 
-                if re.match(r"^[A-Z][A-Z0-9 &.-]{2,}$", name):
+                if re.match(r"^[A-Z][A-Z0-9 &.-]{2,}$", name):#Treat all-caps label/title lines before a colon as material entries instead of descriptions
                     append_material(materials, line, current_description or "Course materials", infer_description=current_description)
                     continue
             
-            if citation_pattern.match(line): #handles citation looking lines
+            if CITATION_PATTERN.match(line): #handles citation looking lines
                 if current_description == "":
                     current_description = "Required Textbook"
 
@@ -2234,7 +2532,7 @@ def get_materials_from_text(doc: list[str], pages: list[int]) -> list[dict]:
                     clean_continuation = continuation.lower().rstrip(":")
                     if not continuation or clean_continuation.isdigit() or clean_continuation in material_labels or only_bullet_pattern.match(continuation) or is_section_boundary(continuation, stop_headings, expected_headings):
                         break
-                    if citation_pattern.match(continuation) or re.match(r"^[A-Z][A-Z0-9 &.-]{2,}:", continuation):
+                    if CITATION_PATTERN.match(continuation) or re.match(r"^[A-Z][A-Z0-9 &.-]{2,}:", continuation):
                         break
 
                     citation_name = f"{citation_name} {continuation}".strip()
@@ -2255,13 +2553,23 @@ def get_materials_from_text(doc: list[str], pages: list[int]) -> list[dict]:
     return materials
 
 def infer_material_type(name: str, description: str) -> str:
+    """
+    Infers the material type from a material's name and description.
+
+    Args:
+        name (str): material name extracted from the syllabus.
+        description (str): surrounding section label or material description.
+
+    Returns:
+        str: returns the inferred material type, such as textbook, article, video,
+        website, software, or course resource
+    """
+
     material_types = [
         "textbook","software","podcast","video","website","article","case study",
         "online resource","digital resource","lecture slides","slides","reading","book","movie","calculator",
         "equipment"]
-    citation_pattern = re.compile(r"^[A-Z][A-Za-z'’.-]+(?:[,\s&]+[A-Za-z'’.-]+\.?)*\s+(?:\(\d{4}\)|\d{4})\.\s+.+\.?$") #regex for citation patterns
-    
-    is_citation = citation_pattern.match(name) or citation_pattern.match(description)
+    is_citation = CITATION_PATTERN.match(name) or CITATION_PATTERN.match(description)
     
     
     name = name.strip().lower()
@@ -2269,7 +2577,7 @@ def infer_material_type(name: str, description: str) -> str:
 
     if "optional text" in description:
         return "text"
-    if re.search(r"\b(springer|cambridge university press|routledge|university press)\b", name):
+    if re.search(r"\b(springer|cambridge university press|routledge|university press)\b", name): #if a materials name includes these it is most likely a book
         return "book"
     if "textbook" in description or "edition" in name:
         return "textbook"
@@ -2298,10 +2606,20 @@ def infer_material_type(name: str, description: str) -> str:
         if t in description:
             return t
     
-    return "course resource"
+    return "course resource" 
     
 
 def clean_materials(materials: list[dict]) -> list[dict]:
+    """
+    Cleans and deduplicates extracted course materials.
+
+    Args:
+        materials (list[dict]): raw extracted materials with name, type, and description.
+
+    Returns:
+        list[dict]: returns cleaned materials after normalizing text, removing ignored
+        entries, filtering generic logistics lines, and removing duplicates
+    """
     cleaned_materials = []
     seen_materials = set()
 
@@ -2335,6 +2653,7 @@ def clean_materials(materials: list[dict]) -> list[dict]:
             continue
 
         if re.search(r"\b(no textbook|there is no textbook|no required textbook|no mandatory textbook|no textbook to refer to)\b", clean_name):
+            #skip any "no textbook" logistic-type material entires
             continue 
 
         generic_canvas_phrases = {
@@ -2356,21 +2675,26 @@ def clean_materials(materials: list[dict]) -> list[dict]:
             "recent relevant literature", "keep an eye on the canvas", "available through"
         }
         if any(phrase in clean_name for phrase in generic_literature_phrases) and not any(term in clean_name for term in concrete_resource_terms):
+            #skip if any generic literature phrases are in the name, but no concrete resources terms are
             continue 
 
         if ("reading" in clean_name or "readings" in clean_name) and ("assignment" in clean_name or "assignments" in clean_name):
+            #if readings AND assignemnts are both part of the name, we skip - this implies it is not an actual course material
             continue
 
-        if clean_name.startswith("* note") or clean_name.startswith("note,"):
+        if clean_name.startswith("* note") or clean_name.startswith("note,"):#some syllabi have notes throughout - this should be skipped since it is just a note
             continue 
 
         if not name:
             continue
 
-        if re.match(r"^(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?\s+\d{1,2}\b", clean_name):
+        if re.match(r"^(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?\s+\d{1,2}\b", clean_name):#months regex to skip any date-type lines
             continue 
 
         if description.lower() == "resource for course" and len(name.split()) > 8:
+            #since "resource for course" is a fallback if the material type can't be infered,
+            #we check if the material name length is long along with the description being "resource for course",
+            #implying this is most likely not a course material
             continue 
 
         cleaned_material = {
