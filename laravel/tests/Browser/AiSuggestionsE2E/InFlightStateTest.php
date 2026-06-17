@@ -24,7 +24,7 @@ it('renders the waiting state on step 5 when a request is already in flight', fu
 
     $this->actingAs($user);
 
-    $page = visit("/courseWizard/{$course->course_id}/step5");
+    $page = visit_v("/courseWizard/{$course->course_id}/step5");
     $page->click("[data-bs-target=\"#collapseProgramAccordion{$program->program_id}\"]");
 
     $page->assertSee('Waiting for AI suggestions...');

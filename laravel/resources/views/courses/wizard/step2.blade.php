@@ -281,7 +281,7 @@
                 $(this).addClass('was-validated');
             }
             // readjust modal's position
-            bootstrap.Modal.getInstance(document.querySelector('#addAssessmentMethodModal'))?.handleUpdate();
+            $('#addAssessmentMethodModal').modal("handleUpdate")();
 
         });
 

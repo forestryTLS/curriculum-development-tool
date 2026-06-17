@@ -14,7 +14,7 @@ it('renders waiting state after the user clicks AI Suggestions and confirms', fu
 
     $this->actingAs($user);
 
-    $page = visit("/courseWizard/{$course->course_id}/step5");
+    $page = visit_v("/courseWizard/{$course->course_id}/step5");
     $page->click("[data-bs-target=\"#collapseProgramAccordion{$program->program_id}\"]");
     $page->click("#buttonAISuggestionCenter-{$course->course_id}-{$program->program_id}");
 
@@ -22,7 +22,7 @@ it('renders waiting state after the user clicks AI Suggestions and confirms', fu
     $page->click($yesButtonSelector);
 
     // record in PENDING state
-    $page = visit("/courseWizard/{$course->course_id}/step5");
+    $page = visit_v("/courseWizard/{$course->course_id}/step5");
     $page->click("[data-bs-target=\"#collapseProgramAccordion{$program->program_id}\"]");
     $page->assertSee('Waiting for AI suggestions...');
 
@@ -31,7 +31,7 @@ it('renders waiting state after the user clicks AI Suggestions and confirms', fu
     markRecordInProgress($course->course_id, $program->program_id);
 
     // record in IN_PROGRESS state
-    $page = visit("/courseWizard/{$course->course_id}/step5");
+    $page = visit_v("/courseWizard/{$course->course_id}/step5");
     $page->click("[data-bs-target=\"#collapseProgramAccordion{$program->program_id}\"]");
     $page->assertSee('Waiting for AI suggestions...');
 });

@@ -195,7 +195,7 @@
                 $(this).addClass('was-validated');
             }
             // readjust modal's position/height
-            bootstrap.Modal.getInstance(document.querySelector('#addSyllabusCollaboratorsModal' + syllabusId))?.handleUpdate();
+            $('#addSyllabusCollaboratorsModal' + syllabusId).modal("handleUpdate")();
 
         });
 

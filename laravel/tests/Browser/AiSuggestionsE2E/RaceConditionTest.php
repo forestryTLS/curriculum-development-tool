@@ -24,7 +24,7 @@ it('stops a second user from creating a duplicate request for the same course/pr
 
     // User B opens step 5 while nothing is in flight so the button is available
     $this->actingAs($userB);
-    $page = visit("/courseWizard/{$course->course_id}/step5");
+    $page = visit_v("/courseWizard/{$course->course_id}/step5");
     $page->assertSee('Program Outcome Mapping')
         ->click($accordion)
         ->assertSee('AI Suggestions');

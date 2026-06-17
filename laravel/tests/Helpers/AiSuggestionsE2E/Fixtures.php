@@ -8,6 +8,7 @@ use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Pest\Browser\Api\PendingAwaitablePage;
 
 function makeTestUser(string $email): User
 {
@@ -221,7 +222,7 @@ function createManuallyButton(int $courseId, int $programId): string
  * Seems to reduce the flakiness by preventing elements from going off-screen.
  * Make sure to set the resolution to something SMALLER than your monitor's resolution
  */
-function visit_v(string $url)
+function visit_v(string $url) : PendingAwaitablePage
 {
     $width = env('PLAYWRIGHT_VIEWPORT_WIDTH');
     $height = env('PLAYWRIGHT_VIEWPORT_HEIGHT');

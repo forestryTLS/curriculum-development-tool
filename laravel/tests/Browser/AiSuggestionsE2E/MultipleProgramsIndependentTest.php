@@ -34,7 +34,7 @@ it('tracks AI-suggestion requests independently across multiple programs', funct
     $options2 = "#mappingOptions-{$course->course_id}-{$program2->program_id}";
 
     // Check that both programs show the waiting state
-    $page = visit("/courseWizard/{$course->course_id}/step5");
+    $page = visit_v("/courseWizard/{$course->course_id}/step5");
     $page->assertSee('Program Outcome Mapping')
          ->click("[data-bs-target=\"#collapseProgramAccordion{$program1->program_id}\"]")
          ->assertSee('Waiting for AI suggestions...')

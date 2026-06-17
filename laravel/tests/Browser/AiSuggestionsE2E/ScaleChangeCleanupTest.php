@@ -42,7 +42,7 @@ it('keeps manual maps and AI suggestions consistent when the scale is dropped or
         ['clo_id' => $clo->l_outcome_id, 'plo_id' => $ploAi2->pl_outcome_id, 'labels' => ['A']], // icon on A
     ]);
 
-    $page = visit("/courseWizard/{$course->course_id}/step5");
+    $page = visit_v("/courseWizard/{$course->course_id}/step5");
     $page->wait(20)
         ->assertPresent(aiIconForCloPlo($clo->l_outcome_id, $ploAi1->pl_outcome_id, $I));
 

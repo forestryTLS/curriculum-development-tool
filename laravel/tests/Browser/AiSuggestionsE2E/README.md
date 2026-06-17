@@ -38,11 +38,11 @@ Run these specific tests with `composer test:ai-suggestions-e2e`.
 To see the browser as the tests run, use `composer test:ai-suggestions-e2e:visual`.
 To see the browser and debug-step, use `composer test:ai-suggestions-e2e:debug`.
 
-### Debugging
+### Troubleshooting
 - If the failure message says 'interrupted by ...', try closing unnecessary processes on your device.
 - If the failure message says it could not find a specific element, this could either be a genuine issue to debug, or it could be a viewport issue (see **Environment Variables** section aobve).
 - Use `$page->screenshot()` before and after problematic points to see what the page showed.
-- Use `$page->debug()` to open a debug stepping browser window at that point. Also skips other tests, so you can get here fast - great for debugging one specific point!
+- Use `$page->debug()` to open a debug stepping browser window at that point. This also skips other tests, so you can get here fast - great for debugging one specific point!
 
 ### Notes
 
@@ -53,5 +53,7 @@ To see the browser and debug-step, use `composer test:ai-suggestions-e2e:debug`.
 - In `MainWorkflowTest.php`, the course, program, and initial mapping setup are done by simulating user clicks to be as realistic as possible. In the other tests, however, these are done programmatically to save time and focus on the actual case being tested (unless setup is relevant to the test case, like in `AddingCLOPLOafterSubmittingTest.php`).
 
 - The tests have `wait()` commands scattered throughout. The wait times were set through trial-and-error. They slow down the tests quite a bit, but make sure that elements needed are loaded, and just overall seem to reduce flakiness.
+
+- When writing tests, start with `visit_v(url)` instead of `visit(url)` to take advantage of the viewport set in `.env.testing`. This prevents some 'element not found' errors. Then you can use `navigate()` to keep the same viewport on that window, or use `visit_v()` again to open a new window.
 
 - In the test LO mapping service (`test.py`), the environment variables are set within the code. This seemed simpler than using an `.env.testing` there, as most of the values don't matter and aren't confidential.
