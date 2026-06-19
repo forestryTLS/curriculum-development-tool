@@ -50,9 +50,9 @@ it('keeps manual maps and AI suggestions consistent when the scale is dropped or
 
     $page->navigate("/courseWizard/{$course->course_id}/step5")
         ->wait(2)
-        ->click(programAccordionToggle($programManual->program_id))
-        ->click(createManuallyButton($course->course_id, $programManual->program_id))
-        ->click(cloAccordionToggle($programManual->program_id, $clo->l_outcome_id))
+        ->pressAndWaitFor(programAccordionToggle($programManual->program_id), 1)
+        ->pressAndWaitFor(createManuallyButton($course->course_id, $programManual->program_id), 2)
+        ->pressAndWaitFor(cloAccordionToggle($programManual->program_id, $clo->l_outcome_id), 1)
         ->check(manualMapField($clo->l_outcome_id, $ploM->pl_outcome_id), (string) $I);
 
     $page->click(programAccordionToggle($programAi->program_id))

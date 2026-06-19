@@ -15,8 +15,8 @@ it('creates a course and program via the UI and renders AI suggestion icons end-
 
     // Create course
     $page = visit_v('/home');
-    $page->click('[data-bs-target="#methodToCreateNewCourse"]')
-        ->click('[data-bs-target="#createCourseModal"]')
+    $page->pressAndWaitFor('[data-bs-target="#methodToCreateNewCourse"]', 2)
+        ->pressAndWaitFor('[data-bs-target="#createCourseModal"]', 2)
         ->type('#course_code', 'HAPP')
         ->type('#course_num', '101')
         ->type('#course_title', 'E2E Normal workflow Course')
@@ -25,9 +25,10 @@ it('creates a course and program via the UI and renders AI suggestion icons end-
         ->select('#delivery_modality', 'O')
         ->select('#standard_category_id', '1')
         ->wait(1)
-        ->pressAndWaitFor('#createCourse #submit', 2); // POSTs and redirects to /courseWizard/{id}/step8
+        ->pressAndWaitFor('#createCourse #submit', 3); // POSTs and redirects to /courseWizard/{id}/step8
 
     $course = Course::where('course_title', 'E2E Normal workflow Course')->latest('course_id')->firstOrFail();
+    $page->assertPathIs("/courseWizard/{$course->course_id}/step8");
 
     // Add CLO
     $page->click('a.btn.btn-secondary[href$="/courseWizard/' . $course->course_id . '/step1"]')
@@ -58,8 +59,9 @@ it('creates a course and program via the UI and renders AI suggestion icons end-
         ->press('#addPLOBtn')
         ->type('#pl_outcome', 'PLO 3: Evaluate competing approaches.')
         ->type('#ploShortphrase', 'Evaluate Approaches')
-        ->press('#addPLOBtn')
-        ->press('#savePLOChanges button[type="submit"]');
+        ->pressAndWaitFor('#addPLOBtn', 1)
+        ->pressAndWaitFor('#savePLOChanges button[type="submit"]', 3)
+        ->assertPathIs("/programWizard/{$program->program_id}/step1");
 
     // These also function as assertions that the PLOs were stored correctly in the db
     $plo1 = ProgramLearningOutcome::where('pl_outcome', 'PLO 1: Demonstrate mastery of the discipline.')->firstOrFail();
@@ -67,7 +69,8 @@ it('creates a course and program via the UI and renders AI suggestion icons end-
     $plo3 = ProgramLearningOutcome::where('pl_outcome', 'PLO 3: Evaluate competing approaches.')->firstOrFail();
 
     // Assign default I/D/A mapping scales to the program
-    $page->click('a.btn.btn-secondary[href$="/programWizard/' . $program->program_id . '/step2"]')
+    $page->pressAndWaitFor('a.btn.btn-secondary[href$="/programWizard/' . $program->program_id . '/step2"]', 2)
+        ->assertPathIs("/programWizard/{$program->program_id}/step2")
         ->pressAndWaitFor('[data-bs-target=".mapping-scales"]', 1)
         ->pressAndWaitFor('form[action*="addDefaultMappingScale"]:has(input[name="mapping_scale_categories_id"][value="1"]) button[type="submit"]', 2);
 

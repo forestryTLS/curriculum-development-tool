@@ -28,16 +28,16 @@ it('does not render icons for CLOs/PLOs added in-flight or after results return'
             ->click('CLO') // the + CLO button
             ->type('#l_outcome', $text)
             ->type('#title', substr($text, 0, 20))
-            ->pressAndWaitFor('#addCLOBtn', 1)
+            ->pressAndWaitFor('#addCLOBtn', 2)
             ->pressAndWaitFor('#saveCLOChanges button:has-text("Save Changes")', 1);
     };
     $addPloViaUi = function (string $text) use ($page, $program) {
         $page->navigate("/programWizard/{$program->program_id}/step1")
             ->wait(3)
-            ->pressAndWaitFor('[data-bs-target="#addPLOModal"]', 0.5)
+            ->pressAndWaitFor('[data-bs-target="#addPLOModal"]', 1)
             ->type('#pl_outcome', $text)
             ->type('#ploShortphrase', substr($text, 0, 20))
-            ->pressAndWaitFor('#addPLOBtn', 0.5)
+            ->pressAndWaitFor('#addPLOBtn', 1)
             ->press('#savePLOChanges button[type="submit"]');
     };
 

@@ -228,12 +228,14 @@ function visit_v(string $url) : PendingAwaitablePage
     $height = env('PLAYWRIGHT_VIEWPORT_HEIGHT');
 
     if ($width && $height) {
-        return visit($url, [
+        $page = visit($url, [
             'viewport' => ['width' => (int) $width, 'height' => (int) $height],
             'deviceScaleFactor' => 1,
         ]);
+    } else {
+        $page = visit($url);
     }
 
-    return visit($url);
+    return $page;
 }
 
