@@ -1602,10 +1602,8 @@ def extract_topics_from_rows(rows: list[list[str]],header: list[str],topic_colum
                 continue
 
             cell = row[topic_column_index].strip()
-            if not cell and header[topic_column_index] == "topic speaker" and topic_column_index > 0 and not header[topic_column_index - 1]:
-                cell = row[topic_column_index - 1].strip() # PyMuPDF can put Topic/Speaker text in the blank spacer column beside the header
-            if not cell and header[topic_column_index] in THEME_TOPIC_COLUMN_HEADINGS and topic_column_index > 0 and not header[topic_column_index - 1]:
-                cell = row[topic_column_index - 1].strip() # PyMuPDF can put values in the blank spacer column just before a topic-like header
+            if not cell and header[topic_column_index] in (THEME_TOPIC_COLUMN_HEADINGS | {"topic speaker"}) and topic_column_index > 0 and not header[topic_column_index - 1]:
+                cell = row[topic_column_index - 1].strip() # PyMuPDF can put topic text in the blank spacer column just before a topic-like header
 
             if not cell:
                 continue
