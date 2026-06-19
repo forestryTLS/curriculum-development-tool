@@ -34,7 +34,7 @@
                                     <div class="row justify-content-between align-items-end m-2">
                                         <div class="col-10">
                                             <label for="courseTopic" class="form-label fs-6"><b>Course Topic</b></label>
-                                            <input id="courseTopic" class="form-control" oninput="validateMaxlength()" onpaste="validateMaxlength()" maxlength="191" placeholder="Type your course topic..." required>
+                                            <input id="courseTopic" class="form-control" oninput="validateMaxlength(event)" onpaste="validateMaxlength(event)" maxlength="191" placeholder="Type your course topic..." required>
                                             <div class="invalid-tooltip">
                                                 Please provide a Course Topic.
                                             </div>                                            
@@ -61,7 +61,7 @@
                                             @foreach($courseTopics as $index => $courseTopic)
                                             <tr>
                                                 <td>
-                                                    <input id="courseTopic{{$courseTopic->course_topic_id}}" type="text" class="form-control" oninput="validateMaxlength()" onpaste="validateMaxlength()" maxlength="191"
+                                                    <input id="courseTopic{{$courseTopic->course_topic_id}}" type="text" class="form-control" oninput="validateMaxlength(event)" onpaste="validateMaxlength(event)" maxlength="191"
                                                     name="current_topics[{{$courseTopic->course_topic_id}}]" value = "{{$courseTopic->topic}}" placeholder="Type your course topic" form="saveCourseTopicChanges" required spellcheck="true" style="white-space: pre">
                                                 </td>
                                                 <td class="text-center">

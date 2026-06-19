@@ -35,14 +35,14 @@
                                     <div class="row justify-content-between align-items-end m-2">
                                         <div class="col-4">
                                             <label for="courseMaterialName" class="form-label fs-6"><b>Name</b></label>
-                                            <input id="courseMaterialName" class="form-control" oninput="validateMaxlength()" onpaste="validateMaxlength()" maxlength="191" placeholder="Material name" required>
+                                            <input id="courseMaterialName" class="form-control" oninput="validateMaxlength(event)" onpaste="validateMaxlength(event)" maxlength="191" placeholder="Material name" required>
                                             <div class="invalid-tooltip">
                                                 Please provide a material name.
                                             </div>
                                         </div>
                                         <div class="col-2">
                                             <label for="courseMaterialType" class="form-label fs-6"><b>Type</b></label>
-                                            <input id="courseMaterialType" class="form-control" oninput="validateMaxlength()" onpaste="validateMaxlength()" maxlength="191" placeholder="Textbook, video, article...">
+                                            <input id="courseMaterialType" class="form-control" oninput="validateMaxlength(event)" onpaste="validateMaxlength(event)" maxlength="191" placeholder="Textbook, video, article...">
                                         </div>
                                         <div class="col-2">
                                             <label for="courseMaterialUrl" class="form-label fs-6"><b>URL</b></label>
@@ -86,11 +86,11 @@
                                             @foreach($courseMaterials as $index => $courseMaterial)
                                             <tr>
                                                 <td>
-                                                    <input id="courseMaterialName{{$courseMaterial->course_material_id}}" type="text" class="form-control" oninput="validateMaxlength()" onpaste="validateMaxlength()" maxlength="191"
+                                                    <input id="courseMaterialName{{$courseMaterial->course_material_id}}" type="text" class="form-control" oninput="validateMaxlength(event)" onpaste="validateMaxlength(event)" maxlength="191"
                                                     name="current_material[{{$courseMaterial->course_material_id}}][name]" value="{{$courseMaterial->name}}" placeholder="Material name" form="saveCourseMaterialChanges" required spellcheck="true" style="white-space: pre">
                                                 </td>
                                                 <td>
-                                                    <input id="courseMaterialType{{$courseMaterial->course_material_id}}" type="text" class="form-control" oninput="validateMaxlength()" onpaste="validateMaxlength()" maxlength="191"
+                                                    <input id="courseMaterialType{{$courseMaterial->course_material_id}}" type="text" class="form-control" oninput="validateMaxlength(event)" onpaste="validateMaxlength(event)" maxlength="191"
                                                     name="current_material[{{$courseMaterial->course_material_id}}][type]" value="{{$courseMaterial->type}}" placeholder="Type" form="saveCourseMaterialChanges" spellcheck="true" style="white-space: pre">
                                                 </td>
                                                 <td>
