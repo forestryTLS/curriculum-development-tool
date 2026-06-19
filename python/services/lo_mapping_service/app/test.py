@@ -90,8 +90,6 @@ def initialize_storage():
 
 def reset_dynamodb():
     """Drop the LO mapping requests table if it exists."""
-    load_dotenv()
-
     from app.services import LOMappingRequestDynamoDBRecord
     store = LOMappingRequestDynamoDBRecord()
     client = store._create_boto_session().client("dynamodb", region_name=store.aws_region)

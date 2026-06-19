@@ -75,6 +75,12 @@ def load_settings() -> DeploySettings:
 
 
 def zip_handler(module_name: str, dest: Path) -> Path:
+    # Currently, the only external library used by the lambda handlers 
+    # is boto3, which is included in the AWS lambda runtime.
+    # If we add external dependencies in the future that aren't included,
+    # we'd need this script to install those dependencies into a directory
+    # which would be zipped along with the handler file, for each handler.
+    
     src = HANDLERS_DIR / f"{module_name}.py"
     if not src.exists():
         sys.exit(f"ERROR: handler not found at {src}")
