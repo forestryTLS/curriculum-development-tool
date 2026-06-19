@@ -19,6 +19,8 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Bus\Batchable;
+use App\Models\CourseTopic;
+use App\Models\CourseMaterial;
 
 class ProcessCourseSyllabiFile implements ShouldQueue
 {
@@ -97,22 +99,82 @@ class ProcessCourseSyllabiFile implements ShouldQueue
         $courseFile->save();
 
         $learningOutcomes = $courseObject->goals;
+        $learningOutcomesToInsert = [];
+        $timestamp = now();
 
         foreach($learningOutcomes as $lo){
-            $learningOutcome = new LearningOutcome();
-            $learningOutcome->l_outcome = $lo;
-            $learningOutcome->course_id = $course->course_id;
-            $learningOutcome->save();
+            $learningOutcomesToInsert[] = [
+                'l_outcome' => $lo,
+                'clo_shortphrase' => null,
+                'course_id' => $course->course_id,
+                'pos_in_alignment' => 0,
+                'created_at' => $timestamp,
+                'updated_at' => $timestamp,
+            ];
+        }
+
+        if (!empty($learningOutcomesToInsert)) {
+            LearningOutcome::insert($learningOutcomesToInsert);
         }
 
         $assessmentMethods = $courseObject->assessments;
+        $assessmentMethodsToInsert = [];
 
         foreach($assessmentMethods as $am){
-            $assessmentMethod = new AssessmentMethod();
-            $assessmentMethod->a_method = $am[0];
-            $assessmentMethod->weight = $am[1];
-            $assessmentMethod->course_id = $course->course_id;
-            $assessmentMethod->save();
+            $assessmentMethodsToInsert[] = [
+                'a_method' => $am[0],
+                'weight' => $am[1],
+                'course_id' => $course->course_id,
+                'pos_in_alignment' => 0,
+                'created_at' => $timestamp,
+                'updated_at' => $timestamp,
+            ];
+        }
+
+        if (!empty($assessmentMethodsToInsert)) {
+            AssessmentMethod::insert($assessmentMethodsToInsert);
+        }
+
+        $courseTopics = $courseObject->topics ?? [];
+        $topicsToInsert = [];
+
+        foreach ($courseTopics as $index => $ct) {
+            if (!empty($ct)) {
+                $topicsToInsert[] = [
+                    'course_id' => $course->course_id,
+                    'topic' => $ct,
+                    'position' => $index + 1,
+                    'created_at' => $timestamp,
+                    'updated_at' => $timestamp,
+                ];
+            }
+        }
+
+        if (!empty($topicsToInsert)) {
+            CourseTopic::insert($topicsToInsert);
+        }
+
+        $courseMaterials = $courseObject->materials ?? [];
+        $materialsToInsert = [];
+
+        foreach ($courseMaterials as $index => $cm) {
+            if (!empty($cm) && !empty($cm->name)) {
+                $materialsToInsert[] = [
+                    'course_id' => $course->course_id,
+                    'name' => $cm->name,
+                    'type' => $cm->type ?? null,
+                    'description' => $cm->description ?? null,
+                    'is_required' => false,
+                    'url' => null,
+                    'position' => $index + 1,
+                    'created_at' => $timestamp,
+                    'updated_at' => $timestamp,
+                ];
+            }
+        }
+
+        if (!empty($materialsToInsert)) {
+            CourseMaterial::insert($materialsToInsert);
         }
 
         $user = User::where('id', $this->userId)->first();

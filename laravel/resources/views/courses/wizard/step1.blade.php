@@ -38,7 +38,7 @@
                                                         <div><small class="form-text text-muted" style="font-size:12px"><a href="https://tips.uark.edu/using-blooms-taxonomy/" target="_blank" rel="noopener noreferrer"><b><i class="bi bi-box-arrow-up-right"></i> Click here</b></a> for tips to write effective CLOs.</small></div>
                                                     </label>
                 
-                                                    <textarea id="l_outcome" class="form-control" oninput="validateMaxlength()" onpaste="validateMaxlength()" maxlength="30000" name="l_outcome" required autofocus placeholder="E.g. Develop..." style="resize:none"></textarea>
+                                                    <textarea id="l_outcome" class="form-control" oninput="validateMaxlength(event)" onpaste="validateMaxlength(event)" maxlength="30000" name="l_outcome" required autofocus placeholder="E.g. Develop..." style="resize:none"></textarea>
                                                     <div class="invalid-tooltip">
                                                         You must input a course learning outcome or competency.
                                                     </div>
@@ -76,7 +76,7 @@
                                                         <tr>
                                                             <td>
                                                                 <textarea name="current_l_outcome[{{$l_outcome->l_outcome_id}}]" value="{{$l_outcome->l_outcome}}" id="l_outcome{{$l_outcome->l_outcome_id}}" 
-                                                                class="form-control @error('l_outcome') is-invalid @enderror" form="saveCLOChanges" oninput="validateMaxlength()" onpaste="validateMaxlength()" maxlength="30000" required>{{$l_outcome->l_outcome}}</textarea>
+                                                                class="form-control @error('l_outcome') is-invalid @enderror" form="saveCLOChanges" oninput="validateMaxlength(event)" onpaste="validateMaxlength(event)" maxlength="30000" required>{{$l_outcome->l_outcome}}</textarea>
                                                             </td>
                                                             <td>
                                                                 <textarea type="text" name="current_l_outcome_short_phrase[{{$l_outcome->l_outcome_id}}]" id="l_outcome_short_phrase{{$l_outcome->l_outcome_id}}"
@@ -220,8 +220,8 @@
                 <!-- card footer -->
                 <div class="card-footer">
                     <div class="card-body mb-4">
-                        <a href="{{route('courseWizard.step8', $course->course_id)}}">
-                            <button class="btn btn-sm btn-primary col-3 float-left"><i class="bi bi-arrow-left mr-2"></i> Course Description</button>
+                        <a href="{{route('courseWizard.step10', $course->course_id)}}">
+                            <button class="btn btn-sm btn-primary col-3 float-left"><i class="bi bi-arrow-left mr-2"></i> Course Materials</button>
                         </a>
 
                         <a href="{{route('courseWizard.step2', $course->course_id)}}">
@@ -265,7 +265,7 @@
                     <tr>
                         <td>
                             <textarea name="current_l_outcome[{{$l_outcome->l_outcome_id}}]" value="{{$l_outcome->l_outcome}}" id="l_outcome{{$l_outcome->l_outcome_id}}" 
-                            class="form-control @error('l_outcome') is-invalid @enderror" form="saveCLOChanges" oninput="validateMaxlength()" onpaste="validateMaxlength()" maxlength="30000" required>{{$l_outcome->l_outcome}}</textarea>
+                            class="form-control @error('l_outcome') is-invalid @enderror" form="saveCLOChanges" oninput="validateMaxlength(event)" onpaste="validateMaxlength(event)" maxlength="30000" required>{{$l_outcome->l_outcome}}</textarea>
                         </td>
                         <td>
                             <textarea type="text" name="current_l_outcome_short_phrase[{{$l_outcome->l_outcome_id}}]" id="l_outcome_short_phrase{{$l_outcome->l_outcome_id}}"
@@ -289,10 +289,10 @@
         $('#addCLOTbl tbody').append(`
             <tr>
                 <td>
-                    <textarea name="new_l_outcomes[]" value="${$('#l_outcome').val()}" class="form-control @error('l_outcome') is-invalid @enderror" form="saveCLOChanges" oninput="validateMaxlength()" onpaste="validateMaxlength()" maxlength="30000" required>${$('#l_outcome').val()}</textarea>
+                    <textarea name="new_l_outcomes[]" value="${$('#l_outcome').val()}" class="form-control @error('l_outcome') is-invalid @enderror" form="saveCLOChanges" oninput="validateMaxlength(event)" onpaste="validateMaxlength(event)" maxlength="30000" required>${$('#l_outcome').val()}</textarea>
                 </td>
                 <td>
-                    <textarea type="text" name="new_short_phrases[]" oninput="validateMaxlength()" onpaste="validateMaxlength()" maxlength="50" class="form-control @error('clo_shortphrase') is-invalid @enderror" form="saveCLOChanges">${$('#title').val()}</textarea>
+                    <textarea type="text" name="new_short_phrases[]" oninput="validateMaxlength(event)" onpaste="validateMaxlength(event)" maxlength="50" class="form-control @error('clo_shortphrase') is-invalid @enderror" form="saveCLOChanges">${$('#title').val()}</textarea>
                 </td>
                 <td class="text-center">
                     <i class="bi bi-x-circle-fill text-danger fs-4 btn" onclick="deleteCLO(this)"></i>

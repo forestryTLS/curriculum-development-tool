@@ -86,16 +86,22 @@ class LearningOutcomeController extends Controller
                 }
             }
             if ($newCLOs) {
+                $learningOutcomesToInsert = [];
+                $timestamp = now();
+
                 foreach ($newCLOs as $index => $newCLO) {
-                    $newLearningOutcome = new LearningOutcome;
-                    $newLearningOutcome->l_outcome = $newCLO;
-                    $newLearningOutcome->clo_shortphrase = $newShortPhrases[$index];
-                    $newLearningOutcome->course_id = $courseId;
-                    // update pos_in_alignment if the other clos for the course have non zero values for pos_in_alignment
-                    if ($hasBeenReordered) {
-                        $newLearningOutcome->pos_in_alignment = $clos->count() + $index + 1;
-                    }
-                    $newLearningOutcome->save();
+                    $learningOutcomesToInsert[] = [
+                        'l_outcome' => $newCLO,
+                        'clo_shortphrase' => $newShortPhrases[$index],
+                        'course_id' => $courseId,
+                        'pos_in_alignment' => $hasBeenReordered ? $clos->count() + $index + 1 : 0,
+                        'created_at' => $timestamp,
+                        'updated_at' => $timestamp,
+                    ];
+                }
+
+                if (! empty($learningOutcomesToInsert)) {
+                    LearningOutcome::insert($learningOutcomesToInsert);
                 }
             }
             // update courses 'updated_at' field
@@ -170,11 +176,14 @@ class LearningOutcomeController extends Controller
     public function destroy(Request $request, $l_outcome_id): RedirectResponse
     {
         //
-        $lo = LearningOutcome::where('l_outcome_id', $l_outcome_id)->first();
+        $course_id = $request->input('course_id');
+        $lo = LearningOutcome::where('l_outcome_id', $l_outcome_id)
+            ->where('course_id', $course_id)
+            ->first();
 
-        if ($lo->delete()) {
+        if ($lo && $lo->delete()) {
             // update courses 'updated_at' field
-            $course = Course::find($request->input('course_id'));
+            $course = Course::find($course_id);
             $course->touch();
 
             // get users name for last_modified_user
@@ -187,7 +196,7 @@ class LearningOutcomeController extends Controller
             $request->session()->flash('error', 'There was an error deleting the course learning outcome');
         }
 
-        return redirect()->route('courseWizard.step1', $request->input('course_id'));
+        return redirect()->route('courseWizard.step1', $course_id);
     }
 
     /* Import clos from a file.
