@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     OUTPUT_S3_URI: str | None = None
     BATCH_TRANSFORM_INPUT_S3_BUCKET: str | None = None
     LARAVEL_API_URL: str | None = None
+    APP_NAME: str = "curriculum-development-tool"
 
     @field_validator("ALLOWED_ORIGINS")
     def parse_allowed_origins(cls, v: str) -> List[str]:
