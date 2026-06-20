@@ -24,13 +24,14 @@
 
 
 
-    @foreach ($results as $result)
-        <p>
-            {{ $result->course_code }} {{ $result->course_num }}:
-            {{ $result->course_title }}
-        </p>
+    @foreach($results as $result)
+        <div>
+            <h3>{{ $result->course_code }} {{ $result->course_num }}: {{ $result->course_title }}</h3>
 
-        <p>Matched in: {{ $result->property }}</p>
-        <p>{!! $result->snippet !!}</p>
+            @foreach($result->matches as $match)
+                <p>Matched in: {{ $match->property }}</p>
+                <p>{!! $match->snippet !!}</p>
+            @endforeach
+        </div>
     @endforeach
 @endsection

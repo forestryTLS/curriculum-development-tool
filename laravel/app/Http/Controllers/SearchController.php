@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Collection;
 
 class SearchController extends Controller
 
@@ -50,13 +51,16 @@ class SearchController extends Controller
 
         return $results; */
 
-        return collect()
+        $searchResults = collect()
             ->merge($this->searchTopics($searchTerm))
             ->merge($this->searchLearningObjectives($searchTerm))
             ->merge($this->searchDescriptions($searchTerm))
             ->merge($this->searchMaterials($searchTerm))
             ->merge($this->searchAssessments($searchTerm));
 
+        $results = $this->combineMatchesByCourse($searchResults);
+
+        return $results;
     }
 
     public function searchTopics(string $searchTerm){
@@ -178,6 +182,35 @@ class SearchController extends Controller
         ", [$searchTerm])->get();
 
         return $results;
+    }
+
+    public function combineMatchesByCourse(Collection $matches): Collection{
+
+        $combinedResults = collect();
+
+        foreach($matches as $match){
+            $courseId = $match->course_id;
+
+            if(!$combinedResults->has($courseId)){
+                $combinedResults[$courseId] = (object) [
+                    'course_id' => $courseId,
+                    'course_code' => $match->course_code,
+                    'course_num' => $match->course_num,
+                    'course_title' => $match->course_title,
+                    'matches' => collect(),
+                ];
+            }
+
+            $combinedResults[$courseId]->matches->push((object) [
+                'property' => $match->property,
+                'matched_text' => $match->matched_text,
+                'snippet' => $match->snippet,
+            ]);
+
+        }
+
+        return $combinedResults->values(); //removes course_id as index for the blade view to cleanly loop through results.
+
     }
 
 
