@@ -36,6 +36,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\URL;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\AccountInformationController;
+use App\Http\Controllers\SearchController;
 
 /*
 |--------------------------------------------------------------------------
@@ -255,6 +256,11 @@ Route::get('/courseWizard/{course}/step7', [CourseWizardController::class, 'step
 Route::get('/courseWizard/{course}/step8', [CourseWizardController::class, 'step8'])->name('courseWizard.step8');
 Route::get('/courseWizard/{course}/step9', [CourseWizardController::class, 'step9'])->name('courseWizard.step9');
 Route::get('/courseWizard/{course}/step10', [CourseWizardController::class, 'step10'])->name('courseWizard.step10');
+
+//Search engine routes
+Route::get('/search', [SearchController::class, 'index'])
+    ->name('search.index');
+
 //lets blade form submit to courseTopicController@store
 Route::post('/courseTopics/store', [CourseTopicController::class, 'store'])->name('courseTopics.store');
 Route::post('/courseMaterials/store', [CourseMaterialController::class, 'store'])->name('courseMaterials.store');
