@@ -15,8 +15,10 @@ import json
 import sys
 import zipfile
 from pathlib import Path
+from urllib.parse import urlparse
 
 import boto3
+from botocore.exceptions import ClientError
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Can remove SERVICE_ROOT if we limit where we call this script from
@@ -44,6 +46,7 @@ class DeploySettings(BaseSettings):
     ACCESS_KEY: str = ""
     SECRET_KEY: str = ""
     DYNAMODB_STATUS_INDEX: str = "status-created_at-index"
+    APP_NAME: str = "curriculum-development-tool"
 
     model_config = SettingsConfigDict(
         env_file=str(SERVICE_ROOT / ".env"),
@@ -71,7 +74,13 @@ def load_settings() -> DeploySettings:
         "LAMBDA_ROLE_ARN",
     ):
         print(f"  {key} = {getattr(settings, key)}")
+    print(f"  APP_NAME = {settings.APP_NAME}")
     return settings
+
+
+def kv_to_lambda_tags(kv_tags: list[dict]) -> dict:
+    """Lambda wants tags as {key: value}; the other services use [{Key, Value}]."""
+    return {tag["Key"]: tag["Value"] for tag in kv_tags}
 
 
 def zip_handler(module_name: str, dest: Path) -> Path:
@@ -105,6 +114,7 @@ def deploy_lambda(
     zip_path: Path,
     role_arn: str,
     variables: dict[str, str],
+    kv_tags: list[dict],
 ) -> None:
     handler = f"{handler_module}.lambda_handler"
     zip_bytes = zip_path.read_bytes()
@@ -132,8 +142,13 @@ def deploy_lambda(
         )
         print(f"  updated {function_name}")
 
+    arn = lambda_client.get_function(FunctionName=function_name)["Configuration"]["FunctionArn"]
+    lambda_tags = kv_to_lambda_tags(kv_tags)
+    lambda_client.tag_resource(Resource=arn, Tags=lambda_tags)
+    print(f"  tagged {function_name} ({lambda_tags})")
 
-def deploy_start_job(lambda_client, settings: DeploySettings, zip_path: Path) -> None:
+
+def deploy_start_job(lambda_client, settings: DeploySettings, zip_path: Path, kv_tags: list[dict]) -> None:
     print(f"Deploying {START_JOB_FN}...")
     variables = {
         "ACCESS_KEY": settings.ACCESS_KEY,
@@ -149,12 +164,13 @@ def deploy_start_job(lambda_client, settings: DeploySettings, zip_path: Path) ->
         "MODEL_NAME_PREFIX": "hf-batch-transform-model",
         "LO_MAPPING_DYNAMODB_REQUESTS_TABLE": settings.LO_MAPPING_DYNAMODB_REQUESTS_TABLE,
         "DYNAMODB_STATUS_INDEX": settings.DYNAMODB_STATUS_INDEX,
+        "APP_NAME": settings.APP_NAME,
     }
     deploy_lambda(lambda_client, START_JOB_FN, START_JOB_MODULE, zip_path,
-                  settings.LAMBDA_ROLE_ARN, variables)
+                  settings.LAMBDA_ROLE_ARN, variables, kv_tags)
 
 
-def deploy_process_results(lambda_client, settings: DeploySettings, zip_path: Path) -> None:
+def deploy_process_results(lambda_client, settings: DeploySettings, zip_path: Path, kv_tags: list[dict]) -> None:
     print(f"Deploying {PROCESS_RESULTS_FN}...")
     variables = {
         "ACCESS_KEY": settings.ACCESS_KEY,
@@ -165,7 +181,7 @@ def deploy_process_results(lambda_client, settings: DeploySettings, zip_path: Pa
         "JOB_NAME_PREFIX": "hf-batch-transform",
     }
     deploy_lambda(lambda_client, PROCESS_RESULTS_FN, PROCESS_RESULTS_MODULE, zip_path,
-                  settings.LAMBDA_ROLE_ARN, variables)
+                  settings.LAMBDA_ROLE_ARN, variables, kv_tags)
 
 
 def log_lambdas(lambda_client) -> None:
@@ -179,14 +195,18 @@ def log_lambdas(lambda_client) -> None:
     print("\n")
 
 
-def setup_eventbridge(events_client, lambda_client, sts_client, region: str | None) -> None:
+def setup_eventbridge(events_client, lambda_client, sts_client, region: str | None, kv_tags: list[dict]) -> None:
     print(f"Setting up EventBridge rule '{EVENTBRIDGE_RULE}'...")
     pattern = json.dumps({
         "source": ["aws.sagemaker"],
         "detail-type": ["SageMaker Transform Job State Change"],
     })
-    events_client.put_rule(Name=EVENTBRIDGE_RULE, EventPattern=pattern)
+    rule = events_client.put_rule(Name=EVENTBRIDGE_RULE, EventPattern=pattern)
     print(f"  rule '{EVENTBRIDGE_RULE}' put")
+
+    # tag_resource is idempotent; put_rule's Tags only apply on create.
+    events_client.tag_resource(ResourceARN=rule["RuleArn"], Tags=kv_tags)
+    print(f"  tagged rule '{EVENTBRIDGE_RULE}'")
 
     lambda_arn = lambda_client.get_function(
         FunctionName=PROCESS_RESULTS_FN
@@ -215,6 +235,79 @@ def setup_eventbridge(events_client, lambda_client, sts_client, region: str | No
         print(f"  invoke permission already present (source: {source_arn})")
 
 
+def ensure_dynamodb_table(dynamodb_client, table_name: str, kv_tags: list[dict]) -> None:
+    # NOTE: Keep schema below in sync with schema in LOMappingRequestDynamoDBRecord.ensure_table_exists()
+    print(f"Ensuring DynamoDB table '{table_name}'...")
+    try:
+        arn = dynamodb_client.describe_table(TableName=table_name)["Table"]["TableArn"]
+    except dynamodb_client.exceptions.ResourceNotFoundException:
+        print("  table not found; creating it")
+        dynamodb_client.create_table(
+            TableName=table_name,
+            KeySchema=[
+                {"AttributeName": "request_id", "KeyType": "HASH"},
+            ],
+            AttributeDefinitions=[
+                {"AttributeName": "request_id", "AttributeType": "S"},
+                {"AttributeName": "status", "AttributeType": "S"},
+                {"AttributeName": "created_at", "AttributeType": "S"},
+            ],
+            BillingMode="PAY_PER_REQUEST",
+            GlobalSecondaryIndexes=[
+                {
+                    "IndexName": "status-created_at-index",
+                    "KeySchema": [
+                        {"AttributeName": "status", "KeyType": "HASH"},
+                        {"AttributeName": "created_at", "KeyType": "RANGE"},
+                    ],
+                    "Projection": {"ProjectionType": "ALL"},
+                },
+            ],
+            Tags=kv_tags,
+        )
+        dynamodb_client.get_waiter("table_exists").wait(TableName=table_name)
+        print(f"  created and tagged DynamoDB table '{table_name}'")
+        return
+
+    dynamodb_client.tag_resource(ResourceArn=arn, Tags=kv_tags)
+    print(f"  tagged DynamoDB table '{table_name}'")
+
+
+def ensure_s3_bucket(s3_client, output_s3_uri: str, region: str | None, kv_tags: list[dict]) -> None:
+    bucket = urlparse(output_s3_uri).netloc
+    if not bucket:
+        print(f"  could not parse bucket from OUTPUT_S3_URI '{output_s3_uri}'; skipping S3 step")
+        return
+    print(f"Ensuring S3 bucket '{bucket}'...")
+
+    try:
+        s3_client.head_bucket(Bucket=bucket)
+        print("  bucket already exists")
+    except ClientError as e:
+        code = e.response.get("Error", {}).get("Code")
+        if code == "404":
+            print("  bucket not found; creating it")
+            create_kwargs = {"Bucket": bucket, "CreateBucketConfiguration": {"LocationConstraint": region}}
+            s3_client.create_bucket(**create_kwargs)
+            s3_client.get_waiter("bucket_exists").wait(Bucket=bucket)
+            print(f"  created S3 bucket '{bucket}'")
+        else:
+            raise
+
+    # Tag and merge with any existing tags because put_bucket_tagging replaces all tags
+    try:
+        existing = s3_client.get_bucket_tagging(Bucket=bucket).get("TagSet", [])
+    except ClientError as e:
+        if e.response.get("Error", {}).get("Code") == "NoSuchTagSet":
+            existing = []
+        else:
+            raise
+    our_keys = {tag["Key"] for tag in kv_tags}
+    merged = [t for t in existing if t["Key"] not in our_keys] + kv_tags
+    s3_client.put_bucket_tagging(Bucket=bucket, Tagging={"TagSet": merged})
+    print(f"  tagged S3 bucket '{bucket}'")
+
+
 def main() -> None:
     print(f"Service root: {SERVICE_ROOT}")
     settings = load_settings()
@@ -223,12 +316,18 @@ def main() -> None:
     lambda_client = session.client("lambda")
     events_client = session.client("events")
     sts_client = session.client("sts")
+    dynamodb_client = session.client("dynamodb")
+    s3_client = session.client("s3")
+
+    kv_tags = [{"Key": "AppName", "Value": settings.APP_NAME}]
 
     start_zip, process_zip = zip_handlers()
-    deploy_start_job(lambda_client, settings, start_zip)
-    deploy_process_results(lambda_client, settings, process_zip)
+    deploy_start_job(lambda_client, settings, start_zip, kv_tags)
+    deploy_process_results(lambda_client, settings, process_zip, kv_tags)
     log_lambdas(lambda_client)
-    setup_eventbridge(events_client, lambda_client, sts_client, settings.AWS_REGION)
+    setup_eventbridge(events_client, lambda_client, sts_client, settings.AWS_REGION, kv_tags)
+    ensure_dynamodb_table(dynamodb_client, settings.LO_MAPPING_DYNAMODB_REQUESTS_TABLE, kv_tags)
+    ensure_s3_bucket(s3_client, settings.OUTPUT_S3_URI, settings.AWS_REGION, kv_tags)
 
     print("\nDone.")
 

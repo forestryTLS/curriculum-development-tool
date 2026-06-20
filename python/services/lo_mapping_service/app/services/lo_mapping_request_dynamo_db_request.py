@@ -60,6 +60,15 @@ class LOMappingRequestDynamoDBRecord:
             table.wait_until_exists()
             logger.info("DynamoDB table %s is ready", self.table_name)
 
+            try:
+                client.tag_resource(
+                    ResourceArn=table.table_arn,
+                    Tags=[{"Key": "AppName", "Value": self.settings.APP_NAME}],
+                )
+                logger.info("Tagged DynamoDB table %s with AppName=%s", self.table_name, self.settings.APP_NAME)
+            except Exception:
+                logger.warning("Could not tag DynamoDB table %s", self.table_name, exc_info=True)
+
     def create_request(self, course_id, program_id, input_s3_path, status: str = "PENDING",):
         if not self.table_name:
             raise ValueError("LO_MAPPING_DYNAMODB_REQUESTS_TABLE is not set")
