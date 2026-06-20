@@ -68,6 +68,78 @@ class SearchTest extends TestCase
         $response->assertSessionHasNoErrors();
     }
 
+    public function test_search_finds_course_by_compact_course_code(){
+        $this->createCourseScaleCategory();
+
+        Course::factory()->create([
+            'course_code' => 'CONS',
+            'course_num' => 123,
+            'course_title' => 'Compact Code Match Course',
+        ]);
+
+        $response = $this->get(route('search.index', [
+            'query' => 'CONS123',
+        ]));
+
+        $response->assertStatus(200);
+        $response->assertSee('Compact Code Match Course');
+        $response->assertSee('<mark>CONS</mark>', false);
+        $response->assertDontSee('Matched in: course');
+    }
+
+    public function test_search_finds_course_by_course_title(){
+        $this->createCourseScaleCategory();
+
+        Course::factory()->create([
+            'course_code' => 'FRST',
+            'course_num' => 321,
+            'course_title' => 'Auralith Forest Policy',
+        ]);
+
+        $response = $this->get(route('search.index', [
+            'query' => 'auralith',
+        ]));
+
+        $response->assertStatus(200);
+        $response->assertSee('Forest Policy');
+        $response->assertSee('<mark>Auralith</mark>', false);
+        $response->assertDontSee('Matched in: course');
+    }
+
+    public function test_direct_course_matches_appear_before_content_only_matches(){
+        $this->createCourseScaleCategory();
+
+        Course::factory()->create([
+            'course_code' => 'CONS',
+            'course_num' => 123,
+            'course_title' => 'Actual Course Match',
+        ]);
+
+        $contentOnlyCourse = Course::factory()->create([
+            'course_code' => 'FRST',
+            'course_num' => 456,
+            'course_title' => 'Description Mention Course',
+        ]);
+
+        DB::table('course_description')->insert([
+            'course_id' => $contentOnlyCourse->course_id,
+            'description' => 'This course references CONS123 as a related prerequisite example.',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $response = $this->get(route('search.index', [
+            'query' => 'CONS123',
+        ]));
+
+        $response->assertStatus(200);
+        $response->assertSeeInOrder([
+            'Actual Course Match',
+            'Description Mention Course',
+        ]);
+        $response->assertSee('Matched in: description');
+    }
+
     // This method creates the missing parent rows needed by the test courses.
     // updateOrInsert keeps it safe if the local database already has seeded data.
     private function createCourseScaleCategory(): void
