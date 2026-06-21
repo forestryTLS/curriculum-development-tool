@@ -26,7 +26,11 @@
 
     @foreach($results as $result)
         <div>
-            <h3>{{ $result->course_code }} {{ $result->course_num }}: {{ $result->course_title }}</h3>
+            @if($result->course_match_snippet)
+                <h3>{!! $result->course_match_snippet !!}</h3>
+            @else
+                <h3>{{ $result->course_code }} {{ $result->course_num }}: {{ $result->course_title }}</h3>
+            @endif
 
             @foreach($result->matches as $match)
                 <p>Matched in: {{ $match->property }}</p>

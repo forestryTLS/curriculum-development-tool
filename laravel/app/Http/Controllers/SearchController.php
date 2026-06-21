@@ -52,6 +52,7 @@ class SearchController extends Controller
         return $results; */
 
         $searchResults = collect()
+            ->merge($this->searchCourseNames($searchTerm))
             ->merge($this->searchTopics($searchTerm))
             ->merge($this->searchLearningObjectives($searchTerm))
             ->merge($this->searchDescriptions($searchTerm))
@@ -184,6 +185,34 @@ class SearchController extends Controller
         return $results;
     }
 
+    public function searchCourseNames(string $searchTerm){
+        $searchText = "concat_ws(' ', courses.course_code, courses.course_num, courses.course_title)";
+        $normalizedSearchTerm = preg_replace('/^([A-Za-z]+)\s*(\d+)$/', '$1 $2', $searchTerm);
+
+        $results = DB::table('courses')
+            ->whereRaw(
+                "to_tsvector('english', {$searchText}) @@ websearch_to_tsquery('english', ?)",
+                [$normalizedSearchTerm]
+            )
+            ->selectRaw("
+                courses.course_id,
+                courses.course_code,
+                courses.course_num,
+                courses.course_title,
+                'course' as property,
+                {$searchText} as matched_text,
+                ts_headline(
+                    'english',
+                    {$searchText},
+                    websearch_to_tsquery('english', ?),
+                    'StartSel=<mark>, StopSel=</mark>, MaxFragments=2, MinWords=4, MaxWords=20'
+                ) as snippet
+            ", [$normalizedSearchTerm])
+            ->get();
+
+        return $results;
+    }
+
     public function combineMatchesByCourse(Collection $matches): Collection{
 
         $combinedResults = collect();
@@ -197,8 +226,16 @@ class SearchController extends Controller
                     'course_code' => $match->course_code,
                     'course_num' => $match->course_num,
                     'course_title' => $match->course_title,
+                    'course_match_snippet' => null,
+                    'is_course_match' => false,
                     'matches' => collect(),
                 ];
+            }
+
+            if($match->property === 'course'){
+                $combinedResults[$courseId]->course_match_snippet = $match->snippet;
+                $combinedResults[$courseId]->is_course_match = true;
+                continue;
             }
 
             $combinedResults[$courseId]->matches->push((object) [
@@ -209,7 +246,7 @@ class SearchController extends Controller
 
         }
 
-        return $combinedResults->values(); //removes course_id as index for the blade view to cleanly loop through results.
+        return $combinedResults->sortByDesc('is_course_match')->values(); //removes course_id as index for the blade view to cleanly loop through results.
 
     }
 
