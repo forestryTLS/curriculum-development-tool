@@ -224,6 +224,17 @@ class SearchController extends Controller
             //show up first - the priority order, from highest to lowest is: Topics, LOs, assesments, description, material.
         ];
 
+        $propertyStatKeys = [
+            'topic' => 'topics',
+            'learning outcome' => 'learning_outcomes',
+            'assessment' => 'assessments',
+            'description' => 'descriptions',
+            'material' => 'materials',
+
+            // Maps each raw match property name to the matching per-course stats key
+            // Search matches use singular property names, while match_stats uses plural keys for display counts.
+        ];
+
         $combinedResults = collect();
 
         foreach($matches as $match){
@@ -239,6 +250,13 @@ class SearchController extends Controller
                     'course_match_snippet' => null,
                     'is_course_match' => false,
                     'score' => 0,
+                    'match_stats' => [
+                        'topics' => 0,
+                        'learning_outcomes' => 0,
+                        'assessments' => 0,
+                        'descriptions' => 0,
+                        'materials' => 0,
+                    ],
                     'matches' => collect(),
                 ];
             }
@@ -252,6 +270,13 @@ class SearchController extends Controller
             }
 
             $combinedResults[$courseId]->score += $propertyWeights[$match->property] ?? 0;
+
+            $statKey = $propertyStatKeys[$match->property] ?? null;
+            if($statKey){
+                $combinedResults[$courseId]->match_stats[$statKey]++;
+                //adds one to course every time for course-search-statistics for each property match
+
+            }
 
             $combinedResults[$courseId]->matches->push((object) [
                 'property' => $match->property,

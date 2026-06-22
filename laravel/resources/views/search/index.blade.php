@@ -60,6 +60,32 @@
                 <h3>{{ $result->course_code }} {{ $result->course_num }}: {{ $result->course_title }}</h3>
             @endif
 
+            @if(array_sum($result->match_stats) > 0)
+                <div>
+                    <p>Matched in this course:</p>
+
+                    @if($result->match_stats['topics'] > 0)
+                        <p>Topics: {{ $result->match_stats['topics'] }}</p>
+                    @endif
+
+                    @if($result->match_stats['learning_outcomes'] > 0)
+                        <p>Learning Objectives: {{ $result->match_stats['learning_outcomes'] }}</p>
+                    @endif
+
+                    @if($result->match_stats['assessments'] > 0)
+                        <p>Assessments: {{ $result->match_stats['assessments'] }}</p>
+                    @endif
+
+                    @if($result->match_stats['descriptions'] > 0)
+                        <p>Descriptions: {{ $result->match_stats['descriptions'] }}</p>
+                    @endif
+
+                    @if($result->match_stats['materials'] > 0)
+                        <p>Materials: {{ $result->match_stats['materials'] }}</p>
+                    @endif
+                </div>
+            @endif
+
             @foreach($result->matches as $match)
                 <p>Matched in: {{ $match->property }}</p>
                 <p>{!! $match->snippet !!}</p>
