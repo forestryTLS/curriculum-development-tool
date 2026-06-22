@@ -421,6 +421,9 @@ class CourseProgramController extends Controller
             ->orWhere('abbreviation', 'N/A')
             ->value('map_scale_id');
 
+        $currentCloIds = LearningOutcome::where('course_id', $courseId)->pluck('l_outcome_id');
+        $currentPloIds = ProgramLearningOutcome::where('program_id', $programId)->pluck('pl_outcome_id');
+
         DB::beginTransaction();
         try {
             $rowsWritten = 0;
@@ -433,6 +436,12 @@ class CourseProgramController extends Controller
 
                 if ($cloId === null || $ploId === null) {
                     Log::warning("Skipping result with missing clo_id or plo_id: " . json_encode($result));
+                    continue;
+                }
+
+                // If we don't skip deleted LOs, the foreign key constraints causes the whole update to fail
+                if (!$currentCloIds->contains($cloId) || !$currentPloIds->contains($ploId)) {
+                    Log::info("Skipping result for clo_id=$cloId plo_id=$ploId: outcome was deleted.");
                     continue;
                 }
 

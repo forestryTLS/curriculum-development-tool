@@ -56,4 +56,6 @@ To see the browser and debug-step, use `composer test:ai-suggestions-e2e:debug`.
 
 - When writing tests, start with `visit_v(url)` instead of `visit(url)` to take advantage of the viewport set in `.env.testing`. This prevents some 'element not found' errors. Then you can use `navigate()` to keep the same viewport on that window, or use `visit_v()` again to open a new window.
 
+- If a button press fails often, try to `hover()` over the button first and then press.
+
 - In the test LO mapping service (`test.py`), the environment variables are set within the code. This seemed simpler than using an `.env.testing` there, as most of the values don't matter and aren't confidential.
