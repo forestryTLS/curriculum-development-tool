@@ -86,8 +86,8 @@
                     <div class="card-footer">
                     <div class="card-body mb-4">
 
-                        <a href="{{route('courseWizard.step1', $course->course_id)}}">
-                            <button class="btn btn-sm btn-primary col-3 float-end">Course Learning Outcomes <i class="bi bi-arrow-right me-2"></i></button>
+                        <a href="{{route('courseWizard.step9', $course->course_id)}}">
+                            <button class="btn btn-sm btn-primary col-3 float-right">Course Topics <i class="bi bi-arrow-right mr-2"></i></button>
                         </a>
                     </div>
                 </div>
