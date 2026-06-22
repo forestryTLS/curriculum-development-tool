@@ -34,23 +34,6 @@ class SearchController extends Controller
 }
 
     public function searchCourses(string $searchTerm){
-        //$topicsMatches = $this->searchTopics($searchTerm);
-/*      $results = collect();
-        $learningObjectiveMatches = $this->searchLearningObjectives($searchTerm);
-        $descriptionMatches = $this->searchDescription($searchTerm);
-        $assesmentMatches = $this->searchAssesments($searchTerm);
-        $learningMaterialsMatches = $this->searchLearningMaterials($searchTerm);
-        $courseMatches = $this->searchCourseNames($searchTerm);
-
-        $results = $this->reorderAndCombineResults($topicsMatches,
-        $learningObjectiveMatches, 
-        $descriptionMatches, 
-        $assesmentMatches, 
-        $learningMaterialsMatches, 
-        $courseMatches);
-
-        return $results; */
-
         $searchResults = collect()
             ->merge($this->searchCourseNames($searchTerm))
             ->merge($this->searchTopics($searchTerm))
@@ -84,8 +67,7 @@ class SearchController extends Controller
                     'StartSel=<mark>, StopSel=</mark>, MaxFragments=2, MinWords=4, MaxWords=20'
                 ) as snippet
             ", [$searchTerm])->get();
-            
-            //add ordering, limits (dynamic), and stuff styllll
+
             return $results;
     }
 
@@ -187,7 +169,7 @@ class SearchController extends Controller
 
     public function searchCourseNames(string $searchTerm){
         $searchText = "concat_ws(' ', courses.course_code, courses.course_num, courses.course_title)";
-        $normalizedSearchTerm = preg_replace('/^([A-Za-z]+)\s*(\d+)$/', '$1 $2', $searchTerm);
+        $normalizedSearchTerm = preg_replace('/^([A-Za-z]+)\s*(\d+)$/', '$1 $2', $searchTerm); //normalize course code/nums for better search
 
         $results = DB::table('courses')
             ->whereRaw(
@@ -215,12 +197,24 @@ class SearchController extends Controller
 
     public function combineMatchesByCourse(Collection $matches): Collection{
 
+        $propertyWeights = [
+            'course' => 70,
+            'topic' => 50,
+            'learning outcome' => 40,
+            'assessment' => 30,
+            'description' => 20,
+            'material' => 10,
+            //these weights determine the score added to each match so courses with higher priority property matches
+            //show up first - the priority order, from highest to lowest is: Topics, LOs, assesments, description, material.
+        ];
+
         $combinedResults = collect();
 
         foreach($matches as $match){
             $courseId = $match->course_id;
 
             if(!$combinedResults->has($courseId)){
+                //if there isn't a course created for this, create one
                 $combinedResults[$courseId] = (object) [
                     'course_id' => $courseId,
                     'course_code' => $match->course_code,
@@ -228,15 +222,20 @@ class SearchController extends Controller
                     'course_title' => $match->course_title,
                     'course_match_snippet' => null,
                     'is_course_match' => false,
+                    'score' => 0,
                     'matches' => collect(),
                 ];
             }
 
             if($match->property === 'course'){
+                //special case: if match is a direct course name match
                 $combinedResults[$courseId]->course_match_snippet = $match->snippet;
                 $combinedResults[$courseId]->is_course_match = true;
+                $combinedResults[$courseId]->score += $propertyWeights['course'];
                 continue;
             }
+
+            $combinedResults[$courseId]->score += $propertyWeights[$match->property] ?? 0;
 
             $combinedResults[$courseId]->matches->push((object) [
                 'property' => $match->property,
@@ -246,7 +245,11 @@ class SearchController extends Controller
 
         }
 
-        return $combinedResults->sortByDesc('is_course_match')->values(); //removes course_id as index for the blade view to cleanly loop through results.
+        return $combinedResults
+            ->sortByDesc('score')//sorts results by given course score based on matches
+            ->sortByDesc('is_course_match')//sorts true before false so direct courses matches appear first
+            ->values(); //removes course_id as index for the blade view to cleanly loop through results, 
+        
 
     }
 
