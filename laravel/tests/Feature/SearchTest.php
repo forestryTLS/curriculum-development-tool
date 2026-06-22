@@ -746,6 +746,47 @@ public function test_search_stats_count_distinct_courses_and_total_topic_matches
     $response->assertDontSee('Materials:');
 }
 
+public function test_course_result_shows_per_course_match_statistics()
+{
+    $this->createCourseScaleCategory();
+
+    $course = Course::factory()->create([
+        'course_code' => 'TEST',
+        'course_num' => 555,
+        'course_title' => 'Per Course Stats Course',
+    ]);
+
+    CourseTopic::factory()->create([
+        'course_id' => $course->course_id,
+        'topic' => 'Watershed resilience planning topic one',
+    ]);
+
+    CourseTopic::factory()->create([
+        'course_id' => $course->course_id,
+        'topic' => 'Watershed resilience planning topic two',
+    ]);
+
+    CourseMaterial::factory()->create([
+        'course_id' => $course->course_id,
+        'name' => 'Watershed resilience article',
+        'type' => 'article',
+        'description' => 'Required material',
+    ]);
+
+    $response = $this->get(route('search.index', [
+        'query' => 'watershed resilience',
+    ]));
+
+    $response->assertStatus(200);
+    $response->assertSee('Per Course Stats Course');
+    $response->assertSee('Matched in this course:');
+    $response->assertSee('Topics: 2');
+    $response->assertSee('Materials: 1');
+    $response->assertDontSee('Learning Objectives: 0');
+    $response->assertDontSee('Assessments: 0');
+    $response->assertDontSee('Descriptions: 0');
+}
+
 public function test_search_stats_show_zero_when_query_has_no_results()
 {
     $this->createCourseScaleCategory();
