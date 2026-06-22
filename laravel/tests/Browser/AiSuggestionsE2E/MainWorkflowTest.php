@@ -24,7 +24,7 @@ it('creates a course and program via the UI and renders AI suggestion icons end-
         ->select('#course_year', '2026')
         ->select('#delivery_modality', 'O')
         ->select('#standard_category_id', '1')
-        ->wait(1)
+        ->hover('#createCourse #submit')
         ->pressAndWaitFor('#createCourse #submit', 3); // POSTs and redirects to /courseWizard/{id}/step8
 
     $course = Course::where('course_title', 'E2E Normal workflow Course')->latest('course_id')->firstOrFail();
@@ -150,7 +150,23 @@ it('creates a course and program via the UI and renders AI suggestion icons end-
         'map_scale_id' => $D, // multi 'D'
     ]);
 
-    // Add manual maps over the AI suggestions, one that matches the AI and one that doesn't
+    // AI suggestions should have been auto-applied to outcome_maps (setManualMapsToAiSuggestions).
+    // Verify via checkboxes: the UI reflects the AI-defaulted manual maps.
+    $page->pressAndWaitFor(programAccordionToggle($program->program_id), 0.5)
+        ->pressAndWaitFor(cloAccordionToggle($program->program_id, $clo->l_outcome_id), 0.5)
+        ->assertPresent(manualMapCheckbox($clo->l_outcome_id, $plo1->pl_outcome_id, $I) . ':checked')   // plo1: I
+        ->assertPresent(manualMapCheckbox($clo->l_outcome_id, $plo2->pl_outcome_id, $NA) . ':checked')  // plo2: N/A
+        ->assertPresent(manualMapCheckbox($clo->l_outcome_id, $plo3->pl_outcome_id, $I) . ':checked')   // plo3: I
+        ->assertPresent(manualMapCheckbox($clo->l_outcome_id, $plo3->pl_outcome_id, $D) . ':checked');  // plo3: D
+
+    // Uncheck all AI-defaulted boxes to reset, then apply manual maps
+    $page->uncheck(manualMapField($clo->l_outcome_id, $plo1->pl_outcome_id), (string) $I)
+        ->uncheck(manualMapField($clo->l_outcome_id, $plo2->pl_outcome_id), (string) $NA)
+        ->uncheck(manualMapField($clo->l_outcome_id, $plo3->pl_outcome_id), (string) $I)
+        ->uncheck(manualMapField($clo->l_outcome_id, $plo3->pl_outcome_id), (string) $D)
+        ->pressAndWaitFor('button.btn.btn-success:text-is("Save")', 3);
+
+    // Add new manual maps: plo1 matching AI (I), plo3 different from AI (A instead of I+D)
     $page->click(programAccordionToggle($program->program_id))
         ->click(cloAccordionToggle($program->program_id, $clo->l_outcome_id))
         ->check(manualMapField($clo->l_outcome_id, $plo1->pl_outcome_id), (string) $I)

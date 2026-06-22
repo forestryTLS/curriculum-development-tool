@@ -169,7 +169,7 @@
                                                                     $_aiSuggestionsBtnHidden = $_inFlight;
                                                                     $_checkingBtnHidden      = !$_inFlight;
                                                                     $_refreshBtnHidden       = true; // To be shown only after a polling timeout
-                                                                    $_msgClass               = $_inFlight ? 'small text-muted text-center mt-2 mb-0' : 'd-none small text-muted text-center mt-2 mb-0';
+                                                                    $_msgClass               = 'text-center fw-bold mt-2 mb-0' . ($_inFlight ? '' : ' d-none');
                                                                     $_msgText                = $_inFlight ? 'An AI suggestion request is already in progress for this course/program. You can leave this page - results will appear automatically when ready.' : '';
                                                                 @endphp
                                                                 <div id="mappingOptions-{{$course->course_id}}-{{$courseProgram->program_id}}"
@@ -417,6 +417,7 @@
         // prevent duplicate form submissions
         $(this).find(":submit").attr('disabled', 'disabled');
         $(this).find(":submit").html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>');
+        hasUnsavedChanges = false;
         });
 
         // Hide and show the optional
@@ -501,6 +502,7 @@
 
     document.addEventListener('change', function (e) {
         if (!e.target.matches('.form-check-input.position-static')) return;
+        hasUnsavedChanges = true;
 
         const name = e.target.name;
 
@@ -584,6 +586,16 @@
         "This is taking longer than usual. Click Refresh to check again, " +
         "or come back later - your suggestions will appear automatically when ready.";
 
+    const AI_MSG_READY_UNSAVED =
+        "AI suggestions are ready - reload to see. Save your unsaved changes if you wish to keep them.";
+
+    let hasUnsavedChanges = false;
+
+    window.addEventListener('beforeunload', function (e) {
+        if (!hasUnsavedChanges) return;
+        e.preventDefault();
+    });
+
     function hideAiModal(courseId, programId) {
         const modalEl = document.getElementById(`AiSuggestionConfirmation${courseId}${programId}`);
         if (!modalEl) return;
@@ -623,7 +635,7 @@
         }
     }
 
-    function enterTimedOutState(courseId, programId) {
+    function enterManualRefreshState(courseId, programId, message = AI_MSG_TIMED_OUT) {
         ['Header', 'Center'].forEach(loc => {
             const checking = document.getElementById(`aiChecking${loc}-${courseId}-${programId}`);
             const refresh  = document.getElementById(`aiRefresh${loc}-${courseId}-${programId}`);
@@ -633,7 +645,7 @@
 
         const msgEl = document.getElementById(`aiStatusMessage-${courseId}-${programId}`);
         if (msgEl) {
-            msgEl.textContent = AI_MSG_TIMED_OUT;
+            msgEl.textContent = message;
             msgEl.classList.remove('d-none');
         }
     }
@@ -741,16 +753,20 @@
 
                 if (data.status === 'complete') {
                     clearInterval(interval);
-                    window.location.reload();
+                    if (hasUnsavedChanges) {
+                        enterManualRefreshState(courseId, programId, AI_MSG_READY_UNSAVED);
+                    } else {
+                        window.location.reload();
+                    }
                 } else if (attempts >= AI_POLL_MAX_ATTEMPTS) {
                     clearInterval(interval);
-                    enterTimedOutState(courseId, programId);
+                    enterManualRefreshState(courseId, programId);
                 }
             } catch (err) {
                 console.error('Polling error:', err);
                 if (attempts >= AI_POLL_MAX_ATTEMPTS) {
                     clearInterval(interval);
-                    enterTimedOutState(courseId, programId);
+                    enterManualRefreshState(courseId, programId);
                 }
             }
         }, AI_POLL_INTERVAL_MS);

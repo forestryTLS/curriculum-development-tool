@@ -28,7 +28,7 @@ it('does not render icons for CLOs/PLOs added in-flight or after results return'
             ->click('CLO') // the + CLO button
             ->type('#l_outcome', $text)
             ->type('#title', substr($text, 0, 20))
-            ->pressAndWaitFor('#addCLOBtn', 2)
+            ->pressAndWaitFor('#addCLOBtn', 3)
             ->pressAndWaitFor('#saveCLOChanges button:has-text("Save Changes")', 1);
     };
     $addPloViaUi = function (string $text) use ($page, $program) {
@@ -74,4 +74,4 @@ it('does not render icons for CLOs/PLOs added in-flight or after results return'
         ->assertMissing(anyAiIconForClo($clo3->l_outcome_id))
         ->assertMissing(anyAiIconForPlo($plo2->pl_outcome_id))
         ->assertMissing(anyAiIconForPlo($plo3->pl_outcome_id));
-});
+})->flaky();

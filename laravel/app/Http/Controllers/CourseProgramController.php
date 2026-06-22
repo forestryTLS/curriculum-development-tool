@@ -9,8 +9,10 @@ use App\Models\CourseProgram;
 use App\Models\CourseUser;
 use App\Models\Department;
 use App\Models\Faculty;
+use App\Models\LearningOutcome;
 use App\Models\OutcomeMapAiSuggestion;
 use App\Models\Program;
+use App\Models\ProgramLearningOutcome;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
@@ -353,9 +355,43 @@ class CourseProgramController extends Controller
         return response()->json(['status' => 'pending']);
     }
 
+    public function setManualMapsToAiSuggestions(int $courseId, int $programId)
+    {
+        // Make manual maps match AI suggestions
+        // Leave any rows with existing manual maps untouched
+        $cloIds = LearningOutcome::where('course_id', $courseId)->pluck('l_outcome_id');
+        $ploIds = ProgramLearningOutcome::where('program_id', $programId)->pluck('pl_outcome_id');
+
+        $aiSuggestions = OutcomeMapAiSuggestion::whereIn('l_outcome_id', $cloIds)
+            ->whereIn('pl_outcome_id', $ploIds)
+            ->get(['l_outcome_id', 'pl_outcome_id', 'map_scale_id']);
+
+        $alreadyMappedPairs = DB::table('outcome_maps')
+            ->whereIn('l_outcome_id', $cloIds)
+            ->whereIn('pl_outcome_id', $ploIds)
+            ->get(['l_outcome_id', 'pl_outcome_id']);
+
+        foreach ($aiSuggestions as $aiSuggestion) {
+            $isAlreadyMapped = $alreadyMappedPairs
+                ->where('l_outcome_id', $aiSuggestion->l_outcome_id)
+                ->where('pl_outcome_id', $aiSuggestion->pl_outcome_id)
+                ->isNotEmpty();
+            if ($isAlreadyMapped) {
+                continue;
+            }
+            DB::table('outcome_maps')->insert([
+                'l_outcome_id'  => $aiSuggestion->l_outcome_id,
+                'pl_outcome_id' => $aiSuggestion->pl_outcome_id,
+                'map_scale_id'  => $aiSuggestion->map_scale_id,
+                'created_at'    => now(),
+                'updated_at'    => now(),
+            ]);
+        }
+    }
+
     public function storeAiSuggestions(Request $request)
     {
-        $courseId  = $request->input('course_id');
+        $courseId = $request->input('course_id');
         $programId = $request->input('program_id');
         $status    = $request->input('status');
         $results   = $request->input('results', []);
@@ -436,6 +472,8 @@ class CourseProgramController extends Controller
 
             DB::commit();
             Log::info("AI suggestions stored: $rowsWritten rows.");
+
+            $this->setManualMapsToAiSuggestions($courseId, $programId);
 
             return response()->json([
                 'status'       => 'ok',
