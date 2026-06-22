@@ -517,5 +517,129 @@ public function test_search_only_returns_course_with_matching_assessment()
     $response->assertSee('mycelion', false);
     $response->assertDontSee('Assessment Non Match Course');
 }
+
+public function test_topic_match_ranks_above_material_match()
+{
+    $this->createCourseScaleCategory();
+
+    $topicCourse = Course::factory()->create([
+        'course_code' => 'TEST',
+        'course_num' => 111,
+        'course_title' => 'Topic Match Course',
+    ]);
+
+    $materialCourse = Course::factory()->create([
+        'course_code' => 'TEST',
+        'course_num' => 222,
+        'course_title' => 'Material Match Course',
+    ]);
+
+    CourseTopic::factory()->create([
+        'course_id' => $topicCourse->course_id,
+        'topic' => 'Zenthos climate adaptation',
+    ]);
+
+    CourseMaterial::factory()->create([
+        'course_id' => $materialCourse->course_id,
+        'name' => 'Zenthos climate adaptation reading',
+        'type' => 'article',
+        'description' => 'Required material',
+    ]);
+
+    $response = $this->get(route('search.index', [
+        'query' => 'zenthos',
+    ]));
+
+    $response->assertStatus(200);
+    $response->assertSeeInOrder([
+        'Topic Match Course',
+        'Material Match Course',
+    ]);
+}
+
+public function test_multiple_lower_weight_matches_can_outrank_single_topic_match()
+{
+    $this->createCourseScaleCategory();
+
+    $topicCourse = Course::factory()->create([
+        'course_code' => 'TEST',
+        'course_num' => 333,
+        'course_title' => 'Single Topic Course',
+    ]);
+
+    $materialCourse = Course::factory()->create([
+        'course_code' => 'TEST',
+        'course_num' => 444,
+        'course_title' => 'Multiple Material Matches Course',
+    ]);
+
+    CourseTopic::factory()->create([
+        'course_id' => $topicCourse->course_id,
+        'topic' => 'Vorlan sustainability systems',
+    ]);
+
+    for ($index = 0; $index < 6; $index++) {
+        CourseMaterial::factory()->create([
+            'course_id' => $materialCourse->course_id,
+            'name' => "Vorlan reading package {$index}",
+            'type' => 'article',
+            'description' => 'Recommended material',
+        ]);
+    }
+
+    $response = $this->get(route('search.index', [
+        'query' => 'vorlan',
+    ]));
+
+    $response->assertStatus(200);
+    $response->assertSeeInOrder([
+        'Multiple Material Matches Course',
+        'Single Topic Course',
+    ]);
+}
+
+public function test_direct_course_match_ranks_above_higher_content_score()
+{
+    $this->createCourseScaleCategory();
+
+    Course::factory()->create([
+        'course_code' => 'CONS',
+        'course_num' => 123,
+        'course_title' => 'Direct Course Match',
+    ]);
+
+    $contentCourse = Course::factory()->create([
+        'course_code' => 'TEST',
+        'course_num' => 555,
+        'course_title' => 'High Content Match Course',
+    ]);
+
+    CourseTopic::factory()->create([
+        'course_id' => $contentCourse->course_id,
+        'topic' => 'CONS123 policy topic',
+    ]);
+
+    CourseTopic::factory()->create([
+        'course_id' => $contentCourse->course_id,
+        'topic' => 'CONS123 advanced topic',
+    ]);
+
+    CourseMaterial::factory()->create([
+        'course_id' => $contentCourse->course_id,
+        'name' => 'CONS123 reading package',
+        'type' => 'article',
+        'description' => 'Required reading',
+    ]);
+
+    $response = $this->get(route('search.index', [
+        'query' => 'CONS123',
+    ]));
+
+    $response->assertStatus(200);
+    $response->assertSeeInOrder([
+        'Direct Course Match',
+        'High Content Match Course',
+    ]);
+}
     
 }
