@@ -641,5 +641,133 @@ public function test_direct_course_match_ranks_above_higher_content_score()
         'High Content Match Course',
     ]);
 }
+
+public function test_search_stats_show_total_matches_by_property()
+{
+    $this->createCourseScaleCategory();
+
+    $course = Course::factory()->create([
+        'course_code' => 'TEST',
+        'course_num' => 111,
+        'course_title' => 'Stats Match Course',
+    ]);
+
+    CourseTopic::factory()->create([
+        'course_id' => $course->course_id,
+        'topic' => 'Glacier adaptation topic one',
+    ]);
+
+    CourseTopic::factory()->create([
+        'course_id' => $course->course_id,
+        'topic' => 'Glacier adaptation topic two',
+    ]);
+
+    LearningOutcome::create([
+        'course_id' => $course->course_id,
+        'l_outcome' => 'Explain glacier adaptation planning.',
+        'clo_shortphrase' => 'Explain glacier adaptation',
+    ]);
+
+    AssessmentMethod::create([
+        'course_id' => $course->course_id,
+        'a_method' => 'Glacier adaptation presentation',
+        'weight' => 25,
+        'pos_in_alignment' => 0,
+    ]);
+
+    DB::table('course_description')->insert([
+        'course_id' => $course->course_id,
+        'description' => 'This course covers glacier adaptation examples.',
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    CourseMaterial::factory()->create([
+        'course_id' => $course->course_id,
+        'name' => 'Glacier adaptation reading',
+        'type' => 'article',
+        'description' => 'Required material',
+    ]);
+
+    $response = $this->get(route('search.index', [
+        'query' => 'glacier adaptation',
+    ]));
+
+    $response->assertStatus(200);
+    $response->assertSee('Courses: 1');
+    $response->assertSee('Topics: 2');
+    $response->assertSee('Learning Objectives: 1');
+    $response->assertSee('Assessments: 1');
+    $response->assertSee('Descriptions: 1');
+    $response->assertSee('Materials: 1');
+}
+
+public function test_search_stats_count_distinct_courses_and_total_topic_matches()
+{
+    $this->createCourseScaleCategory();
+
+    $firstCourse = Course::factory()->create([
+        'course_code' => 'TEST',
+        'course_num' => 222,
+        'course_title' => 'First Stats Course',
+    ]);
+
+    $secondCourse = Course::factory()->create([
+        'course_code' => 'TEST',
+        'course_num' => 333,
+        'course_title' => 'Second Stats Course',
+    ]);
+
+    CourseTopic::factory()->create([
+        'course_id' => $firstCourse->course_id,
+        'topic' => 'Hydrology climate topic one',
+    ]);
+
+    CourseTopic::factory()->create([
+        'course_id' => $firstCourse->course_id,
+        'topic' => 'Hydrology climate topic two',
+    ]);
+
+    CourseTopic::factory()->create([
+        'course_id' => $secondCourse->course_id,
+        'topic' => 'Hydrology climate topic three',
+    ]);
+
+    $response = $this->get(route('search.index', [
+        'query' => 'hydrology climate',
+    ]));
+
+    $response->assertStatus(200);
+    $response->assertSee('Courses: 2');
+    $response->assertSee('Topics: 3');
+    $response->assertDontSee('Learning Objectives:');
+    $response->assertDontSee('Assessments:');
+    $response->assertDontSee('Descriptions:');
+    $response->assertDontSee('Materials:');
+}
+
+public function test_search_stats_show_zero_when_query_has_no_results()
+{
+    $this->createCourseScaleCategory();
+
+    Course::factory()->create([
+        'course_code' => 'TEST',
+        'course_num' => 444,
+        'course_title' => 'No Match Course',
+    ]);
+
+    $response = $this->get(route('search.index', [
+        'query' => 'nonexistentsearchterm',
+    ]));
+
+    $response->assertStatus(200);
+    $response->assertSee('No matches found.');
+    $response->assertDontSee('Courses: 0');
+    $response->assertDontSee('Topics: 0');
+    $response->assertDontSee('Learning Objectives: 0');
+    $response->assertDontSee('Assessments: 0');
+    $response->assertDontSee('Descriptions: 0');
+    $response->assertDontSee('Materials: 0');
+}
     
 }

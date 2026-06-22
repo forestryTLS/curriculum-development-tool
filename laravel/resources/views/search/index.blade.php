@@ -20,11 +20,39 @@
         @enderror
     </form>
     
+    @if($searchTerm !== '' && $stats['courses'] > 0)
+        <div>
+            <p>Courses: {{ $stats['courses'] }}</p>
+
+            @if($stats['topics'] > 0)
+                <p>Topics: {{ $stats['topics'] }}</p>
+            @endif
+
+            @if($stats['learning_outcomes'] > 0)
+                <p>Learning Objectives: {{ $stats['learning_outcomes'] }}</p>
+            @endif
+
+            @if($stats['assessments'] > 0)
+                <p>Assessments: {{ $stats['assessments'] }}</p>
+            @endif
+
+            @if($stats['descriptions'] > 0)
+                <p>Descriptions: {{ $stats['descriptions'] }}</p>
+            @endif
+
+            @if($stats['materials'] > 0)
+                <p>Materials: {{ $stats['materials'] }}</p>
+            @endif
+        </div>
+    @elseif($searchTerm !== '')
+        <p>No matches found.</p>
+    @endif
 
 
 
 
     @foreach($results as $result)
+        
         <div>
             @if($result->course_match_snippet)
                 <h3>{!! $result->course_match_snippet !!}</h3>

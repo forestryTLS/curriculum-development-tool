@@ -21,15 +21,27 @@ class SearchController extends Controller
         $searchTerm = preg_replace('/\s+/', ' ', $searchTerm); #for normalizing internal whitepace
 
         $results = collect();
+        $stats =  [
+            'courses' => 0,
+            'topics' => 0,
+            'learning_outcomes' => 0,
+            'assessments' => 0,
+            'descriptions' => 0,
+            'materials' => 0,
+        ];
 
         if($searchTerm !== ''){
-            $results = $this->searchCourses($searchTerm);
+            $resultsAndStats = $this->searchCourses($searchTerm);
+            $results = $resultsAndStats['results'];
+            $stats = $resultsAndStats['stats'];
+
         }
 
 
         return view('search.index', [
             'searchTerm' => $searchTerm,
             'results' => $results,
+            'stats' => $stats,
         ]);
 }
 
@@ -43,8 +55,12 @@ class SearchController extends Controller
             ->merge($this->searchAssessments($searchTerm));
 
         $results = $this->combineMatchesByCourse($searchResults);
+        $stats = $this->calculateSearchStats($searchResults);
 
-        return $results;
+        return [
+            'results' => $results,
+            'stats' => $stats,
+        ];
     }
 
     public function searchTopics(string $searchTerm){
@@ -252,6 +268,18 @@ class SearchController extends Controller
         
 
     }
+
+    public function calculateSearchStats(Collection $matches): array{
+        return [
+            'courses' => $matches->pluck('course_id')->unique()->count(),
+            'topics' => $matches->where('property', 'topic')->count(),
+            'learning_outcomes' => $matches->where('property', 'learning outcome')->count(),
+            'assessments' => $matches->where('property', 'assessment')->count(),
+            'descriptions' => $matches->where('property', 'description')->count(),
+            'materials' => $matches->where('property', 'material')->count(),];
+    }   
+
+
 
 
 }
