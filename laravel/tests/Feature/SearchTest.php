@@ -810,5 +810,45 @@ public function test_search_stats_show_zero_when_query_has_no_results()
     $response->assertDontSee('Descriptions: 0');
     $response->assertDontSee('Materials: 0');
 }
+
+public function test_search_results_are_paginated_with_ten_courses_per_page()
+{
+    $this->createCourseScaleCategory();
+
+    for ($index = 1; $index <= 11; $index++) {
+        $course = Course::factory()->create([
+            'course_code' => 'PAGE',
+            'course_num' => 100 + $index,
+            'course_title' => "Pagination Course {$index}",
+        ]);
+
+        CourseTopic::factory()->create([
+            'course_id' => $course->course_id,
+            'topic' => 'Pagination testing topic',
+        ]);
+    }
+
+    $firstPage = $this->get(route('search.index', [
+        'query' => 'pagination',
+    ]));
+
+    $firstPageResults = $firstPage->viewData('results');
+
+    $firstPage->assertStatus(200);
+    $this->assertCount(10, $firstPageResults);
+    $this->assertSame(11, $firstPageResults->total());
+    $this->assertStringContainsString('query=pagination', $firstPageResults->url(2));
+
+    $secondPage = $this->get(route('search.index', [
+        'query' => 'pagination',
+        'page' => 2,
+    ]));
+
+    $secondPageResults = $secondPage->viewData('results');
+
+    $secondPage->assertStatus(200);
+    $this->assertCount(1, $secondPageResults);
+    $this->assertSame(2, $secondPageResults->currentPage());
+}
     
 }
