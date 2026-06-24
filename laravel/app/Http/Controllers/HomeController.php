@@ -26,6 +26,8 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
+use App\Models\CourseTopic;
+use App\Models\CourseMaterial;
 
 class HomeController extends Controller
 {
@@ -155,34 +157,46 @@ class HomeController extends Controller
             } else{
                 $progressBarMsg[$courseId]['statusMsg'] .= '<li>Course Description (Step 1)</li>';
             }
+            if (CourseTopic::where('course_id', $courseId)->count() > 0) {
+                $count++;
+            } else {
+                $progressBarMsg[$courseId]['statusMsg'] .= '<li>Course Topics (Step 2)</li>';
+            }
+
+            if (CourseMaterial::where('course_id', $courseId)->count() > 0) {
+                $count++;
+            } else {
+                $progressBarMsg[$courseId]['statusMsg'] .= '<li>Course Materials (Step 3)</li>';
+            }
+
             if (LearningOutcome::where('course_id', $courseId)->count() > 0) {
                 $count++;
             } else {
-                $progressBarMsg[$courseId]['statusMsg'] .= '<li>Course Learning Outcomes (Step 2)</li>';
+                $progressBarMsg[$courseId]['statusMsg'] .= '<li>Course Learning Outcomes (Step 4)</li>';
             }
             if (AssessmentMethod::where('course_id', $courseId)->count() > 0) {
                 $count++;
             } else {
-                $progressBarMsg[$courseId]['statusMsg'] .= '<li>Student Assessment Methods (Step 3)</li>';
+                $progressBarMsg[$courseId]['statusMsg'] .= '<li>Student Assessment Methods (Step 5)</li>';
             }
             if (LearningActivity::where('course_id', $courseId)->count() > 0) {
                 $count++;
             } else {
-                $progressBarMsg[$courseId]['statusMsg'] .= '<li>Teaching and Learning Activities (Step 4)</li>';
+                $progressBarMsg[$courseId]['statusMsg'] .= '<li>Teaching and Learning Activities (Step 6)</li>';
             }
             if ((! LearningActivity::join('outcome_activities', 'learning_activities.l_activity_id', '=', 'outcome_activities.l_activity_id')->join('learning_outcomes', 'outcome_activities.l_outcome_id', '=', 'learning_outcomes.l_outcome_id')->select('outcome_activities.l_activity_id', 'learning_activities.l_activity', 'outcome_activities.l_outcome_id', 'learning_outcomes.l_outcome')->where('learning_activities.course_id', '=', $courseId)->count() > 0) && (! AssessmentMethod::join('outcome_assessments', 'assessment_methods.a_method_id', '=', 'outcome_assessments.a_method_id')->join('learning_outcomes', 'outcome_assessments.l_outcome_id', '=', 'learning_outcomes.l_outcome_id')->select('assessment_methods.a_method_id', 'assessment_methods.a_method', 'outcome_assessments.l_outcome_id', 'learning_outcomes.l_outcome')->where('assessment_methods.course_id', '=', $courseId)->count() > 0)) {
                 if (LearningActivity::join('outcome_activities', 'learning_activities.l_activity_id', '=', 'outcome_activities.l_activity_id')->join('learning_outcomes', 'outcome_activities.l_outcome_id', '=', 'learning_outcomes.l_outcome_id')->select('outcome_activities.l_activity_id', 'learning_activities.l_activity', 'outcome_activities.l_outcome_id', 'learning_outcomes.l_outcome')->where('learning_activities.course_id', '=', $courseId)->count() > 0) {
                     $count++;
                 } else {
-                    $progressBarMsg[$courseId]['statusMsg'] .= '<li>Assessment Methods - Course Alignment (Step 5)</li>';
+                    $progressBarMsg[$courseId]['statusMsg'] .= '<li>Assessment Methods - Course Alignment (Step 7)</li>';
                 }
                 if (AssessmentMethod::join('outcome_assessments', 'assessment_methods.a_method_id', '=', 'outcome_assessments.a_method_id')->join('learning_outcomes', 'outcome_assessments.l_outcome_id', '=', 'learning_outcomes.l_outcome_id')->select('assessment_methods.a_method_id', 'assessment_methods.a_method', 'outcome_assessments.l_outcome_id', 'learning_outcomes.l_outcome')->where('assessment_methods.course_id', '=', $courseId)->count() > 0) {
                     $count++;
                 } else {
-                    $progressBarMsg[$courseId]['statusMsg'] .= '<li>Learning Activities - Course Alignment (Step 5)</li>';
+                    $progressBarMsg[$courseId]['statusMsg'] .= '<li>Learning Activities - Course Alignment (Step 7)</li>';
                 }
             } elseif ($hasNonAlignedCLO) {
-                $progressBarMsg[$courseId]['statusMsg'] .= '<li>Course Alignment (Step 5)</li>';
+                $progressBarMsg[$courseId]['statusMsg'] .= '<li>Course Alignment (Step 7)</li>';
                 $count++;
             } else {
                 $count = $count + 2;
@@ -190,7 +204,7 @@ class HomeController extends Controller
             if (ProgramLearningOutcome::join('outcome_maps', 'program_learning_outcomes.pl_outcome_id', '=', 'outcome_maps.pl_outcome_id')->join('learning_outcomes', 'outcome_maps.l_outcome_id', '=', 'learning_outcomes.l_outcome_id')->select('outcome_maps.map_scale_value', 'outcome_maps.pl_outcome_id', 'program_learning_outcomes.pl_outcome', 'outcome_maps.l_outcome_id', 'learning_outcomes.l_outcome')->where('learning_outcomes.course_id', '=', $courseId)->count() >= ($expectedProgramOutcomeMapCount == 1 ? $expectedProgramOutcomeMapCount : $expectedProgramOutcomeMapCount - 1)) {
                 $count++;
             } else {
-                $progressBarMsg[$courseId]['statusMsg'] .= '<li>Program Outcome Mapping (Step 6)</li>';
+                $progressBarMsg[$courseId]['statusMsg'] .= '<li>Program Outcome Mapping (Step 8)</li>';
             }
             $course = Course::find($courseId);
             if ($course->standard_category_id == 0) {
@@ -198,15 +212,15 @@ class HomeController extends Controller
             } elseif (StandardsOutcomeMap::where('course_id', $courseId)->count() == StandardCategory::find($course->standard_category_id)->standards->count()) {
                 $count++;
             } else {
-                $progressBarMsg[$courseId]['statusMsg'] .= '<li>Standards (Step 7)</li>';
+                $progressBarMsg[$courseId]['statusMsg'] .= '<li>Standards (Step 9)</li>';
             }
 
             // calculate the progress bar
             // if course has no standards, then the total count is 7 otherwise it is 8.
             if ($hasNoStandards) {
-                $progressBar[$courseId] = intval(round(($count / 7) * 100));
+                $progressBar[$courseId] = intval(round(($count / 9) * 100));
             } else {
-                $progressBar[$courseId] = intval(round(($count / 8) * 100));
+                $progressBar[$courseId] = intval(round(($count / 10) * 100));
             }
             $count = 0;
             $progressBarMsg[$courseId]['statusMsg'] .= '</ol>';

@@ -74,12 +74,22 @@ class AssessmentMethodController extends Controller
             }
             // add new assessment methods
             if ($newMethods) {
+                $assessmentMethodsToInsert = [];
+                $timestamp = now();
+
                 foreach ($newMethods as $index => $newMethod) {
-                    $newAssessmentMethod = new AssessmentMethod;
-                    $newAssessmentMethod->a_method = $newMethod;
-                    $newAssessmentMethod->weight = $newWeights[$index];
-                    $newAssessmentMethod->course_id = $courseId;
-                    $newAssessmentMethod->save();
+                    $assessmentMethodsToInsert[] = [
+                        'a_method' => $newMethod,
+                        'weight' => $newWeights[$index],
+                        'course_id' => $courseId,
+                        'pos_in_alignment' => 0,
+                        'created_at' => $timestamp,
+                        'updated_at' => $timestamp,
+                    ];
+                }
+
+                if (! empty($assessmentMethodsToInsert)) {
+                    AssessmentMethod::insert($assessmentMethodsToInsert);
                 }
             }
             // update courses 'updated_at' field
@@ -162,10 +172,12 @@ class AssessmentMethodController extends Controller
      */
     public function destroy(Request $request, $a_method_id): RedirectResponse
     {
-        $am = AssessmentMethod::where('a_method_id', $a_method_id)->first();
         $course_id = $request->input('course_id');
+        $am = AssessmentMethod::where('a_method_id', $a_method_id)
+            ->where('course_id', $course_id)
+            ->first();
 
-        if ($am->delete()) {
+        if ($am && $am->delete()) {
             // update courses 'updated_at' field
             $course = Course::find($course_id);
             $course->touch();

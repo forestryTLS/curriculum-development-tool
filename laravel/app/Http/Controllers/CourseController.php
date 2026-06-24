@@ -1971,7 +1971,8 @@ private function makeOutcomeMapSheetData(Spreadsheet $spreadsheet, int $courseId
     public function storeCourseWithSyllabi(Request $request)
     {
         $this->validate($request, [
-            'uploadedSyllabi' => 'required'
+            'uploadedSyllabi' => 'required',
+            'uploadedSyllabi.*' => 'file|mimes:pdf',
         ]);
 
         $errorMessages = Collection::make();

@@ -114,6 +114,14 @@ class Course extends Model
         return $this->hasOne(CourseDescription::class, 'course_id', 'course_id');
     }
 
+    public function courseTopics(){
+        return $this->hasMany(CourseTopic::class, 'course_id', 'course_id');
+    }
+
+    public function courseMaterials(){
+        return $this->hasMany(CourseMaterial::class, 'course_id', 'course_id');
+    }
+
     //these are for the tables of child records on the course crud controller
     public function getCLOtableAttribute()
     {
