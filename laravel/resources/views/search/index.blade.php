@@ -156,4 +156,10 @@
             @endif
         </div>
     @endforeach
+
+    @if($results->hasPages())
+        <div class="mt-4 d-flex justify-content-center">
+            {{ $results->links() }}
+        </div>
+    @endif
 @endsection

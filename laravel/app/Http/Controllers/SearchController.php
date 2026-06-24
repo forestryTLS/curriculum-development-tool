@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Collection;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 class SearchController extends Controller
 
@@ -37,6 +38,8 @@ class SearchController extends Controller
 
         }
 
+        $results = $this->paginateResults($results, $request); //so if many results/courses are returned they can 
+        // show up as multiple pages in the UI
 
         return view('search.index', [
             'searchTerm' => $searchTerm,
@@ -61,6 +64,24 @@ class SearchController extends Controller
             'results' => $results,
             'stats' => $stats,
         ];
+    }
+
+    private function paginateResults(Collection $results, Request $request): LengthAwarePaginator
+    {
+        $perPage = 10;
+        $currentPage = LengthAwarePaginator::resolveCurrentPage();
+        $currentPageResults = $results->forPage($currentPage, $perPage)->values();
+
+        return new LengthAwarePaginator(
+            $currentPageResults,
+            $results->count(),
+            $perPage,
+            $currentPage,
+            [
+                'path' => $request->url(),
+                'query' => $request->query(),
+            ]
+        );
     }
 
     public function searchTopics(string $searchTerm){
