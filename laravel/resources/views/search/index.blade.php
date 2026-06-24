@@ -71,6 +71,10 @@
     @if($searchTerm !== '' && $stats['courses'] > 0)
         <div class="search-stats text-center mb-4">
             <span>Courses: {{ $stats['courses'] }}</span>
+            @if($stats['programs'] > 0)
+                <span class="mx-2">|</span><span>Programs: {{ $stats['programs'] }}</span>
+            @endif
+
             @if($stats['topics'] > 0)
                 <span class="mx-2">|</span><span>Topics: {{ $stats['topics'] }}</span>
             @endif
@@ -105,6 +109,15 @@
                 <h3 class="mb-1">{!! $result->course_match_snippet !!}</h3>
             @else
                 <h3 class="mb-1">{{ $result->course_code }} {{ $result->course_num }}: {{ $result->course_title }}</h3>
+            @endif
+
+            @if($result->programs->isNotEmpty())
+                <div class="small mb-2">
+                    <span class="text-muted">Programs:</span>
+                    @foreach($result->programs as $program)
+                        <a href="{{ route('programWizard.step1', $program->program_id) }}">{{ $program->program }}</a>@if(!$loop->last), @endif
+                    @endforeach
+                </div>
             @endif
 
             @if(array_sum($result->match_stats) > 0)

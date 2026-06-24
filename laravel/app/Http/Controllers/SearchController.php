@@ -24,6 +24,7 @@ class SearchController extends Controller
         $results = collect();
         $stats =  [
             'courses' => 0,
+            'programs' => 0,
             'topics' => 0,
             'learning_outcomes' => 0,
             'assessments' => 0,
@@ -58,7 +59,8 @@ class SearchController extends Controller
             ->merge($this->searchAssessments($searchTerm));
 
         $results = $this->combineMatchesByCourse($searchResults);
-        $stats = $this->calculateSearchStats($searchResults);
+        $results = $this->attachProgramsToCourseResults($results);
+        $stats = $this->calculateSearchStats($searchResults, $results);
 
         return [
             'results' => $results,
@@ -82,6 +84,29 @@ class SearchController extends Controller
                 'query' => $request->query(),
             ]
         );
+    }
+
+    private function attachProgramsToCourseResults(Collection $results): Collection
+    {
+        $courseIds = $results->pluck('course_id');
+
+        $programsByCourse = DB::table('course_programs')
+            ->join('programs', 'programs.program_id', '=', 'course_programs.program_id')
+            ->whereIn('course_programs.course_id', $courseIds)
+            ->select(
+                'course_programs.course_id',
+                'programs.program_id',
+                'programs.program'
+            )
+            ->distinct()
+            ->get()
+            ->groupBy('course_id');
+
+        foreach ($results as $result) {
+            $result->programs = $programsByCourse->get($result->course_id, collect());
+        }
+
+        return $results;
     }
 
     public function searchTopics(string $searchTerm){
@@ -315,9 +340,10 @@ class SearchController extends Controller
 
     }
 
-    public function calculateSearchStats(Collection $matches): array{
+    public function calculateSearchStats(Collection $matches, Collection $results): array{
         return [
             'courses' => $matches->pluck('course_id')->unique()->count(),
+            'programs' => $results->pluck('programs')->flatten()->pluck('program_id')->unique()->count(),
             'topics' => $matches->where('property', 'topic')->count(),
             'learning_outcomes' => $matches->where('property', 'learning outcome')->count(),
             'assessments' => $matches->where('property', 'assessment')->count(),

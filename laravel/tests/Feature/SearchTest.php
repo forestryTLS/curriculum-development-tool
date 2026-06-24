@@ -850,5 +850,113 @@ public function test_search_results_are_paginated_with_ten_courses_per_page()
     $this->assertCount(1, $secondPageResults);
     $this->assertSame(2, $secondPageResults->currentPage());
 }
+
+public function test_search_result_shows_the_course_program()
+{
+    $this->createCourseScaleCategory();
+
+    $course = Course::factory()->create([
+        'course_code' => 'TEST',
+        'course_num' => 901,
+        'course_title' => 'Program Display Course',
+    ]);
+
+    CourseTopic::factory()->create([
+        'course_id' => $course->course_id,
+        'topic' => 'Astronomy program search topic',
+    ]);
+
+    $programId = DB::table('programs')->insertGetId([
+        'program' => 'Astronomy Program',
+        'level' => 'Bachelors',
+        'status' => 1,
+        'created_at' => now(),
+        'updated_at' => now(),
+    ], 'program_id');
+
+    DB::table('course_programs')->insert([
+        'course_id' => $course->course_id,
+        'program_id' => $programId,
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    $response = $this->get(route('search.index', [
+        'query' => 'astronomy',
+    ]));
+
+    $response->assertStatus(200);
+    $response->assertSee('Astronomy Program');
+    $response->assertSee(route('programWizard.step1', $programId));
+}
+
+public function test_search_stats_count_distinct_programs()
+{
+    $this->createCourseScaleCategory();
+
+    $firstCourse = Course::factory()->create([
+        'course_code' => 'TEST',
+        'course_num' => 902,
+        'course_title' => 'First Program Stats Course',
+    ]);
+
+    $secondCourse = Course::factory()->create([
+        'course_code' => 'TEST',
+        'course_num' => 903,
+        'course_title' => 'Second Program Stats Course',
+    ]);
+
+    foreach ([$firstCourse, $secondCourse] as $course) {
+        CourseTopic::factory()->create([
+            'course_id' => $course->course_id,
+            'topic' => 'Geophysics program statistics topic',
+        ]);
+    }
+
+    $firstProgramId = DB::table('programs')->insertGetId([
+        'program' => 'First Geophysics Program',
+        'level' => 'Bachelors',
+        'status' => 1,
+        'created_at' => now(),
+        'updated_at' => now(),
+    ], 'program_id');
+
+    $secondProgramId = DB::table('programs')->insertGetId([
+        'program' => 'Second Geophysics Program',
+        'level' => 'Bachelors',
+        'status' => 1,
+        'created_at' => now(),
+        'updated_at' => now(),
+    ], 'program_id');
+
+    DB::table('course_programs')->insert([
+        [
+            'course_id' => $firstCourse->course_id,
+            'program_id' => $firstProgramId,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ],
+        [
+            'course_id' => $secondCourse->course_id,
+            'program_id' => $firstProgramId,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ],
+        [
+            'course_id' => $secondCourse->course_id,
+            'program_id' => $secondProgramId,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ],
+    ]);
+
+    $response = $this->get(route('search.index', [
+        'query' => 'geophysics',
+    ]));
+
+    $response->assertStatus(200);
+    $response->assertSee('Courses: 2');
+    $response->assertSee('Programs: 2');
+}
     
 }
