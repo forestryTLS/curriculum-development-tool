@@ -6,6 +6,7 @@ use App\Http\Controllers\AdminAssignRoleController;
 use App\Http\Controllers\AssessmentMethodController;
 use App\Http\Controllers\CourseController;
 use App\Http\Controllers\CourseMaterialController;
+use App\Http\Controllers\CourseMaterialFileController;
 use App\Http\Controllers\CourseProgramController;
 use App\Http\Controllers\CourseUserController;
 use App\Http\Controllers\CourseWizardController;
@@ -13,7 +14,6 @@ use App\Http\Controllers\CoverageAnalysisController;
 use App\Http\Controllers\CustomAssessmentMethodsController;
 use App\Http\Controllers\CustomLearningActivitiesController;
 use App\Http\Controllers\CourseTopicController;
-use App\Http\Controllers\CourseMaterialController;
 use App\Http\Controllers\FAQController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\InviteController;
@@ -267,13 +267,13 @@ Route::post('courseWizard/{courseId}/{programId}/generate-ai-suggestions', [Cour
 Route::post('courseWizard/{courseId}/{programId}/check-ai-results', [CourseProgramController::class, 'checkAiResults']);
 Route::post('courseWizard/{courseId}/{programId}/check-in-flight', [CourseProgramController::class, 'checkInFlight']);
 
-// Course materials + Coverage Analysis
+// Course materials (wizard metadata) + file uploads + Coverage Analysis
+Route::post('/courses/{course}/materials/{material}/files', [CourseMaterialFileController::class, 'store'])->name('course.material.files.store');
+Route::delete('/courses/{course}/materials/{material}/files/{file}', [CourseMaterialFileController::class, 'destroy'])->name('course.material.files.destroy');
+Route::get('/courses/{course}/materials/{material}/files/{file}/thumbnail', [CourseMaterialFileController::class, 'thumbnail'])->name('course.material.files.thumbnail');
+Route::get('/courses/{course}/materials/{material}/files/{file}/view', [CourseMaterialFileController::class, 'view'])->name('course.material.files.view');
+Route::get('/courses/{course}/materials/{material}/files/{file}/download', [CourseMaterialFileController::class, 'download'])->name('course.material.files.download');
 Route::get('/courses/{course}/coverage-analysis', [CoverageAnalysisController::class, 'course'])->name('course.coverageAnalysis');
-Route::post('/courses/{course}/materials', [CourseMaterialController::class, 'store'])->name('course.materials.store');
-Route::delete('/courses/{course}/materials/{materialId}', [CourseMaterialController::class, 'destroy'])->name('course.materials.destroy');
-Route::get('/courses/{course}/materials/{materialId}/thumbnail', [CourseMaterialController::class, 'thumbnail'])->name('course.materials.thumbnail');
-Route::get('/courses/{course}/materials/{materialId}/view', [CourseMaterialController::class, 'view'])->name('course.materials.view');
-Route::get('/courses/{course}/materials/{materialId}/download', [CourseMaterialController::class, 'download'])->name('course.materials.download');
 Route::get('/courses/{course}/materials/search', [CoverageAnalysisController::class, 'searchCourse'])->name('course.materials.search');
 Route::get('/programs/{program}/materials/search', [CoverageAnalysisController::class, 'searchProgram'])->name('program.materials.search');
 Route::get('/programs/{program}/coverage-analysis', [CoverageAnalysisController::class, 'program'])->name('program.coverageAnalysis');

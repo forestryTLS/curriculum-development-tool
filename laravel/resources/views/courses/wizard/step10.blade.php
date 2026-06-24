@@ -186,6 +186,12 @@
                                         <button type="button" style="width:60px;" class="btn btn-secondary btn-sm m-1" data-bs-toggle="modal" data-bs-target="#addCourseMaterialsModal">
                                             Edit
                                         </button>
+                                        <button type="button" class="btn btn-outline-primary btn-sm m-1" data-bs-toggle="modal" data-bs-target="#filesModal-{{$courseMaterial->course_material_id}}">
+                                            Files
+                                            @if($courseMaterial->files->count())
+                                                <span class="badge bg-secondary">{{$courseMaterial->files->count()}}</span>
+                                            @endif
+                                        </button>
                                     </td>
                                 </tr>
                             @endforeach
@@ -193,6 +199,110 @@
                     </table>
                 </div>
             </div>
+
+            {{-- Per-material file upload modals --}}
+            @foreach($courseMaterials as $courseMaterial)
+            <div id="filesModal-{{$courseMaterial->course_material_id}}" class="modal fade" tabindex="-1" role="dialog" aria-hidden="true">
+                <div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-centered" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">
+                                <i class="bi bi-file-earmark-pdf me-2"></i>Files for: {{$courseMaterial->name}}
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+
+                            {{-- Existing files --}}
+                            @if($courseMaterial->files->isEmpty())
+                                <p class="text-muted">No files uploaded yet.</p>
+                            @else
+                                <table class="table table-sm table-borderless mb-3">
+                                    <thead>
+                                        <tr class="table-primary">
+                                            <th>File</th>
+                                            <th class="text-center">Status</th>
+                                            <th class="text-center">Pages</th>
+                                            <th class="text-center">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach($courseMaterial->files as $file)
+                                        <tr>
+                                            <td class="align-middle">{{$file->file_name}}</td>
+                                            <td class="text-center align-middle">
+                                                @php
+                                                    $badgeClass = match($file->status) {
+                                                        'INDEXED'  => 'bg-success',
+                                                        'INDEXING' => 'bg-warning text-dark',
+                                                        'FAILED'   => 'bg-danger',
+                                                        default    => 'bg-secondary',
+                                                    };
+                                                @endphp
+                                                <span class="badge {{$badgeClass}}">{{$file->status}}</span>
+                                                @if($file->status === 'FAILED' && $file->error_message)
+                                                    <i class="bi bi-exclamation-circle text-danger ms-1" data-bs-toggle="tooltip" title="{{$file->error_message}}"></i>
+                                                @endif
+                                            </td>
+                                            <td class="text-center align-middle">{{$file->page_count ?? '-'}}</td>
+                                            <td class="text-center align-middle">
+                                                <a href="{{route('course.material.files.download', [$course->course_id, $courseMaterial->course_material_id, $file->course_material_file_id])}}" class="btn btn-outline-secondary btn-sm m-1">
+                                                    <i class="bi bi-download"></i>
+                                                </a>
+                                                <form method="POST" action="{{route('course.material.files.destroy', [$course->course_id, $courseMaterial->course_material_id, $file->course_material_file_id])}}" class="d-inline" onsubmit="return confirm('Delete this file?')">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="btn btn-outline-danger btn-sm m-1">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            @endif
+
+                            <hr>
+
+                            {{-- Upload form --}}
+                            <h6>Upload a PDF</h6>
+                            <form method="POST" action="{{route('course.material.files.store', [$course->course_id, $courseMaterial->course_material_id])}}" enctype="multipart/form-data">
+                                @csrf
+                                <div class="mb-3">
+                                    <input type="file" name="file" class="form-control" accept="application/pdf" required>
+                                </div>
+                                <div class="mb-2">
+                                    <div class="form-check">
+                                        <input class="form-check-input ocr-toggle-{{$courseMaterial->course_material_id}}" type="checkbox" name="ocr_enabled" value="1" id="ocrEnabled-{{$courseMaterial->course_material_id}}">
+                                        <label class="form-check-label" for="ocrEnabled-{{$courseMaterial->course_material_id}}">Enable OCR (for scanned PDFs)</label>
+                                    </div>
+                                </div>
+                                <div class="ocr-options-{{$courseMaterial->course_material_id}} d-none mb-3">
+                                    <div class="row g-2">
+                                        <div class="col-6">
+                                            <label class="form-label">Engine</label>
+                                            <select name="extraction_engine" class="form-select form-select-sm">
+                                                <option value="tesseract">Tesseract</option>
+                                                <option value="textract">AWS Textract</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="form-label">OCR threshold (chars/page)</label>
+                                            <input type="number" name="ocr_threshold" class="form-control form-control-sm" value="0" min="0">
+                                        </div>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-primary btn-sm">Upload</button>
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            @endforeach
 
 
                 <!-- card footer -->
@@ -271,6 +381,15 @@
     function deleteCourseMaterial(submitter) {
         $(submitter).parents('tr').remove();
     }
+
+    // Toggle OCR options per material
+    document.querySelectorAll('[class^="ocr-toggle-"]').forEach(function(checkbox) {
+        checkbox.addEventListener('change', function() {
+            var id = this.className.split('ocr-toggle-')[1];
+            var opts = document.querySelector('.ocr-options-' + id);
+            if (opts) opts.classList.toggle('d-none', !this.checked);
+        });
+    });
 
     function addCourseMaterial() {
         // Build grouped request keys because each material has several fields.

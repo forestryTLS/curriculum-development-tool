@@ -12,14 +12,14 @@ class CourseMaterialChunk extends Model
     protected $table = 'course_material_chunks';
 
     protected $fillable = [
-        'course_material_id',
+        'course_material_file_id',
         'page_number',
         'chunk_index',
         'content',
     ];
 
-    public function material()
+    public function file()
     {
-        return $this->belongsTo(CourseMaterial::class, 'course_material_id');
+        return $this->belongsTo(CourseMaterialFile::class, 'course_material_file_id');
     }
 }

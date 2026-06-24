@@ -2,8 +2,8 @@
 
 namespace App\Jobs;
 
-use App\Models\CourseMaterial;
 use App\Models\CourseMaterialChunk;
+use App\Models\CourseMaterialFile;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -28,76 +28,76 @@ class IndexCourseMaterial implements ShouldQueue
     public int $timeout = 1800;
     public int $tries = 1;
 
-    public int $courseMaterialId;
+    public int $courseMaterialFileId;
 
-    public function __construct(int $courseMaterialId)
+    public function __construct(int $courseMaterialFileId)
     {
-        $this->courseMaterialId = $courseMaterialId;
+        $this->courseMaterialFileId = $courseMaterialFileId;
     }
 
     public function handle(): void
     {
-        $material = CourseMaterial::find($this->courseMaterialId);
+        $file = CourseMaterialFile::find($this->courseMaterialFileId);
 
-        if (!$material) {
-            Log::error("IndexCourseMaterial: material {$this->courseMaterialId} not found, cancelling.");
+        if (!$file) {
+            Log::error("IndexCourseMaterial: file {$this->courseMaterialFileId} not found, cancelling.");
             return;
         }
 
-        $material->update(['status' => CourseMaterial::STATUS_INDEXING, 'error_message' => null]);
+        $file->update(['status' => CourseMaterialFile::STATUS_INDEXING, 'error_message' => null]);
 
         try {
             $startTime = microtime(true);
-            if ($material->ocr_enabled) {
-                if ($material->extraction_engine === 'textract') {
-                    $this->indexWithAWSTextractOCR($material);
-                } elseif ($material->extraction_engine === 'tesseract') {
-                    $this->indexWithTesseractOCR($material);
+            if ($file->ocr_enabled) {
+                if ($file->extraction_engine === 'textract') {
+                    $this->indexWithAWSTextractOCR($file);
+                } elseif ($file->extraction_engine === 'tesseract') {
+                    $this->indexWithTesseractOCR($file);
                 }
             } else {
-                $this->indexWithoutOCR($material);
+                $this->indexWithoutOCR($file);
             }
             $processingTime = (int) round(microtime(true) - $startTime);
-            $material->update(['processing_time_seconds' => $processingTime]);
+            $file->update(['processing_time_seconds' => $processingTime]);
         } catch (Throwable $exception) {
-            Log::error("IndexCourseMaterial failed for material {$material->id}: " . $exception->getMessage());
-            $material->update([
-                'status' => CourseMaterial::STATUS_FAILED,
+            Log::error("IndexCourseMaterial failed for file {$file->course_material_file_id}: " . $exception->getMessage());
+            $file->update([
+                'status' => CourseMaterialFile::STATUS_FAILED,
                 'error_message' => mb_substr($exception->getMessage(), 0, 1000),
             ]);
             throw $exception;
         }
     }
 
-    private function indexWithoutOCR(CourseMaterial $material): void
+    private function indexWithoutOCR(CourseMaterialFile $file): void
     {
         $rows = [];
         $pageNumber = 0;
-        foreach ($this->parsePages($material) as $page) {
+        foreach ($this->parsePages($file) as $page) {
             $pageNumber++;
             $text = trim($page->getText());
 
             if ($text !== '') {
-                $rows[] = $this->courseMaterialChunkDBRow($material, $pageNumber, $text);
+                $rows[] = $this->chunkDBRow($file, $pageNumber, $text);
             }
         }
 
-        $this->saveTextChunks($material, $rows);
+        $this->saveTextChunks($file, $rows);
     }
 
-    private function indexWithTesseractOCR(CourseMaterial $material): void
+    private function indexWithTesseractOCR(CourseMaterialFile $file): void
     {
         $this->assertEnglishOCRDataAvailable();
 
-        $absolutePath = Storage::disk('local')->path($material->file_path);
+        $absolutePath = Storage::disk('local')->path($file->file_path);
 
         $rows = [];
         $pageNumber = 0;
-        foreach ($this->parsePages($material) as $page) {
+        foreach ($this->parsePages($file) as $page) {
             $pageNumber++;
             $text = trim($page->getText());
 
-            if (mb_strlen($text) <= $material->ocr_threshold) {
+            if (mb_strlen($text) <= $file->ocr_threshold) {
                 // High DPI needed for OCR, otherwise smaller characters get mixed up
                 $pngPath = PdfPageRenderer::pdfToImage($absolutePath, $pageNumber, dpi: 300);
                 try {
@@ -108,14 +108,14 @@ class IndexCourseMaterial implements ShouldQueue
             }
 
             if ($text !== '') {
-                $rows[] = $this->courseMaterialChunkDBRow($material, $pageNumber, $text);
+                $rows[] = $this->chunkDBRow($file, $pageNumber, $text);
             }
         }
 
-        $this->saveTextChunks($material, $rows);
+        $this->saveTextChunks($file, $rows);
     }
 
-    private function parsePages(CourseMaterial $material): array
+    private function parsePages(CourseMaterialFile $file): array
     {
         ini_set('memory_limit', '1024M');
         set_time_limit(0);
@@ -124,18 +124,18 @@ class IndexCourseMaterial implements ShouldQueue
         $config->setRetainImageContent(false);
 
         $pages = (new Parser([], $config))
-            ->parseFile(Storage::disk('local')->path($material->file_path))
+            ->parseFile(Storage::disk('local')->path($file->file_path))
             ->getPages();
 
-        $material->update(['page_count' => count($pages)]);
+        $file->update(['page_count' => count($pages)]);
 
         return $pages;
     }
 
-    private function courseMaterialChunkDBRow(CourseMaterial $material, int $pageNumber, string $text): array
+    private function chunkDBRow(CourseMaterialFile $file, int $pageNumber, string $text): array
     {
         return [
-            'course_material_id' => $material->id,
+            'course_material_file_id' => $file->course_material_file_id,
             'page_number' => $pageNumber,
             'chunk_index' => 0,
             'content' => $text,
@@ -144,18 +144,18 @@ class IndexCourseMaterial implements ShouldQueue
         ];
     }
 
-    private function saveTextChunks(CourseMaterial $material, array $rows): void
+    private function saveTextChunks(CourseMaterialFile $file, array $rows): void
     {
         foreach (array_chunk($rows, 100) as $batch) {
             CourseMaterialChunk::insert($batch);
         }
 
-        $material->update(['status' => CourseMaterial::STATUS_INDEXED]);
+        $file->update(['status' => CourseMaterialFile::STATUS_INDEXED]);
     }
 
-    private function indexWithAWSTextractOCR(CourseMaterial $material): void
+    private function indexWithAWSTextractOCR(CourseMaterialFile $file): void
     {
-        $absolutePath = Storage::disk('local')->path($material->file_path);
+        $absolutePath = Storage::disk('local')->path($file->file_path);
         $fileBytes = file_get_contents($absolutePath);
 
         $response = Http::timeout(300)->post(config('services.text_extraction.base_url') . '/extract', [
@@ -166,16 +166,16 @@ class IndexCourseMaterial implements ShouldQueue
         $data = $response->json();
         $pages = $data['pages'] ?? [];
 
-        $material->update(['page_count' => count($pages)]);
+        $file->update(['page_count' => count($pages)]);
 
         $rows = [];
         foreach ($pages as $page) {
             if (!empty($page['content'])) {
-                $rows[] = $this->courseMaterialChunkDBRow($material, $page['page_number'], $page['content']);
+                $rows[] = $this->chunkDBRow($file, $page['page_number'], $page['content']);
             }
         }
 
-        $this->saveTextChunks($material, $rows);
+        $this->saveTextChunks($file, $rows);
     }
 
     private function assertEnglishOCRDataAvailable(): void

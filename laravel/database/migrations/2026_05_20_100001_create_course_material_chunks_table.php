@@ -10,14 +10,17 @@ return new class extends Migration
     {
         Schema::create('course_material_chunks', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('course_material_id');
-            $table->foreign('course_material_id')->references('id')->on('course_materials')->onDelete('cascade');
+            $table->unsignedBigInteger('course_material_file_id');
+            $table->foreign('course_material_file_id')
+                ->references('course_material_file_id')
+                ->on('course_material_files')
+                ->onDelete('cascade');
             $table->unsignedInteger('page_number');
             $table->unsignedInteger('chunk_index')->default(0);
             $table->text('content');
             $table->timestamps();
 
-            $table->unique(['course_material_id', 'page_number', 'chunk_index'], 'course_material_chunks_unique');
+            $table->unique(['course_material_file_id', 'page_number', 'chunk_index'], 'course_material_chunks_unique');
         });
     }
 
