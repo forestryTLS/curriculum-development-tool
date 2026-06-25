@@ -5,10 +5,13 @@ namespace App\Http\Controllers;
 use App\Jobs\IndexCourseMaterial;
 use App\Models\CourseMaterialFile;
 use App\Models\User;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use App\Support\PdfPageRenderer;
@@ -138,6 +141,46 @@ class CourseMaterialFileController extends Controller
             'file'        => $file,
             'course_id'   => $course_id,
             'material_id' => $material_id,
+        ]);
+    }
+
+    public function extractTopics($course_id, $material_id, $file_id): JsonResponse
+    {
+        $file = CourseMaterialFile::where('course_material_file_id', $file_id)
+            ->where('course_material_id', $material_id)
+            ->where('course_id', $course_id)
+            ->with(['chunks' => fn($q) => $q->orderBy('page_number')->orderBy('chunk_index')])
+            ->firstOrFail();
+
+        $pages = $file->chunks
+            ->map(fn($chunk) => [
+                'page_number' => $chunk->page_number,
+                'content'     => $chunk->content,
+            ])
+            ->values();
+
+        if ($pages->isEmpty()) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'No extracted text is available for this file yet. It may still be indexing.',
+            ], 422);
+        }
+
+        try {
+            $response = Http::timeout(120)
+                ->post(config('services.topic_extraction.base_url') . '/extract', ['pages' => $pages]);
+            $response->throw();
+        } catch (\Throwable $e) {
+            Log::error("Topic extraction failed for file {$file_id}: " . $e->getMessage());
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'The topic extraction service is unavailable. Please try again later.',
+            ], 502);
+        }
+
+        return response()->json([
+            'status'  => 'success',
+            'topics'  => $response->json('topics', []),
         ]);
     }
 

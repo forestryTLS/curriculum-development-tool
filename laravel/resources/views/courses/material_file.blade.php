@@ -107,6 +107,29 @@
         </div>
     </div>
 
+    <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h6 class="mb-0">Extracted Topics</h6>
+            <button type="button" id="extract-topics-btn" class="btn btn-sm btn-primary"
+                    @if ($file->status !== 'INDEXED' || $file->chunks->isEmpty()) disabled @endif>
+                <i class="bi bi-tags"></i> Extract topics
+            </button>
+        </div>
+        <div class="card-body">
+            @if ($file->status !== 'INDEXED' || $file->chunks->isEmpty())
+                <p class="text-muted mb-0 small">
+                    Topics can be extracted once the file has been indexed and text is available.
+                </p>
+            @else
+                <p class="text-muted small mb-3">
+                    Extract topics from this file's text.
+                </p>
+                <div id="topics-status" class="d-none"></div>
+                <div id="topics-results"></div>
+            @endif
+        </div>
+    </div>
+
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h6 class="mb-0">Extracted Text</h6>
@@ -151,6 +174,83 @@
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => new bootstrap.Tooltip(el));
+    });
+</script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const btn = document.getElementById('extract-topics-btn');
+        if (!btn) return;
+
+        const statusEl  = document.getElementById('topics-status');
+        const resultsEl = document.getElementById('topics-results');
+        const endpoint  = "{{ route('course.material.files.extractTopics', [$course_id, $material_id, $file->course_material_file_id]) }}";
+
+        btn.addEventListener('click', async function () {
+            const originalHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Extracting...';
+            resultsEl.innerHTML = '';
+            showStatus('Extracting topics...', 'info');
+
+            try {
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({}),
+                });
+
+                const data = await response.json();
+
+                if (!response.ok || data.status !== 'success') {
+                    showStatus(data.message || 'Topic extraction failed.', 'danger');
+                    return;
+                }
+
+                renderTopics(data.topics || []);
+            } catch (e) {
+                showStatus('Could not reach the server. Please try again.', 'danger');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+            }
+        });
+
+        function showStatus(message, type) {
+            statusEl.className = 'alert alert-' + type + ' py-2';
+            statusEl.textContent = message;
+        }
+
+        function hideStatus() {
+            statusEl.className = 'd-none';
+            statusEl.textContent = '';
+        }
+
+        function renderTopics(topics) {
+            if (!topics.length) {
+                showStatus('No topics were found in this file.', 'warning');
+                return;
+            }
+            hideStatus();
+
+            topics.forEach(function (topic) {
+                const badge = document.createElement('span');
+                badge.className = 'badge bg-light text-dark border me-1 mb-1 fw-normal';
+                badge.textContent = topic.topic;
+
+                const score = document.createElement('span');
+                score.className = 'text-muted ms-1';
+                score.style.fontSize = '0.85em';
+                score.textContent = '(' + topic.score + ')';
+                badge.appendChild(score);
+
+                resultsEl.appendChild(badge);
+            });
+        }
     });
 </script>
 

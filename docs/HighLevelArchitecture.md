@@ -2,11 +2,13 @@
 
 ## Overview
 
-This application is split into a primary Laravel web application and two Python services:
+This application is split into a primary Laravel web application and a set of Python services:
 
 - `laravel/`: the main user interface of the Curriculum Mapping Tool with courses, programs, syllabi, persistence, permissions, and reporting
 - `python/services/syllabi_service/`: a FastAPI service that parses uploaded syllabus files and extracts structured course data
 - `python/services/lo_mapping_service/`: a FastAPI service that prepares and manages learning-outcome mapping via LLM (Qwen/Qwen3-8B) and post-processes the results
+- `python/services/text_extraction_service/`: a FastAPI service that performs OCR on PDF course materials using AWS Textract
+- `python/services/topic_extraction_service/`: a FastAPI service that extracts candidate topics from course material text using swappable algorithms (RAKE first)
 
 ![Architecture Diagram](./images/ArchitectureDiagram.png)
 
