@@ -269,6 +269,7 @@ Route::post('courseWizard/{courseId}/{programId}/check-in-flight', [CourseProgra
 
 // Course materials (wizard metadata) + file uploads + Coverage Analysis
 Route::post('/courses/{course}/materials/{material}/files', [CourseMaterialFileController::class, 'store'])->name('course.material.files.store');
+Route::get('/courses/{course}/materials/{material}/files/{file}', [CourseMaterialFileController::class, 'show'])->name('course.material.files.show');
 Route::delete('/courses/{course}/materials/{material}/files/{file}', [CourseMaterialFileController::class, 'destroy'])->name('course.material.files.destroy');
 Route::get('/courses/{course}/materials/{material}/files/{file}/thumbnail', [CourseMaterialFileController::class, 'thumbnail'])->name('course.material.files.thumbnail');
 Route::get('/courses/{course}/materials/{material}/files/{file}/view', [CourseMaterialFileController::class, 'view'])->name('course.material.files.view');

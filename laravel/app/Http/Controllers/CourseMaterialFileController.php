@@ -122,6 +122,25 @@ class CourseMaterialFileController extends Controller
         }
     }
 
+    public function show($course_id, $material_id, $file_id)
+    {
+        $file = CourseMaterialFile::where('course_material_file_id', $file_id)
+            ->where('course_material_id', $material_id)
+            ->where('course_id', $course_id)
+            ->with([
+                'courseMaterial',
+                'uploader',
+                'chunks' => fn($q) => $q->orderBy('page_number')->orderBy('chunk_index'),
+            ])
+            ->firstOrFail();
+
+        return view('courses.material_file', [
+            'file'        => $file,
+            'course_id'   => $course_id,
+            'material_id' => $material_id,
+        ]);
+    }
+
     private function assertIsEditor(int $course_id): void
     {
         $permission = User::find(Auth::id())?->effectivePermissionForCourse($course_id) ?? 0;
