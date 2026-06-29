@@ -5,6 +5,9 @@ pydantic-settings==2.10.1
 python-dotenv==1.1.1
 python-json-logger==3.3.0
 nltk==3.9.1
-rake-nltk==1.0.6
 pytest==8.4.2
 httpx==0.28.1
+
+yake[lemmatization]==0.7.3
+# bertopic==0.16.4
+# rake-nltk==1.0.6

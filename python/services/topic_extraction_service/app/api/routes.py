@@ -5,7 +5,10 @@ from app.core.config import settings
 from app.core.logging_config import logger
 from app.schemas import ExtractRequest, ExtractResponse
 
-from app.services import rake_extractor as extractor
+from app.services import yake_extractor as extractor
+# from app.services import bertopic_extractor as extractor
+from app.services import preprocessor
+from app.services import postprocessor
 
 
 app = FastAPI(
@@ -31,10 +34,12 @@ async def health_check() -> dict[str, str]:
 
 @app.post("/extract", response_model=ExtractResponse)
 async def extract(request: ExtractRequest) -> ExtractResponse:
-    text = "\n".join(page.content for page in request.pages if page.content)
+    text = ". \f".join(page.content for page in request.pages if page.content) # TODO: Move to preprocessor
     try:
-        topics = extractor.extract(text)
-        return ExtractResponse(topics=topics)
+        preprocessed_text = preprocessor.process(text)
+        topics = extractor.extract(preprocessed_text)
+        postprocessed_topics = postprocessor.process(topics)
+        return ExtractResponse(topics=postprocessed_topics)
     except Exception as e:
         logger.error(f"Topic extraction failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))

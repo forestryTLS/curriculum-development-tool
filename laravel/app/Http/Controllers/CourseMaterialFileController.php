@@ -166,9 +166,12 @@ class CourseMaterialFileController extends Controller
             ], 422);
         }
 
+        $baseUrl = config('services.topic_extraction.base_url');
+
+        set_time_limit(300);
+
         try {
-            $response = Http::timeout(120)
-                ->post(config('services.topic_extraction.base_url') . '/extract', ['pages' => $pages]);
+            $response = Http::timeout(300)->post($baseUrl . '/extract', ['pages' => $pages]);
             $response->throw();
         } catch (\Throwable $e) {
             Log::error("Topic extraction failed for file {$file_id}: " . $e->getMessage());

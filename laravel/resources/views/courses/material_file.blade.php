@@ -110,10 +110,12 @@
     <div class="card mb-3">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h6 class="mb-0">Extracted Topics</h6>
-            <button type="button" id="extract-topics-btn" class="btn btn-sm btn-primary"
-                    @if ($file->status !== 'INDEXED' || $file->chunks->isEmpty()) disabled @endif>
-                <i class="bi bi-tags"></i> Extract topics
-            </button>
+            <div class="d-flex align-items-center gap-2">
+                <button type="button" id="extract-topics-btn" class="btn btn-sm btn-primary"
+                        @if ($file->status !== 'INDEXED' || $file->chunks->isEmpty()) disabled @endif>
+                    <i class="bi bi-tags"></i> Extract topics
+                </button>
+            </div>
         </div>
         <div class="card-body">
             @if ($file->status !== 'INDEXED' || $file->chunks->isEmpty())
