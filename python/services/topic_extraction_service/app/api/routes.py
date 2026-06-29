@@ -1,3 +1,5 @@
+import base64
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -9,6 +11,7 @@ from app.services import yake_extractor as extractor
 # from app.services import bertopic_extractor as extractor
 from app.services import preprocessor
 from app.services import postprocessor
+from app.services import powerpoint_processor
 
 
 app = FastAPI(
@@ -37,9 +40,18 @@ async def extract(request: ExtractRequest) -> ExtractResponse:
     text = ". \f".join(page.content for page in request.pages if page.content) # TODO: Move to preprocessor
     try:
         preprocessed_text = preprocessor.process(text)
-        topics = extractor.extract(preprocessed_text)
-        postprocessed_topics = postprocessor.process(topics)
-        return ExtractResponse(topics=postprocessed_topics)
+        if request.material_type.lower() == "slides" and request.file:
+            topics = powerpoint_processor.extract(base64.b64decode(request.file))
+        else:
+            topics = extractor.extract(preprocessed_text)
+        topics = postprocessor.process(topics)
+
+        # if request.material_type.lower() == "slides" and request.file:
+        #     slide_topics = powerpoint_processor.extract(base64.b64decode(request.file))
+        #     if slide_topics:
+        #         topics = postprocessor.union(slide_topics, topics)
+
+        return ExtractResponse(topics=topics)
     except Exception as e:
         logger.error(f"Topic extraction failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))

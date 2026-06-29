@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 from pydantic import BaseModel
 
@@ -10,6 +10,8 @@ class PageContent(BaseModel):
 
 class ExtractRequest(BaseModel):
     pages: List[PageContent]
+    material_type: Optional[str] = None
+    file: Optional[str] = None
 
 
 class Topic(BaseModel):

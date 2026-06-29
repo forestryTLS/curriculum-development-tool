@@ -8,6 +8,8 @@ nltk==3.9.1
 pytest==8.4.2
 httpx==0.28.1
 
+PyMuPDF==1.26.3
+
 yake[lemmatization]==0.7.3
 # bertopic==0.16.4
 # rake-nltk==1.0.6

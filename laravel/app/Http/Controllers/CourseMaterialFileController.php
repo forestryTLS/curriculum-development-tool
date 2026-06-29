@@ -149,7 +149,10 @@ class CourseMaterialFileController extends Controller
         $file = CourseMaterialFile::where('course_material_file_id', $file_id)
             ->where('course_material_id', $material_id)
             ->where('course_id', $course_id)
-            ->with(['chunks' => fn($q) => $q->orderBy('page_number')->orderBy('chunk_index')])
+            ->with([
+                'courseMaterial',
+                'chunks' => fn($q) => $q->orderBy('page_number')->orderBy('chunk_index'),
+            ])
             ->firstOrFail();
 
         $pages = $file->chunks
@@ -166,12 +169,23 @@ class CourseMaterialFileController extends Controller
             ], 422);
         }
 
+        $payload = ['pages' => $pages];
+
+        if ($file->courseMaterial?->type) {
+            $payload['material_type'] = $file->courseMaterial->type;
+        }
+
+        // TODO: Remove once integrated with the text extraction service
+        if (Storage::disk('local')->exists($file->file_path)) {
+            $payload['file'] = base64_encode(Storage::disk('local')->get($file->file_path));
+        }
+
         $baseUrl = config('services.topic_extraction.base_url');
 
         set_time_limit(300);
 
         try {
-            $response = Http::timeout(300)->post($baseUrl . '/extract', ['pages' => $pages]);
+            $response = Http::timeout(300)->post($baseUrl . '/extract', $payload);
             $response->throw();
         } catch (\Throwable $e) {
             Log::error("Topic extraction failed for file {$file_id}: " . $e->getMessage());
