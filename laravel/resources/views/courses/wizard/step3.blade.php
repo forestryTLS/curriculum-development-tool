@@ -228,7 +228,7 @@
                 $(this).addClass('was-validated');
             }
             // readjust modal's position
-            $('#addLearningActivitiesModal').modal("handleUpdate")();
+            $('#addLearningActivitiesModal').modal("handleUpdate");
 
         });
 

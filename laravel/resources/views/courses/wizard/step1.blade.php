@@ -254,7 +254,7 @@
                 $(this).addClass('was-validated');
             }
             // readjust modal's position
-            $('#addLearningOutcomeModal').modal("handleUpdate")();
+            $('#addLearningOutcomeModal').modal("handleUpdate");
         });
 
         $('#cancel').click(function(event) {

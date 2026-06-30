@@ -73,8 +73,8 @@ it('stores remaining AI suggestions when a CLO and PLO are deleted in-flight', f
     ]);
 
     // Deleted outcomes should not be re-added to database
-    $this->assertDatabaseMissing('outcome_map_ai_suggestions', ['l_outcome_id' => $clo1->l_outcome_id]);
-    $this->assertDatabaseMissing('outcome_map_ai_suggestions', ['pl_outcome_id' => $plo1->pl_outcome_id]);
+    $this->assertDatabaseMissing('outcome_maps', ['l_outcome_id' => $clo1->l_outcome_id]);
+    $this->assertDatabaseMissing('outcome_maps', ['pl_outcome_id' => $plo1->pl_outcome_id]);
 
     // Only clo2 should appear in step5.
     // clo2/plo2 should have AI suggestion icon and checkbox checked on I column

@@ -643,7 +643,7 @@
                 $(this).addClass('was-validated');
             }
             // readjust modal's position
-            $('#addPLOCategoryModal').modal("handleUpdate")();
+            $('#addPLOCategoryModal').modal("handleUpdate");
 
         });
 
@@ -664,7 +664,7 @@
             }
             // readjust modal's position
             var addP
-            $('#addPLOModal').modal("handleUpdate")();
+            $('#addPLOModal').modal("handleUpdate");
         });
 
         $('#cancelPLOCategoryForm').click(function(event) {

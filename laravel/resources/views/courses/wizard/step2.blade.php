@@ -281,7 +281,7 @@
                 $(this).addClass('was-validated');
             }
             // readjust modal's position
-            $('#addAssessmentMethodModal').modal("handleUpdate")();
+            $('#addAssessmentMethodModal').modal("handleUpdate");
 
         });
 

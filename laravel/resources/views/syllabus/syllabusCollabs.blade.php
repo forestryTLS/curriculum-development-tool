@@ -195,7 +195,7 @@
                 $(this).addClass('was-validated');
             }
             // readjust modal's position/height
-            $('#addSyllabusCollaboratorsModal' + syllabusId).modal("handleUpdate")();
+            $('#addSyllabusCollaboratorsModal' + syllabusId).modal("handleUpdate");
 
         });
 
