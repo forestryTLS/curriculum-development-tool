@@ -30,6 +30,9 @@ class SearchTest extends TestCase
         $response = $this->get(route('search.index'));
         $response->assertStatus(200);
         $response->assertSee('Course Search');
+        $response->assertSee('Search settings');
+        $response->assertSee('Courses');
+        $response->assertSee('Programs');
     }
 
     public function test_search_page_displays_query(){

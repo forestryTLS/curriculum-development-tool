@@ -3,13 +3,60 @@
 @section('content')
     <style>
         .search-page-header {
-            max-width: 760px;
+            max-width: 780px;
             margin: 0 auto 1.5rem;
         }
 
-        .search-input {
-            min-height: 48px;
+        .search-input,
+        .search-action-button {
+            height: 48px !important;
             font-size: 1.05rem;
+        }
+
+        .search-action-button {
+            padding-top: 0;
+            padding-bottom: 0;
+        }
+
+        .search-filter-button {
+            width: 48px;
+            min-width: 48px;
+        }
+
+        .search-filter-menu {
+            min-width: 240px;
+            padding: 1rem;
+            border-radius: 6px;
+        }
+
+        .search-filter-heading {
+            margin-bottom: 0.6rem;
+            color: #6c757d;
+            font-size: 0.78rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .search-view-toggle .btn {
+            color: #0055b7;
+            border-color: #40B4E5;
+            font-size: 0.9rem;
+        }
+
+        .search-view-toggle .btn:hover,
+        .search-view-toggle .btn-check:checked + .btn {
+            color: #fff;
+            background-color: #40B4E5;
+            border-color: #40B4E5;
+        }
+
+        .search-view-toggle .btn-check:focus + .btn {
+            box-shadow: none;
+        }
+
+        .search-view-toggle .btn-check:focus-visible + .btn {
+            outline: 2px solid #0055b7;
+            outline-offset: 2px;
         }
 
         .search-stats,
@@ -44,7 +91,7 @@
         <h1 class="mb-3">Course Search</h1>
 
         <form method="GET" action="{{ route('search.index') }}">
-            <div class="input-group input-group-lg">
+            <div class="input-group">
                 <input
                     type="search"
                     name="query"
@@ -53,11 +100,36 @@
                     class="form-control search-input"
                 >
 
-                <button type="button" class="btn btn-outline-secondary">
-                    <i class="bi bi-funnel"></i> Filters
+                <button
+                    type="button"
+                    class="btn btn-outline-secondary search-action-button search-filter-button"
+                    id="searchFiltersButton"
+                    data-bs-toggle="dropdown"
+                    data-bs-auto-close="outside"
+                    aria-expanded="false"
+                    aria-label="Search settings"
+                    title="Search settings"
+                >
+                    <i class="bi bi-gear"></i>
                 </button>
 
-                <button type="submit" class="btn btn-primary">Search</button>
+                <div class="dropdown-menu dropdown-menu-end search-filter-menu" aria-labelledby="searchFiltersButton">
+                    <div class="search-filter-heading">View</div>
+
+                    <div class="btn-group w-100 search-view-toggle" role="group" aria-label="Search result view">
+                        <input type="radio" class="btn-check" name="view" id="courseView" value="courses" checked autocomplete="off">
+                        <label class="btn btn-outline-primary" for="courseView">
+                            <i class="bi bi-journal-text me-1"></i> Courses
+                        </label>
+
+                        <input type="radio" class="btn-check" name="view" id="programView" value="programs" autocomplete="off">
+                        <label class="btn btn-outline-primary" for="programView">
+                            <i class="bi bi-diagram-3 me-1"></i> Programs
+                        </label>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary search-action-button">Search</button>
             </div>
 
             @error('query')
