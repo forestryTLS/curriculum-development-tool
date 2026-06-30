@@ -84,7 +84,7 @@ class SearchTest extends TestCase
         $response->assertStatus(200);
         $response->assertSee('Compact Code Match Course');
         $response->assertSee('<mark>CONS</mark>', false);
-        $response->assertDontSee('Matched in: course');
+        $response->assertDontSee('<strong>Course:</strong>', false);
     }
 
     public function test_search_finds_course_by_course_title(){
@@ -103,7 +103,7 @@ class SearchTest extends TestCase
         $response->assertStatus(200);
         $response->assertSee('Forest Policy');
         $response->assertSee('<mark>Auralith</mark>', false);
-        $response->assertDontSee('Matched in: course');
+        $response->assertDontSee('<strong>Course:</strong>', false);
     }
 
     public function test_direct_course_matches_appear_before_content_only_matches(){
@@ -137,7 +137,7 @@ class SearchTest extends TestCase
             'Actual Course Match',
             'Description Mention Course',
         ]);
-        $response->assertSee('Matched in: description');
+        $response->assertSee('Description:');
     }
 
     // This method creates the missing parent rows needed by the test courses.
@@ -297,7 +297,7 @@ public function test_search_finds_course_by_description()
 
     $response->assertStatus(200);
     $response->assertSee('Description Match Course');
-    $response->assertSee('Matched in: description');
+    $response->assertSee('Description:');
     $response->assertSee('zirconium', false);
 }
 
@@ -335,7 +335,7 @@ public function test_search_only_returns_course_with_matching_learning_objective
 
     $response->assertStatus(200);
     $response->assertSee('Learning Objective Match Course');
-    $response->assertSee('Matched in: learning outcome');
+    $response->assertSee('Learning Objective:');
     $response->assertSee('aurorium', false);
     $response->assertDontSee('Learning Objective Non Match Course');
 }
@@ -377,7 +377,7 @@ public function test_search_only_returns_course_with_matching_description()
 
     $response->assertStatus(200);
     $response->assertSee('Description Only Match Course');
-    $response->assertSee('Matched in: description');
+    $response->assertSee('Description:');
     $response->assertSee('solandria', false);
     $response->assertDontSee('Description Non Match Course');
 }
@@ -405,7 +405,7 @@ public function test_search_finds_course_by_material()
 
     $response->assertStatus(200);
     $response->assertSee('Material Match Course');
-    $response->assertSee('Matched in: material');
+    $response->assertSee('Material:');
     $response->assertSee('nebulagraph', false);
 }
 
@@ -445,7 +445,7 @@ public function test_search_only_returns_course_with_matching_material()
 
     $response->assertStatus(200);
     $response->assertSee('Material Only Match Course');
-    $response->assertSee('Matched in: material');
+    $response->assertSee('Material:');
     $response->assertSee('velorium', false);
     $response->assertDontSee('Material Non Match Course');
 }
@@ -473,7 +473,7 @@ public function test_search_finds_course_by_assessment()
 
     $response->assertStatus(200);
     $response->assertSee('Assessment Match Course');
-    $response->assertSee('Matched in: assessment');
+    $response->assertSee('Assessment:');
     $response->assertSee('xenolith', false);
 }
 
@@ -513,7 +513,7 @@ public function test_search_only_returns_course_with_matching_assessment()
 
     $response->assertStatus(200);
     $response->assertSee('Assessment Only Match Course');
-    $response->assertSee('Matched in: assessment');
+    $response->assertSee('Assessment:');
     $response->assertSee('mycelion', false);
     $response->assertDontSee('Assessment Non Match Course');
 }
@@ -779,7 +779,7 @@ public function test_course_result_shows_per_course_match_statistics()
 
     $response->assertStatus(200);
     $response->assertSee('Per Course Stats Course');
-    $response->assertSee('Matched in this course:');
+    $response->assertSee('Found in:');
     $response->assertSee('Topics: 2');
     $response->assertSee('Materials: 1');
     $response->assertDontSee('Learning Objectives: 0');

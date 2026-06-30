@@ -122,7 +122,7 @@
 
             @if(array_sum($result->match_stats) > 0)
                 <div class="course-match-stats mb-2">
-                    <span>Matched in this course:</span>
+                    <span>Found in:</span>
 
                     @if($result->match_stats['topics'] > 0)
                         <span class="ms-2">Topics: {{ $result->match_stats['topics'] }}</span>
@@ -148,8 +148,10 @@
 
             @foreach($result->matches->take(3) as $match)
                 <div class="search-result-match">
-                    <p class="small text-muted">Matched in: {{ $match->property }}</p>
-                    <p>{!! $match->snippet !!}</p>
+                    <p>
+                        <strong>{{ $match->property === 'learning outcome' ? 'Learning Objective' : ucfirst($match->property) }}:</strong>
+                        {!! $match->snippet !!}
+                    </p>
                 </div>
             @endforeach
 
@@ -160,8 +162,10 @@
                     <div class="mt-2">
                         @foreach($result->matches->slice(3) as $match)
                             <div class="search-result-match">
-                                <p class="small text-muted">Matched in: {{ $match->property }}</p>
-                                <p>{!! $match->snippet !!}</p>
+                                <p>
+                                    <strong>{{ $match->property === 'learning outcome' ? 'Learning Objective' : ucfirst($match->property) }}:</strong>
+                                    {!! $match->snippet !!}
+                                </p>
                             </div>
                         @endforeach
                     </div>
