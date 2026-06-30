@@ -23,6 +23,7 @@ class SearchController extends Controller
 
         $results = collect();
         $programMatches = collect();
+        $programResults = collect();
         $stats =  [
             'courses' => 0,
             'programs' => 0,
@@ -38,6 +39,7 @@ class SearchController extends Controller
             $results = $resultsAndStats['results'];
             $stats = $resultsAndStats['stats'];
             $programMatches = $this->searchProgramNames($searchTerm);
+            $programResults = $this->groupCourseResultsByProgram($results, $programMatches);
 
         }
 
@@ -50,6 +52,7 @@ class SearchController extends Controller
             'stats' => $stats,
             'selectedView' => $selectedView,
             'programMatches' => $programMatches,
+            'programResults' => $programResults,
         ]);
 }
 
@@ -282,6 +285,41 @@ class SearchController extends Controller
             ->get();
 
         return $results;
+    }
+
+    public function groupCourseResultsByProgram(Collection $courseResults, Collection $programMatches): Collection
+    {
+        $programResults = collect();
+
+        foreach ($programMatches as $match) {
+            $programResults[$match->program_id] = (object) [
+                'program_id' => $match->program_id,
+                'program' => $match->program,
+                'program_match_snippet' => $match->snippet,
+                'is_program_match' => true,
+                'courses' => collect(),
+            ];
+        }
+
+        foreach ($courseResults as $course) {
+            foreach ($course->programs as $program) {
+                if (!$programResults->has($program->program_id)) {
+                    $programResults[$program->program_id] = (object) [
+                        'program_id' => $program->program_id,
+                        'program' => $program->program,
+                        'program_match_snippet' => null,
+                        'is_program_match' => false,
+                        'courses' => collect(),
+                    ];
+                }
+
+                $programResults[$program->program_id]->courses->push($course);
+            }
+        }
+
+        return $programResults
+            ->sortByDesc('is_program_match')
+            ->values();
     }
 
     public function combineMatchesByCourse(Collection $matches): Collection{

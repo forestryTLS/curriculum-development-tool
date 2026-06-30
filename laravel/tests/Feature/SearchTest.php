@@ -1014,4 +1014,48 @@ public function test_search_finds_program_directly_by_name()
     $this->assertStringContainsString('<mark>Quasar</mark>', $programMatches->first()->snippet);
 }
 
+public function test_search_groups_matching_courses_under_their_program()
+{
+    $this->createCourseScaleCategory();
+
+    $programId = DB::table('programs')->insertGetId([
+        'program' => 'Quantum Studies',
+        'level' => 'Bachelors',
+        'status' => 1,
+        'created_at' => now(),
+        'updated_at' => now(),
+    ], 'program_id');
+
+    $course = Course::factory()->create([
+        'course_code' => 'TEST',
+        'course_num' => 904,
+        'course_title' => 'Quantum Course',
+    ]);
+
+    CourseTopic::factory()->create([
+        'course_id' => $course->course_id,
+        'topic' => 'Quantum systems and applications',
+    ]);
+
+    DB::table('course_programs')->insert([
+        'course_id' => $course->course_id,
+        'program_id' => $programId,
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    $response = $this->get(route('search.index', [
+        'query' => 'quantum',
+        'view' => 'programs',
+    ]));
+
+    $programResults = $response->viewData('programResults');
+
+    $response->assertStatus(200);
+    $this->assertCount(1, $programResults);
+    $this->assertTrue($programResults->first()->is_program_match);
+    $this->assertCount(1, $programResults->first()->courses);
+    $this->assertSame($course->course_id, $programResults->first()->courses->first()->course_id);
+}
+
 }
