@@ -22,6 +22,7 @@ class SearchController extends Controller
         $selectedView = $validated['view'] ?? 'courses';
 
         $results = collect();
+        $programMatches = collect();
         $stats =  [
             'courses' => 0,
             'programs' => 0,
@@ -36,6 +37,7 @@ class SearchController extends Controller
             $resultsAndStats = $this->searchCourses($searchTerm);
             $results = $resultsAndStats['results'];
             $stats = $resultsAndStats['stats'];
+            $programMatches = $this->searchProgramNames($searchTerm);
 
         }
 
@@ -47,6 +49,7 @@ class SearchController extends Controller
             'results' => $results,
             'stats' => $stats,
             'selectedView' => $selectedView,
+            'programMatches' => $programMatches,
         ]);
 }
 
@@ -253,6 +256,29 @@ class SearchController extends Controller
                     'StartSel=<mark>, StopSel=</mark>, MaxFragments=2, MinWords=4, MaxWords=20'
                 ) as snippet
             ", [$normalizedSearchTerm])
+            ->get();
+
+        return $results;
+    }
+
+    public function searchProgramNames(string $searchTerm){
+        $results = DB::table('programs')
+            ->whereRaw(
+                "to_tsvector('english', programs.program) @@ websearch_to_tsquery('english', ?)",
+                [$searchTerm]
+            )
+            ->selectRaw("
+                programs.program_id,
+                programs.program,
+                'program' as property,
+                programs.program as matched_text,
+                ts_headline(
+                    'english',
+                    programs.program,
+                    websearch_to_tsquery('english', ?),
+                    'StartSel=<mark>, StopSel=</mark>, MaxFragments=2, MinWords=1, MaxWords=20'
+                ) as snippet
+            ", [$searchTerm])
             ->get();
 
         return $results;

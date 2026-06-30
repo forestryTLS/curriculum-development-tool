@@ -981,5 +981,37 @@ public function test_search_stats_count_distinct_programs()
     $response->assertSee('Courses: 2');
     $response->assertSee('Programs: 2');
 }
-    
+
+public function test_search_finds_program_directly_by_name()
+{
+    $matchingProgramId = DB::table('programs')->insertGetId([
+        'program' => 'Quasar Studies',
+        'level' => 'Bachelors',
+        'status' => 1,
+        'created_at' => now(),
+        'updated_at' => now(),
+    ], 'program_id');
+
+    DB::table('programs')->insert([
+        'program' => 'Marine Biology',
+        'level' => 'Bachelors',
+        'status' => 1,
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    $response = $this->get(route('search.index', [
+        'query' => 'quasar',
+        'view' => 'programs',
+    ]));
+
+    $programMatches = $response->viewData('programMatches');
+
+    $response->assertStatus(200);
+    $this->assertCount(1, $programMatches);
+    $this->assertSame($matchingProgramId, $programMatches->first()->program_id);
+    $this->assertSame('Quasar Studies', $programMatches->first()->matched_text);
+    $this->assertStringContainsString('<mark>Quasar</mark>', $programMatches->first()->snippet);
+}
+
 }
