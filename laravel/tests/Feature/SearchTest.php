@@ -29,10 +29,30 @@ class SearchTest extends TestCase
     public function test_search_page_loads_without_query(){
         $response = $this->get(route('search.index'));
         $response->assertStatus(200);
+        $response->assertViewHas('selectedView', 'courses');
         $response->assertSee('Course Search');
         $response->assertSee('Search settings');
         $response->assertSee('Courses');
         $response->assertSee('Programs');
+    }
+
+    public function test_program_view_selection_is_preserved(){
+        $response = $this->get(route('search.index', [
+            'view' => 'programs',
+        ]));
+
+        $response->assertStatus(200);
+        $response->assertViewHas('selectedView', 'programs');
+        $response->assertSee('value="programs" checked', false);
+    }
+
+    public function test_invalid_search_view_is_rejected(){
+        $response = $this->from(route('search.index'))->get(route('search.index', [
+            'view' => 'invalid',
+        ]));
+
+        $response->assertRedirect(route('search.index'));
+        $response->assertSessionHasErrors('view');
     }
 
     public function test_search_page_displays_query(){

@@ -11,15 +11,15 @@ class SearchController extends Controller
 
 {
     public function index(Request $request){
-        $searchTerm = trim($request->input('query', ''));
-
         $validated = $request->validate([
             'query' => ['nullable', 'string', 'max:200'],
-        ]); //a query could be missing or empty. If it exists, it must be a string. Max 200 characters long.
+            'view' => ['nullable', 'in:courses,programs'],
+        ]); // The query is optional, and the result view must be one of the supported options.
 
         $searchTerm = $validated['query'] ?? '';
         $searchTerm = trim($searchTerm);
         $searchTerm = preg_replace('/\s+/', ' ', $searchTerm); #for normalizing internal whitepace
+        $selectedView = $validated['view'] ?? 'courses';
 
         $results = collect();
         $stats =  [
@@ -46,6 +46,7 @@ class SearchController extends Controller
             'searchTerm' => $searchTerm,
             'results' => $results,
             'stats' => $stats,
+            'selectedView' => $selectedView,
         ]);
 }
 

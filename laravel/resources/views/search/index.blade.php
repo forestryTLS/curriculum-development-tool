@@ -117,12 +117,12 @@
                     <div class="search-filter-heading">View</div>
 
                     <div class="btn-group w-100 search-view-toggle" role="group" aria-label="Search result view">
-                        <input type="radio" class="btn-check" name="view" id="courseView" value="courses" checked autocomplete="off">
+                        <input type="radio" class="btn-check" name="view" id="courseView" value="courses" @checked($selectedView === 'courses') autocomplete="off">
                         <label class="btn btn-outline-primary" for="courseView">
                             <i class="bi bi-journal-text me-1"></i> Courses
                         </label>
 
-                        <input type="radio" class="btn-check" name="view" id="programView" value="programs" autocomplete="off">
+                        <input type="radio" class="btn-check" name="view" id="programView" value="programs" @checked($selectedView === 'programs') autocomplete="off">
                         <label class="btn btn-outline-primary" for="programView">
                             <i class="bi bi-diagram-3 me-1"></i> Programs
                         </label>
