@@ -78,6 +78,7 @@ it('creates a course and program via the UI and renders AI suggestion icons end-
     $page->click('a.btn.btn-secondary[href$="/programWizard/' . $program->program_id . '/step3"]')
         ->click('[data-bs-target="#addCourseModal"]')
         ->check('input[name="selectedCourses[]"][value="' . $course->course_id . '"]')
+        ->hover('button[form="addExistCourse"]')
         ->pressAndWaitFor('button[form="addExistCourse"]', 3);
 
     $page->navigate("/courseWizard/{$course->course_id}/step5")
