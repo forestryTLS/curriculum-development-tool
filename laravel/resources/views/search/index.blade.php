@@ -82,6 +82,12 @@
             font-size: 0.9rem;
         }
 
+        .program-course-result {
+            margin-left: 1rem;
+            padding: 0.75rem 0;
+            border-top: 1px solid #dee2e6;
+        }
+
         mark {
             padding: 0.1rem 0.2rem;
         }
@@ -167,72 +173,117 @@
                 <span class="mx-2">|</span><span>Materials: {{ $stats['materials'] }}</span>
             @endif
         </div>
-    @elseif($searchTerm !== '')
+    @elseif($searchTerm !== '' && (($selectedView === 'courses' && $results->isEmpty()) || ($selectedView === 'programs' && $programResults->isEmpty())))
         <p class="text-center">No matches found.</p>
     @endif
 
+    @if($selectedView === 'courses')
+        @foreach($results as $result)
+            <div class="border-bottom py-3">
+                @if($result->course_match_snippet)
+                    <h3 class="mb-1">{!! $result->course_match_snippet !!}</h3>
+                @else
+                    <h3 class="mb-1">{{ $result->course_code }} {{ $result->course_num }}: {{ $result->course_title }}</h3>
+                @endif
 
+                @if($result->programs->isNotEmpty())
+                    <div class="small mb-2">
+                        <span class="text-muted">Programs:</span>
+                        @foreach($result->programs as $program)
+                            <a href="{{ route('programWizard.step1', $program->program_id) }}">{{ $program->program }}</a>@if(!$loop->last), @endif
+                        @endforeach
+                    </div>
+                @endif
 
+                @if(array_sum($result->match_stats) > 0)
+                    <div class="course-match-stats mb-2">
+                        <span>Found in:</span>
 
-    @foreach($results as $result)
-        
-        <div class="border-bottom py-3">
-            @if($result->course_match_snippet)
-                <h3 class="mb-1">{!! $result->course_match_snippet !!}</h3>
-            @else
-                <h3 class="mb-1">{{ $result->course_code }} {{ $result->course_num }}: {{ $result->course_title }}</h3>
-            @endif
+                        @if($result->match_stats['topics'] > 0)
+                            <span class="ms-2">Topics: {{ $result->match_stats['topics'] }}</span>
+                        @endif
 
-            @if($result->programs->isNotEmpty())
-                <div class="small mb-2">
-                    <span class="text-muted">Programs:</span>
-                    @foreach($result->programs as $program)
-                        <a href="{{ route('programWizard.step1', $program->program_id) }}">{{ $program->program }}</a>@if(!$loop->last), @endif
-                    @endforeach
+                        @if($result->match_stats['learning_outcomes'] > 0)
+                            <span class="ms-2">Learning Objectives: {{ $result->match_stats['learning_outcomes'] }}</span>
+                        @endif
+
+                        @if($result->match_stats['assessments'] > 0)
+                            <span class="ms-2">Assessments: {{ $result->match_stats['assessments'] }}</span>
+                        @endif
+
+                        @if($result->match_stats['descriptions'] > 0)
+                            <span class="ms-2">Descriptions: {{ $result->match_stats['descriptions'] }}</span>
+                        @endif
+
+                        @if($result->match_stats['materials'] > 0)
+                            <span class="ms-2">Materials: {{ $result->match_stats['materials'] }}</span>
+                        @endif
+                    </div>
+                @endif
+
+                @foreach($result->matches->take(3) as $match)
+                    <div class="search-result-match">
+                        <p>
+                            <strong>{{ $match->property === 'learning outcome' ? 'Learning Objective' : ucfirst($match->property) }}:</strong>
+                            {!! $match->snippet !!}
+                        </p>
+                    </div>
+                @endforeach
+
+                @if($result->matches->count() > 3)
+                    <details class="search-extra-matches">
+                        <summary>Show {{ $result->matches->count() - 3 }} more matches...</summary>
+
+                        <div class="mt-2">
+                            @foreach($result->matches->slice(3) as $match)
+                                <div class="search-result-match">
+                                    <p>
+                                        <strong>{{ $match->property === 'learning outcome' ? 'Learning Objective' : ucfirst($match->property) }}:</strong>
+                                        {!! $match->snippet !!}
+                                    </p>
+                                </div>
+                            @endforeach
+                        </div>
+                    </details>
+                @endif
+            </div>
+        @endforeach
+
+        @if($results->hasPages())
+            <div class="mt-4 d-flex justify-content-center">
+                {{ $results->links() }}
+            </div>
+        @endif
+    @else
+        @foreach($programResults as $programResult)
+            <div class="border-bottom py-3">
+                <h3 class="mb-1">
+                    <a href="{{ route('programWizard.step1', $programResult->program_id) }}">
+                        @if($programResult->program_match_snippet)
+                            {!! $programResult->program_match_snippet !!}
+                        @else
+                            {{ $programResult->program }}
+                        @endif
+                    </a>
+                </h3>
+
+                <div class="small text-muted mb-2">
+                    Matching courses: {{ $programResult->courses->count() }}
                 </div>
-            @endif
 
-            @if(array_sum($result->match_stats) > 0)
-                <div class="course-match-stats mb-2">
-                    <span>Found in:</span>
+                @foreach($programResult->courses as $course)
+                    <div class="program-course-result">
+                        <h5 class="mb-2">
+                            <a href="{{ route('courseWizard.step1', $course->course_id) }}">
+                                @if($course->course_match_snippet)
+                                    {!! $course->course_match_snippet !!}
+                                @else
+                                    {{ $course->course_code }} {{ $course->course_num }}: {{ $course->course_title }}
+                                @endif
+                            </a>
+                        </h5>
 
-                    @if($result->match_stats['topics'] > 0)
-                        <span class="ms-2">Topics: {{ $result->match_stats['topics'] }}</span>
-                    @endif
-
-                    @if($result->match_stats['learning_outcomes'] > 0)
-                        <span class="ms-2">Learning Objectives: {{ $result->match_stats['learning_outcomes'] }}</span>
-                    @endif
-
-                    @if($result->match_stats['assessments'] > 0)
-                        <span class="ms-2">Assessments: {{ $result->match_stats['assessments'] }}</span>
-                    @endif
-
-                    @if($result->match_stats['descriptions'] > 0)
-                        <span class="ms-2">Descriptions: {{ $result->match_stats['descriptions'] }}</span>
-                    @endif
-
-                    @if($result->match_stats['materials'] > 0)
-                        <span class="ms-2">Materials: {{ $result->match_stats['materials'] }}</span>
-                    @endif
-                </div>
-            @endif
-
-            @foreach($result->matches->take(3) as $match)
-                <div class="search-result-match">
-                    <p>
-                        <strong>{{ $match->property === 'learning outcome' ? 'Learning Objective' : ucfirst($match->property) }}:</strong>
-                        {!! $match->snippet !!}
-                    </p>
-                </div>
-            @endforeach
-
-            @if($result->matches->count() > 3)
-                <details class="search-extra-matches">
-                    <summary>Show {{ $result->matches->count() - 3 }} more matches...</summary>
-
-                    <div class="mt-2">
-                        @foreach($result->matches->slice(3) as $match)
+                        @foreach($course->matches->take(3) as $match)
                             <div class="search-result-match">
                                 <p>
                                     <strong>{{ $match->property === 'learning outcome' ? 'Learning Objective' : ucfirst($match->property) }}:</strong>
@@ -240,15 +291,26 @@
                                 </p>
                             </div>
                         @endforeach
-                    </div>
-                </details>
-            @endif
-        </div>
-    @endforeach
 
-    @if($results->hasPages())
-        <div class="mt-4 d-flex justify-content-center">
-            {{ $results->links() }}
-        </div>
+                        @if($course->matches->count() > 3)
+                            <details class="search-extra-matches">
+                                <summary>Show {{ $course->matches->count() - 3 }} more matches...</summary>
+
+                                <div class="mt-2">
+                                    @foreach($course->matches->slice(3) as $match)
+                                        <div class="search-result-match">
+                                            <p>
+                                                <strong>{{ $match->property === 'learning outcome' ? 'Learning Objective' : ucfirst($match->property) }}:</strong>
+                                                {!! $match->snippet !!}
+                                            </p>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </details>
+                        @endif
+                    </div>
+                @endforeach
+            </div>
+        @endforeach
     @endif
 @endsection

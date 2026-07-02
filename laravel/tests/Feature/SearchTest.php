@@ -1012,6 +1012,8 @@ public function test_search_finds_program_directly_by_name()
     $this->assertSame($matchingProgramId, $programMatches->first()->program_id);
     $this->assertSame('Quasar Studies', $programMatches->first()->matched_text);
     $this->assertStringContainsString('<mark>Quasar</mark>', $programMatches->first()->snippet);
+    $response->assertSee('<mark>Quasar</mark>', false);
+    $response->assertSee(route('programWizard.step1', $matchingProgramId));
 }
 
 public function test_search_groups_matching_courses_under_their_program()
@@ -1056,6 +1058,8 @@ public function test_search_groups_matching_courses_under_their_program()
     $this->assertTrue($programResults->first()->is_program_match);
     $this->assertCount(1, $programResults->first()->courses);
     $this->assertSame($course->course_id, $programResults->first()->courses->first()->course_id);
+    $response->assertSee('Matching courses: 1');
+    $response->assertSee(route('courseWizard.step1', $course->course_id));
 }
 
 }
